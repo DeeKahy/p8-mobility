@@ -1,5 +1,7 @@
-import { useState, useRef } from 'react';
+import { CameraView, useCameraPermissions } from 'expo-camera';
+import * as ImagePicker from 'expo-image-picker';
 import { StatusBar } from 'expo-status-bar';
+import { useState, useRef } from 'react';
 import {
   StyleSheet,
   Text,
@@ -10,10 +12,7 @@ import {
   ScrollView,
   Pressable,
   Dimensions,
-  Button,
 } from 'react-native';
-import { CameraView, useCameraPermissions } from 'expo-camera';
-import * as ImagePicker from 'expo-image-picker';
 
 interface Marker {
   id: string;
@@ -26,7 +25,10 @@ export default function App() {
   const [floorPlan, setFloorPlan] = useState<string | null>(null);
   const [markers, setMarkers] = useState<Marker[]>([]);
   const [selectedMarker, setSelectedMarker] = useState<Marker | null>(null);
-  const [newMarkerPosition, setNewMarkerPosition] = useState<{ x: number; y: number } | null>(null);
+  const [newMarkerPosition, setNewMarkerPosition] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
   const [showCamera, setShowCamera] = useState(false);
   const [showPhotos, setShowPhotos] = useState(false);
   const [showMarkerOptions, setShowMarkerOptions] = useState(false);
@@ -55,9 +57,9 @@ export default function App() {
 
   const handleCanvasPress = (event: any) => {
     if (!floorPlan) return;
-    
+
     const { locationX, locationY } = event.nativeEvent;
-    
+
     // Check if tapped on existing marker (within 30px radius)
     const existingMarker = markers.find(
       (m) => Math.abs(m.x - locationX) < 30 && Math.abs(m.y - locationY) < 30
@@ -84,7 +86,7 @@ export default function App() {
   const addPhotoToMarker = (photoUri: string) => {
     const position = newMarkerPositionRef.current;
     const marker = selectedMarkerRef.current;
-    
+
     if (position) {
       // Creating new marker with first photo
       const newMarker: Marker = {
@@ -99,9 +101,7 @@ export default function App() {
       // Adding photo to existing marker
       setMarkers((prev) =>
         prev.map((m) =>
-          m.id === marker.id
-            ? { ...m, photos: [...m.photos, photoUri] }
-            : m
+          m.id === marker.id ? { ...m, photos: [...m.photos, photoUri] } : m
         )
       );
       setSelectedMarker({ ...marker, photos: [...marker.photos, photoUri] });
@@ -146,7 +146,9 @@ export default function App() {
 
   const handleDeletePhoto = (photoIndex: number) => {
     if (selectedMarker) {
-      const updatedPhotos = selectedMarker.photos.filter((_, i) => i !== photoIndex);
+      const updatedPhotos = selectedMarker.photos.filter(
+        (_, i) => i !== photoIndex
+      );
       if (updatedPhotos.length === 0) {
         // Remove marker if no photos left
         setMarkers(markers.filter((m) => m.id !== selectedMarker.id));
@@ -186,20 +188,21 @@ export default function App() {
     setShowNewMarkerOptions(false);
   };
 
-  const clearFloorPlan = () => {
-    setFloorPlan(null);
-    setMarkers([]);
-  };
-
   if (showCamera) {
     return (
       <View style={styles.cameraContainer}>
         <CameraView style={styles.camera} ref={cameraRef}>
           <View style={styles.cameraButtons}>
-            <TouchableOpacity style={styles.cancelButton} onPress={() => setShowCamera(false)}>
+            <TouchableOpacity
+              style={styles.cancelButton}
+              onPress={() => setShowCamera(false)}
+            >
               <Text style={styles.buttonText}>Cancel</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.captureButton} onPress={handleTakePhoto}>
+            <TouchableOpacity
+              style={styles.captureButton}
+              onPress={handleTakePhoto}
+            >
               <View style={styles.captureButtonInner} />
             </TouchableOpacity>
             <View style={{ width: 70 }} />
@@ -215,7 +218,9 @@ export default function App() {
       <View style={styles.pickerContainer}>
         <StatusBar style="auto" />
         <Text style={styles.title}>Floor Plan Marker</Text>
-        <Text style={styles.subtitle}>Select a floor plan image to get started</Text>
+        <Text style={styles.subtitle}>
+          Select a floor plan image to get started
+        </Text>
         <TouchableOpacity style={styles.pickButton} onPress={pickFloorPlan}>
           <Text style={styles.pickButtonText}>Select Floor Plan</Text>
         </TouchableOpacity>
@@ -226,7 +231,7 @@ export default function App() {
   return (
     <View style={styles.container}>
       <StatusBar style="auto" />
-      
+
       {/* Header with change floor plan option */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Floor Plan</Text>
@@ -234,16 +239,20 @@ export default function App() {
           <Text style={styles.headerButton}>Change</Text>
         </TouchableOpacity>
       </View>
-      
+
       {/* Floor plan with markers */}
       <Pressable style={styles.canvas} onPress={handleCanvasPress}>
-        <Image source={{ uri: floorPlan }} style={styles.floorPlanImage} resizeMode="contain" />
-        
+        <Image
+          source={{ uri: floorPlan }}
+          style={styles.floorPlanImage}
+          resizeMode="contain"
+        />
+
         {/* Render markers */}
         {markers.map((marker) => (
           <View
             key={marker.id}
-            style={[styles.marker, { left: marker.x, top: marker.y}]}
+            style={[styles.marker, { left: marker.x, top: marker.y }]}
           >
             <View style={styles.markerDot} />
             <Text style={styles.markerCount}>{marker.photos.length}</Text>
@@ -255,7 +264,10 @@ export default function App() {
           <View
             style={[
               styles.popup,
-              { left: newMarkerPosition.x - 82, top: newMarkerPosition.y - 120 },
+              {
+                left: newMarkerPosition.x - 82,
+                top: newMarkerPosition.y - 120,
+              },
             ]}
           >
             <TouchableOpacity
@@ -264,7 +276,10 @@ export default function App() {
             >
               <Text style={styles.popupText}>Add picture for this space?</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.popupCancel} onPress={() => setNewMarkerPosition(null)}>
+            <TouchableOpacity
+              style={styles.popupCancel}
+              onPress={() => setNewMarkerPosition(null)}
+            >
               <Text style={styles.popupCancelText}>Cancel</Text>
             </TouchableOpacity>
             <View style={styles.popupArrow} />
@@ -274,16 +289,31 @@ export default function App() {
 
       {/* New marker options modal */}
       <Modal visible={showNewMarkerOptions} transparent animationType="fade">
-        <Pressable style={styles.modalOverlay} onPress={() => setShowNewMarkerOptions(false)}>
-          <Pressable style={styles.optionsModal} onPress={(e) => e.stopPropagation()}>
+        <Pressable
+          style={styles.modalOverlay}
+          onPress={() => setShowNewMarkerOptions(false)}
+        >
+          <Pressable
+            style={styles.optionsModal}
+            onPress={(e) => e.stopPropagation()}
+          >
             <Text style={styles.optionsTitle}>Add Picture</Text>
-            <TouchableOpacity style={styles.optionButton} onPress={handleTakePictureForNewMarker}>
+            <TouchableOpacity
+              style={styles.optionButton}
+              onPress={handleTakePictureForNewMarker}
+            >
               <Text style={styles.optionText}>Take Photo</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.optionButton} onPress={handlePickFromLibraryForNewMarker}>
+            <TouchableOpacity
+              style={styles.optionButton}
+              onPress={handlePickFromLibraryForNewMarker}
+            >
               <Text style={styles.optionText}>Choose from Library</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.optionCancelButton} onPress={() => setShowNewMarkerOptions(false)}>
+            <TouchableOpacity
+              style={styles.optionCancelButton}
+              onPress={() => setShowNewMarkerOptions(false)}
+            >
               <Text style={styles.optionCancelText}>Cancel</Text>
             </TouchableOpacity>
           </Pressable>
@@ -293,18 +323,35 @@ export default function App() {
       {/* Marker options modal */}
       <Modal visible={showMarkerOptions} transparent animationType="fade">
         <Pressable style={styles.modalOverlay} onPress={closeAllModals}>
-          <Pressable style={styles.optionsModal} onPress={(e) => e.stopPropagation()}>
+          <Pressable
+            style={styles.optionsModal}
+            onPress={(e) => e.stopPropagation()}
+          >
             <Text style={styles.optionsTitle}>Marker Options</Text>
-            <TouchableOpacity style={styles.optionButton} onPress={handleShowPhotos}>
-              <Text style={styles.optionText}>Show Pictures ({selectedMarker?.photos.length})</Text>
+            <TouchableOpacity
+              style={styles.optionButton}
+              onPress={handleShowPhotos}
+            >
+              <Text style={styles.optionText}>
+                Show Pictures ({selectedMarker?.photos.length})
+              </Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.optionButton} onPress={handleTakeAnotherPicture}>
+            <TouchableOpacity
+              style={styles.optionButton}
+              onPress={handleTakeAnotherPicture}
+            >
               <Text style={styles.optionText}>Take Photo</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.optionButton} onPress={handlePickFromLibraryForExistingMarker}>
+            <TouchableOpacity
+              style={styles.optionButton}
+              onPress={handlePickFromLibraryForExistingMarker}
+            >
               <Text style={styles.optionText}>Choose from Library</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.optionCancelButton} onPress={closeAllModals}>
+            <TouchableOpacity
+              style={styles.optionCancelButton}
+              onPress={closeAllModals}
+            >
               <Text style={styles.optionCancelText}>Cancel</Text>
             </TouchableOpacity>
           </Pressable>
@@ -338,12 +385,14 @@ export default function App() {
         </View>
       </Modal>
 
-      <Text style={styles.instructions}>Tap on the floor plan to place a marker</Text>
+      <Text style={styles.instructions}>
+        Tap on the floor plan to place a marker
+      </Text>
     </View>
   );
 }
 
-const { width, height } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 
 const styles = StyleSheet.create({
   container: {
@@ -416,16 +465,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-markerDot: {
-  width: 20,
-  height: 20,
-  borderRadius: 10,
-  backgroundColor: '#FF5722',
-  borderWidth: 3,
-  borderColor: '#fff',
-  transform: [{ translateX: -10 }, { translateY: -10 }],
-  pointerEvents: 'none',
-},
+  markerDot: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#FF5722',
+    borderWidth: 3,
+    borderColor: '#fff',
+    transform: [{ translateX: -10 }, { translateY: -10 }],
+    pointerEvents: 'none',
+  },
   markerCount: {
     position: 'absolute',
     top: -8,
