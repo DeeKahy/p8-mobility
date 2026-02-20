@@ -243,7 +243,7 @@ export default function App() {
         {markers.map((marker) => (
           <View
             key={marker.id}
-            style={[styles.marker, { left: marker.x - 15, top: marker.y - 15 }]}
+            style={[styles.marker, { left: marker.x, top: marker.y}]}
           >
             <View style={styles.markerDot} />
             <Text style={styles.markerCount}>{marker.photos.length}</Text>
@@ -255,7 +255,7 @@ export default function App() {
           <View
             style={[
               styles.popup,
-              { left: newMarkerPosition.x - 90, top: newMarkerPosition.y - 80 },
+              { left: newMarkerPosition.x - 82, top: newMarkerPosition.y - 120 },
             ]}
           >
             <TouchableOpacity
@@ -416,19 +416,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  markerDot: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: '#FF5722',
-    borderWidth: 3,
-    borderColor: '#fff',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 3,
-    elevation: 5,
-  },
+markerDot: {
+  width: 20,
+  height: 20,
+  borderRadius: 10,
+  backgroundColor: '#FF5722',
+  borderWidth: 3,
+  borderColor: '#fff',
+  transform: [{ translateX: -10 }, { translateY: -10 }],
+  pointerEvents: 'none',
+},
   markerCount: {
     position: 'absolute',
     top: -8,
