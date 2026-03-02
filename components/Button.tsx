@@ -29,7 +29,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     borderRadius: 10,
     alignItems: 'center',
-    width:400,
+    width: 400,
   },
   pressed: {
     opacity: 0.7,
