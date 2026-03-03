@@ -37,9 +37,9 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="bug"
+        name="debug"
         options={{
-          title: 'Bug',
+          title: 'deBug',
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="bug" size={size} color={color} />
           ),

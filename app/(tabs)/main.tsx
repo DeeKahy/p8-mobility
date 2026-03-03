@@ -7,7 +7,7 @@ export default function Main() {
   return (
     <View style={{ alignItems: 'center', justifyContent: 'center' }}>
       <View style={{ marginBottom: 40 }} />
-      <HelloCard title="Velkommen Til vores Crazy seje app" subtitle="" />
+      <HelloCard title="Welcome to our very Hygge App" subtitle="" />
       <View style={{ marginBottom: 200 }} />
       <Dropdown selected="My apartments" />
       <View style={{ marginBottom: 40 }} />
