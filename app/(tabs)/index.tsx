@@ -20,8 +20,7 @@ interface Marker {
   y: number;
   photos: string[];
 }
-
-export default function App() {
+export default function HomeScreen() {
   const [floorPlan, setFloorPlan] = useState<string | null>(null);
   const [markers, setMarkers] = useState<Marker[]>([]);
   const [selectedMarker, setSelectedMarker] = useState<Marker | null>(null);
