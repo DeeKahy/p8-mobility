@@ -66,7 +66,6 @@ Run all checks used in CI (type checking, linting, formatting):
 npm run ci:check
 ```
 
-
 ```cmd
 npx expo prebuild --clean
 npx expo run:android
