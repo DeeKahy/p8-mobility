@@ -1,5 +1,10 @@
 import { Stack } from 'expo-router';
+import { LoggerProvider } from '../context/LoggerContext';
 
 export default function RootLayout() {
-  return <Stack screenOptions={{ headerShown: false }} />;
+  return (
+    <LoggerProvider>
+      <Stack screenOptions={{ headerShown: false }} />
+    </LoggerProvider>
+  );
 }
