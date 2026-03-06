@@ -1,35 +1,31 @@
-# How to use Debugger
+# How and when to use Debugger
 
-# Debugger Logging
 
-I debuggeren skal det være muligt at identificere, hvad der skal **logges og debugges**.
+## When errors can happen i could be a good ideer to log the error.
+```javascript
+try {
+  // API CALL
+} catch (error) {
+  logger.debug(`Failed to post data: ${error.message}`, " error ");
+}
+```
 
-## Formål
+## Are you interested in how an object looks?
 
-Debuggeren skal kunne vise:
+```javascript
+const user = {
+  id: 123,
+  name: "Anna",
+  role: "admin"
+};
 
-1. **Eventuelle fejl**
-2. **Logging af hvad der sker i systemet**
+logger.info("User object:", user);
+```
 
-## Eksempler på log events
+## Interested in seeing the proces of things happening?
 
-- Open App  
-- Loading Button component  
-- Calling function with `x` og `y` argumenter  
-- API POST request til server med `x` og `y` argumenter  
-- Returned status code `400`
-
-Alle logs skal vises **pænt formateret med timestamps**, så det er nemt at følge rækkefølgen af events.
-
-## Struktur
-
-Der skal være **to default loggere**, som altid vises øverst på debugging-siden.  
-Disse loggere skal også kunne udvides med yderligere logs.
-
-Efter disse vises **alle custom loggere**.
-
-## UI / Visning
-
-- Hver logger skal vises som en **dropdown / accordion**
-- Indholdet skal kun blive vist, når man **udvider (view) loggeren**
-- Dette gør debugging-siden mere **overskuelig og struktureret**
+```javascript
+logger.info("Starting user creation");
+const user = await createUser(userData);
+logger.info("User created successfully", user);
+```
