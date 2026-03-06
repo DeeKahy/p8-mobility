@@ -33,7 +33,7 @@ export default function Main() {
         onPress={() => console.log('Button pressed')}
       />
       <View style={{ marginBottom: 40 }} />
-      <Button label="Scan Area" onPress={() => console.log('Button pressed')} />
+      <Button label="Scan Area" onPress={() => {console.log('Button pressed') ;logger.debug("butten press","button pressed group")}} />
     </View>
   );
 }

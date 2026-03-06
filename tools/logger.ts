@@ -28,7 +28,7 @@ class Logger {
   private emit(log: LogEntry) {
     this.listeners.forEach((l) => l(log));
   }
-
+// Default loggers that will always be there. Very usefull 
   log(message: string, group = 'default') {
     this.emit({
       id: Date.now().toString(),

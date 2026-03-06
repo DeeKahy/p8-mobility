@@ -2,33 +2,92 @@ import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native';
 import { useLogger } from '../../context/LoggerContext';
 import { useState } from 'react';
 
+type GroupedLogs = Record<string, any[]>;
+
+
+function group_log_by_group(logs: any): { groupedLogs: GroupedLogs } {
+  const groupedLogs: GroupedLogs = {};
+  logs.forEach((logEntry: { group: string; }) => {
+    const groupName = logEntry.group;
+    if (!groupedLogs[groupName]) {// Adds the "group" for example API to the object So  API:[]
+      groupedLogs[groupName] = [];
+    }
+    groupedLogs[groupName].push(logEntry);// Then API :[log entry]
+
+  });
+  return { groupedLogs }
+}
+// Renders all the log entries in a group.
+function renderedLogsf(logsInGroup: any[]) {
+  if (logsInGroup == null) {
+    return 1;
+  }
+  return logsInGroup.map((logEntry: any) => (
+    <View key={logEntry.id} style={styles.logItem} nativeID="log-entry-container">
+      <Text style={styles.time}>
+        {new Date(logEntry.timestamp).toLocaleTimeString()}
+      </Text>
+      <Text style={styles.message}>{logEntry.message}</Text>
+    </View>
+  ));
+}
+
+function renderGroups(
+  logsGroupedByGroup: Record<string, any[]>,
+  openGroups: Record<string, boolean>,
+  toggleGroupVisibility: (groupName: string) => void
+) {
+  return Object.entries(logsGroupedByGroup).map(
+    ([groupName, logsInGroup]) => {
+      const arrow = openGroups[groupName] ? '▼' : '▶';
+
+      let renderedLogs = null;
+
+      if (openGroups[groupName]) {
+        renderedLogs = renderedLogsf(logsInGroup);
+      }
+
+      return (
+        <View
+          key={groupName}
+          style={styles.group}
+          nativeID="Log-group-container"
+        >
+          <Pressable
+            style={styles.groupHeader}
+            onPress={() => toggleGroupVisibility(groupName)}
+          >
+            <Text style={styles.groupTitle}>
+              {arrow} {groupName}
+            </Text>
+          </Pressable>
+
+          {renderedLogs}
+        </View>
+      );
+    }
+  );
+}
+
 export default function Debug() {
   const { logs, clearLogs } = useLogger();
 
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
 
-  const logsGroupedByGroup = logs.reduce(
-    // Reduce is taking every element from logs array and then hands it over to our function. and acumulates it in or groupedLogs.
-    //(Acc, List_element)  
-    (groupedLogs: Record<string, any[]>, logEntry) => {
-      const groupName = logEntry.group;
+  const logsGroupedByGroup = group_log_by_group(logs).groupedLogs
 
-      if (!groupedLogs[groupName]) {// Adds the "group" for example API to the object So  API:[]
-        groupedLogs[groupName] = [];
-      }
-
-      groupedLogs[groupName].push(logEntry);// Then API :[logenentry]
-
-      return groupedLogs;
-    },
-    {}//Original acc Starting "value"  Cant be left empty as developers could no bear to simpel make the default argument ={} idk why
-  );
-
+  // Handles the logic for toggle down. Since we use State to update if its shown or not we cannot simply
+  // Do state = newstate,  As React will notice this as a "newstate" It detects if we reasign to new place in memmory
+  // We therefore needs to return somthing new. witch is why we do Object.assign() and return it.
   const toggleGroupVisibility = (groupName: string) => {
     setOpenGroups((previousState) => {
-      const updatedState = { ...previousState };
+      const updatedState = Object.assign({}, previousState);
 
-      updatedState[groupName] = !previousState[groupName];
+      if (updatedState[groupName] === true) {
+        updatedState[groupName] = false;
+      } else {
+        updatedState[groupName] = true;
+      }
 
       return updatedState;
     });
@@ -37,45 +96,11 @@ export default function Debug() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Debugger</Text>
-
-      <Pressable style={styles.clearButton} onPress={clearLogs}>
+      <Pressable style={styles.clearButton} onPress={clearLogs} nativeID='Button-to-clear-logs'>
         <Text style={styles.clearText}>Clear Logs</Text>
       </Pressable>
-
-      <ScrollView style={styles.logContainer}>
-        {Object.entries(logsGroupedByGroup).map(
-          ([groupName, logsInGroup]: any) => {
-            const arrow = openGroups[groupName] ? '▼' : '▶';
-
-            let renderedLogs = null;
-
-            if (openGroups[groupName]) {
-              renderedLogs = logsInGroup.map((logEntry: any) => (
-                <View key={logEntry.id} style={styles.logItem}>
-                  <Text style={styles.time}>
-                    {new Date(logEntry.timestamp).toLocaleTimeString()}
-                  </Text>
-                  <Text style={styles.message}>{logEntry.message}</Text>
-                </View>
-              ));
-            }
-
-            return (
-              <View key={groupName} style={styles.group}>
-                <Pressable
-                  style={styles.groupHeader}
-                  onPress={() => toggleGroupVisibility(groupName)}
-                >
-                  <Text style={styles.groupTitle}>
-                    {arrow} {groupName}
-                  </Text>
-                </Pressable>
-
-                {renderedLogs}
-              </View>
-            );
-          }
-        )}
+      <ScrollView style={styles.logContainer} nativeID='Log group container'>
+        {renderGroups(logsGroupedByGroup, openGroups, toggleGroupVisibility)}
       </ScrollView>
     </View>
   );
