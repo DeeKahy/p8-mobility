@@ -39,7 +39,12 @@ function renderGroups(
 ) {
   return Object.entries(logsGroupedByGroup).map(
     ([groupName, logsInGroup]) => {
-      const arrow = openGroups[groupName] ? '▼' : '▶';
+      let arrow;
+      if (openGroups[groupName]) {
+        arrow = '▼';
+      } else {
+        arrow = '▶';
+      }
 
       let renderedLogs = null;
 

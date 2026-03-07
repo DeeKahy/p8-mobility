@@ -9,7 +9,7 @@ export type LogLevel = 'info' | 'error' | 'debug';
  * which then allows the Debug screen to display them.
  */
 export interface LogEntry {
-  id: string;
+  id: string;// 0 Real use but maybe we want it in the futures
   message: string;
   level: LogLevel;
   timestamp: number;
@@ -19,6 +19,8 @@ export interface LogEntry {
 type Listener = (log: LogEntry) => void;
 
 class Logger {
+  // We Add listerners and Emiters to the logger class. 
+  // Now then every time the logger.(anything) is called an event is then being invoked
   private listeners: Listener[] = [];
 
   subscribe(listener: Listener) {

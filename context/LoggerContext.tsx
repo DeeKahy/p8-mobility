@@ -17,20 +17,21 @@ interface LoggerContextType {
   logs: LogEntry[];
   clearLogs: () => void;
 }
-
+  // Default values for our LogEntry object. 
 const LoggerContext = createContext<LoggerContextType>({
   logs: [],
   clearLogs: () => {},
 });
-
+// This is our Wrapper we create
 export const LoggerProvider = ({ children }: any) => {
+  // Our Semi Global state that holds all logs
   const [logs, setLogs] = useState<LogEntry[]>([]);
 
   useEffect(() => {
-    logger.subscribe((log) => {
-      setLogs((prev) => [log, ...prev]);
+    logger.subscribe((log) => {// Callback function we call 
+      setLogs((prev) => [log, ...prev]);// Updates log when event
     });
-  }, []);
+  }, []);// Tells react only to Run this once. 
 
   const clearLogs = () => {
     setLogs([]);
