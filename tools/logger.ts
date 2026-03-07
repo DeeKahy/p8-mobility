@@ -3,13 +3,13 @@ export type LogLevel = 'info' | 'error' | 'debug';
  * This logger is used to create debug logs that can be viewed in the
  * Debug screen inside the application.
  *
- * The logger works by emitting log events to subscribed listeners. 
+ * The logger works by emitting log events to subscribed listeners.
  * This means that we are using EVENTS witch are global :D, Bascily what we did in c#
  * The LoggerContext subscribes to these events and stores them in React state,
  * which then allows the Debug screen to display them.
  */
 export interface LogEntry {
-  id: string;// 0 Real use but maybe we want it in the futures
+  id: string; // 0 Real use but maybe we want it in the futures
   message: string;
   level: LogLevel;
   timestamp: number;
@@ -19,7 +19,7 @@ export interface LogEntry {
 type Listener = (log: LogEntry) => void;
 
 class Logger {
-  // We Add listerners and Emiters to the logger class. 
+  // We Add listerners and Emiters to the logger class.
   // Now then every time the logger.(anything) is called an event is then being invoked
   private listeners: Listener[] = [];
 
@@ -30,7 +30,7 @@ class Logger {
   private emit(log: LogEntry) {
     this.listeners.forEach((l) => l(log));
   }
-// Default loggers that will always be there. Very usefull 
+  // Default loggers that will always be there. Very usefull
   log(message: string, group = 'default') {
     this.emit({
       id: Date.now().toString(),

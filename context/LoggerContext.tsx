@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
+
 import { logger, LogEntry } from '../tools/logger';
 /**
  * This context is responsible for storing all logs created by the global logger.
@@ -8,7 +9,7 @@ import { logger, LogEntry } from '../tools/logger';
  * logger.ts  ---> emits logs
  * LoggerContext ---> listens and stores logs
  * Debug screen ---> reads logs and displays them
- * 
+ *
  * Whenever a log is emitted, it updates the logs state.
  *
  * Components inside the app can access the logs using the useLogger() hook.
@@ -17,7 +18,7 @@ interface LoggerContextType {
   logs: LogEntry[];
   clearLogs: () => void;
 }
-  // Default values for our LogEntry object. 
+// Default values for our LogEntry object.
 const LoggerContext = createContext<LoggerContextType>({
   logs: [],
   clearLogs: () => {},
@@ -28,10 +29,11 @@ export const LoggerProvider = ({ children }: any) => {
   const [logs, setLogs] = useState<LogEntry[]>([]);
 
   useEffect(() => {
-    logger.subscribe((log) => {// Callback function we call 
-      setLogs((prev) => [log, ...prev]);// Updates log when event
+    logger.subscribe((log) => {
+      // Callback function we call
+      setLogs((prev) => [log, ...prev]); // Updates log when event
     });
-  }, []);// Tells react only to Run this once. 
+  }, []); // Tells react only to Run this once.
 
   const clearLogs = () => {
     setLogs([]);

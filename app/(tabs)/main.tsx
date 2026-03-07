@@ -1,24 +1,23 @@
+import { useEffect } from 'react';
 import { View } from 'react-native';
 
 import Button from '../../components/Button';
 import Dropdown from '../../components/Dropdown';
 import HelloCard from '../../components/HelloCard';
-import { useEffect } from 'react';
-
 import { logger } from '../../tools/logger';
 // Lavet så den kan kaldes over alt i projectet
 
 export default function Main() {
-    useEffect(() => {
+  useEffect(() => {
     /**
      * # Eksempel use of logger
-     * Basicly it does not make a difference if you are using, .log .debug .error og .log. 
+     * Basicly it does not make a difference if you are using, .log .debug .error og .log.
      * Its for code readbility,  So you can clearly state what you are trying to log.
      * ("Message that will come up in the log", Group it will be displayed in) <--- Parameter example
      */
-    logger.debug("Loading Button component", "components");
-    logger.error("Returned status code 400", "api");
-    logger.log("Retuned error at main", "main screen");
+    logger.debug('Loading Button component', 'components');
+    logger.error('Returned status code 400', 'api');
+    logger.log('Retuned error at main', 'main screen');
   }, []);
   return (
     <View style={{ alignItems: 'center', justifyContent: 'center' }}>
@@ -33,7 +32,13 @@ export default function Main() {
         onPress={() => console.log('Button pressed')}
       />
       <View style={{ marginBottom: 40 }} />
-      <Button label="Scan Area" onPress={() => {console.log('Button pressed') ;logger.debug("butten press","button pressed group")}} />
+      <Button
+        label="Scan Area"
+        onPress={() => {
+          console.log('Button pressed');
+          logger.debug('butten press', 'button pressed group');
+        }}
+      />
     </View>
   );
 }
