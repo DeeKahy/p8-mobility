@@ -7,7 +7,7 @@ import HelloCard from '../../components/HelloCard';
 import { useLogger } from '../../context/LoggerContext';
 
 export default function Main() {
-  const { log, error, debug, custom } = useLogger();
+  const { log, error, debug} = useLogger();
 
   useEffect(() => {
     debug('Loading Button component');
