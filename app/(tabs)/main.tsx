@@ -36,7 +36,6 @@ export default function Main() {
         label="Scan Area"
         onPress={() => {
           console.log('Button pressed');
-          custom('Button press', 'custom group');
         }}
       />
     </View>
