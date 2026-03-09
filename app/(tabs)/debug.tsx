@@ -80,9 +80,7 @@ export default function Debug() {
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
 
   const logsGroupedByGroup = groupLogsByGroup(logs);
-  // Handles the logic for toggle down. Since we use State to update if its shown or not we cannot simply
-  // Do state = newstate,  As React will notice this as a "newstate" It detects if we reasign to new place in memmory
-  // We therefore needs to return somthing new. witch is why we do Object.assign() and return it.
+// Handles the logic for toggle down. Since we use State to update if it's shown or not, we cannot simply do state = newState, as React will notice this as a "newState". It detects if we reassign to a new place in memory. We therefore need to return something new, which is why we do Object.assign() and return it.
   const toggleGroupVisibility = (groupName: string) => {
     setOpenGroups((previousState) => {
       const updatedState = Object.assign({}, previousState);

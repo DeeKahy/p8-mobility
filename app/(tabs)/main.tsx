@@ -27,7 +27,6 @@ export default function Main() {
         label="Upload new floor plan"
         onPress={() => {
           console.log('Button pressed');
-          custom('Upload new floor plan button pressed', 'buttons');
         }}
       />
 
