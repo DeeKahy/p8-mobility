@@ -1,62 +1,65 @@
 import { useState } from 'react';
 import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native';
+import { useLogger, type LogEntry } from '../../context/LoggerContext';
 
-import { useLogger } from '../../context/LoggerContext';
+type GroupedLogs = Record<string, LogEntry[]>;
 
-type GroupedLogs = Record<string, any[]>;
-
-function group_log_by_group(logs: any): { groupedLogs: GroupedLogs } {
+function groupLogsByGroup(logs: LogEntry[]): GroupedLogs {
   const groupedLogs: GroupedLogs = {};
-  logs.forEach((logEntry: { group: string }) => {
-    const groupName = logEntry.group;
-    if (!groupedLogs[groupName]) {
-      // Adds the "group" for example API to the object So  API:[]
-      groupedLogs[groupName] = [];
+  // Adds the "group" for example API to the object So  API:[]
+  logs.forEach((logEntry) => {
+    if (!groupedLogs[logEntry.group]) {
+      groupedLogs[logEntry.group] = [];
     }
-    groupedLogs[groupName].push(logEntry); // Then API :[log entry]
+
+    groupedLogs[logEntry.group].push(logEntry);// Then API :[log entry]
   });
-  return { groupedLogs };
+
+  return groupedLogs;
 }
 // Renders all the log entries in a group.
-function renderedLogsf(logsInGroup: any[]) {
-  if (logsInGroup == null) {
-    return 1;
-  }
-  return logsInGroup.map((logEntry: any) => (
-    <View
-      key={logEntry.id}
-      style={styles.logItem}
-      nativeID="log-entry-container"
-    >
-      <Text style={styles.time}>
-        {new Date(logEntry.timestamp).toLocaleTimeString()}
-      </Text>
-      <Text style={styles.message}>{logEntry.message}</Text>
-    </View>
-  ));
-}
+function renderLogs(logsInGroup: LogEntry[]) {
+  const renderedLogs: React.ReactNode[] = [];
 
+  logsInGroup.forEach((logEntry) => {
+    renderedLogs.push(
+      <View key={logEntry.id} style={styles.logItem} nativeID="log-entry-container">
+        <Text style={styles.time}>
+          {new Date(logEntry.timestamp).toLocaleTimeString()}
+        </Text>
+        <Text style={styles.message}>{logEntry.message}</Text>
+      </View>
+    );
+  });
+
+  return renderedLogs;
+}
+// Renders ALl the groups
 function renderGroups(
-  logsGroupedByGroup: Record<string, any[]>,
+  logsGroupedByGroup: GroupedLogs,
   openGroups: Record<string, boolean>,
   toggleGroupVisibility: (groupName: string) => void
 ) {
   return Object.entries(logsGroupedByGroup).map(([groupName, logsInGroup]) => {
+
     let arrow;
     if (openGroups[groupName]) {
       arrow = '▼';
     } else {
       arrow = '▶';
     }
-
     let renderedLogs = null;
 
     if (openGroups[groupName]) {
-      renderedLogs = renderedLogsf(logsInGroup);
+      renderedLogs = renderLogs(logsInGroup);
     }
-
+    
     return (
-      <View key={groupName} style={styles.group} nativeID="Log-group-container">
+      <View
+        key={groupName}
+        style={styles.group}
+        nativeID="Log-group-container"
+      >
         <Pressable
           style={styles.groupHeader}
           onPress={() => toggleGroupVisibility(groupName)}
@@ -74,11 +77,9 @@ function renderGroups(
 
 export default function Debug() {
   const { logs, clearLogs } = useLogger();
-
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
 
-  const logsGroupedByGroup = group_log_by_group(logs).groupedLogs;
-
+  const logsGroupedByGroup = groupLogsByGroup(logs);
   // Handles the logic for toggle down. Since we use State to update if its shown or not we cannot simply
   // Do state = newstate,  As React will notice this as a "newstate" It detects if we reasign to new place in memmory
   // We therefore needs to return somthing new. witch is why we do Object.assign() and return it.
@@ -99,6 +100,7 @@ export default function Debug() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Debugger</Text>
+
       <Pressable
         style={styles.clearButton}
         onPress={clearLogs}
@@ -106,6 +108,7 @@ export default function Debug() {
       >
         <Text style={styles.clearText}>Clear Logs</Text>
       </Pressable>
+
       <ScrollView style={styles.logContainer} nativeID="Log group container">
         {renderGroups(logsGroupedByGroup, openGroups, toggleGroupVisibility)}
       </ScrollView>

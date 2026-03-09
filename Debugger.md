@@ -6,7 +6,7 @@
 try {
   // API CALL
 } catch (error) {
-  logger.debug(`Failed to post data: ${error.message}`, ' error ');
+  debug(`Failed to post data: ${error.message}`, ' error ');
 }
 ```
 
@@ -19,13 +19,13 @@ const user = {
   role: 'admin',
 };
 
-logger.info('User object:', user);
+info('User object:', user);
 ```
 
 ## Interested in seeing the proces of things happening?
 
 ```javascript
-logger.info('Starting user creation');
+info('Starting user creation');
 const user = await createUser(userData);
-logger.info('User created successfully', user);
+info('User created successfully', user);
 ```

@@ -1,49 +1,84 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useState } from 'react';
 
-import { logger, LogEntry } from '../tools/logger';
-/**
- * This context is responsible for storing all logs created by the global logger.
- * It is techinicly meant for storing global default values but can be used to store everything.
- * * https://react-typescript-cheatsheet.netlify.app/docs/basic/getting-started/context/
- * The LoggerProvider subscribes to the logger and listens for new log entries.
- * logger.ts  ---> emits logs
- * LoggerContext ---> listens and stores logs
- * Debug screen ---> reads logs and displays them
- *
- * Whenever a log is emitted, it updates the logs state.
- *
- * Components inside the app can access the logs using the useLogger() hook.
- */
+export type LogLevel = 'info' | 'error' | 'debug';
+
+export interface LogEntry {
+  id: string;
+  message: string;
+  level: LogLevel;
+  timestamp: number;
+  group: string;
+}
+
 interface LoggerContextType {
   logs: LogEntry[];
+  log: (message: string, group?: string) => void;
+  error: (message: string, group?: string) => void;
+  debug: (message: string, group?: string) => void;
+  custom: (message: string, group: string, level?: LogLevel) => void;
   clearLogs: () => void;
 }
-// Default values for our LogEntry object.
-const LoggerContext = createContext<LoggerContextType>({
-  logs: [],
-  clearLogs: () => {},
-});
-// This is our Wrapper we create
-export const LoggerProvider = ({ children }: any) => {
-  // Our Semi Global state that holds all logs
+
+const LoggerContext = createContext<LoggerContextType | undefined>(undefined);
+
+let nextLogId = 0;
+
+export function LoggerProvider({ children }: { children: React.ReactNode }) {
   const [logs, setLogs] = useState<LogEntry[]>([]);
 
-  useEffect(() => {
-    logger.subscribe((log) => {
-      // Callback function we call
-      setLogs((prev) => [log, ...prev]); // Updates log when event
-    });
-  }, []); // Tells react only to Run this once.
+  const addLog = (message: string, level: LogLevel, group: string) => {
+    nextLogId += 1;
+
+    const entry: LogEntry = {
+      id: String(nextLogId),
+      message,
+      level,
+      timestamp: Date.now(),
+      group,
+    };
+
+    setLogs((prev) => [entry, ...prev]);
+  };
+  // Default loggers that will always be there. Very usefull
+  const log = (message: string) => {
+    addLog(message, 'info', 'info');
+  };
+
+  const error = (message: string) => {
+    addLog(message, 'error', 'error');
+  };
+
+  const debug = (message: string) => {
+    addLog(message, 'debug', 'debug');
+  };
+
+  const custom = (
+    message: string,
+    group: string,
+    level: LogLevel = 'info'
+  ) => {
+    addLog(message, level, group);
+  };
 
   const clearLogs = () => {
     setLogs([]);
   };
-
+// This is our Wrapper we create// {} is to say that there can be kids
   return (
-    <LoggerContext.Provider value={{ logs, clearLogs }}>
+    <LoggerContext.Provider
+      value={{ logs, log, error, debug, custom, clearLogs }}
+    >
       {children}
     </LoggerContext.Provider>
   );
-};
+}
 
-export const useLogger = () => useContext(LoggerContext);
+export function useLogger() {
+  const context = useContext(LoggerContext);
+
+  if (!context) {
+    throw new Error('useLogger must be used within a LoggerProvider');
+  }
+
+  return context;
+}

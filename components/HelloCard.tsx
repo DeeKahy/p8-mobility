@@ -9,7 +9,7 @@ export default function HelloCard({ title, subtitle }: HelloCardProps) {
   return (
     <View style={styles.card}>
       <Text style={styles.title}>{title}</Text>
-      {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
+      {!!subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
     </View>
   );
 }
