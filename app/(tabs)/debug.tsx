@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native';
+
 import { useLogger, type LogEntry } from '../../context/LoggerContext';
 
 type GroupedLogs = Record<string, LogEntry[]>;
@@ -12,7 +13,7 @@ function groupLogsByGroup(logs: LogEntry[]): GroupedLogs {
       groupedLogs[logEntry.group] = [];
     }
 
-    groupedLogs[logEntry.group].push(logEntry);// Then API :[log entry]
+    groupedLogs[logEntry.group].push(logEntry); // Then API :[log entry]
   });
 
   return groupedLogs;
@@ -23,7 +24,11 @@ function renderLogs(logsInGroup: LogEntry[]) {
 
   logsInGroup.forEach((logEntry) => {
     renderedLogs.push(
-      <View key={logEntry.id} style={styles.logItem} nativeID="log-entry-container">
+      <View
+        key={logEntry.id}
+        style={styles.logItem}
+        nativeID="log-entry-container"
+      >
         <Text style={styles.time}>
           {new Date(logEntry.timestamp).toLocaleTimeString()}
         </Text>
@@ -41,7 +46,6 @@ function renderGroups(
   toggleGroupVisibility: (groupName: string) => void
 ) {
   return Object.entries(logsGroupedByGroup).map(([groupName, logsInGroup]) => {
-
     let arrow;
     if (openGroups[groupName]) {
       arrow = '▼';
@@ -53,13 +57,9 @@ function renderGroups(
     if (openGroups[groupName]) {
       renderedLogs = renderLogs(logsInGroup);
     }
-    
+
     return (
-      <View
-        key={groupName}
-        style={styles.group}
-        nativeID="Log-group-container"
-      >
+      <View key={groupName} style={styles.group} nativeID="Log-group-container">
         <Pressable
           style={styles.groupHeader}
           onPress={() => toggleGroupVisibility(groupName)}
@@ -80,7 +80,7 @@ export default function Debug() {
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
 
   const logsGroupedByGroup = groupLogsByGroup(logs);
-// Handles the logic for toggle down. Since we use State to update if it's shown or not, we cannot simply do state = newState, as React will notice this as a "newState". It detects if we reassign to a new place in memory. We therefore need to return something new, which is why we do Object.assign() and return it.
+  // Handles the logic for toggle down. Since we use State to update if it's shown or not, we cannot simply do state = newState, as React will notice this as a "newState". It detects if we reassign to a new place in memory. We therefore need to return something new, which is why we do Object.assign() and return it.
   const toggleGroupVisibility = (groupName: string) => {
     setOpenGroups((previousState) => {
       const updatedState = Object.assign({}, previousState);

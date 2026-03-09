@@ -52,18 +52,14 @@ export function LoggerProvider({ children }: { children: React.ReactNode }) {
     addLog(message, 'debug', 'debug');
   };
 
-  const custom = (
-    message: string,
-    group: string,
-    level: LogLevel = 'info'
-  ) => {
+  const custom = (message: string, group: string, level: LogLevel = 'info') => {
     addLog(message, level, group);
   };
 
   const clearLogs = () => {
     setLogs([]);
   };
-// This is our Wrapper we create// {} is to say that there can be kids
+  // This is our Wrapper we create// {} is to say that there can be kids
   return (
     <LoggerContext.Provider
       value={{ logs, log, error, debug, custom, clearLogs }}
