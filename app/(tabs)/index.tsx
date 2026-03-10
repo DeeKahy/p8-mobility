@@ -1,5 +1,4 @@
 import { CameraView, useCameraPermissions } from 'expo-camera';
-import React from 'react';
 import { router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import * as MediaLibrary from 'expo-media-library'
