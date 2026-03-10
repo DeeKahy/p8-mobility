@@ -3,6 +3,7 @@ import { View } from 'react-native';
 import Button from '../../components/Button';
 import Dropdown from '../../components/Dropdown';
 import HelloCard from '../../components/HelloCard';
+import React from 'react';
 export default function Main() {
   return (
     <View style={{ alignItems: 'center', justifyContent: 'center' }}>

@@ -1,7 +1,10 @@
 import { CameraView, useCameraPermissions } from 'expo-camera';
+import React from 'react';
+import { router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
+import * as MediaLibrary from 'expo-media-library'
 import { StatusBar } from 'expo-status-bar';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
   StyleSheet,
   Text,
@@ -30,12 +33,59 @@ export default function HomeScreen() {
   } | null>(null);
   const [showCamera, setShowCamera] = useState(false);
   const [showPhotos, setShowPhotos] = useState(false);
+  const [photoData, setPhotoData] = useState<any>();
+  const [takenWithCamera, setTakenWithCamera] = useState<boolean>(false);
   const [showMarkerOptions, setShowMarkerOptions] = useState(false);
   const [showNewMarkerOptions, setShowNewMarkerOptions] = useState(false);
   const [permission, requestPermission] = useCameraPermissions();
   const cameraRef = useRef<CameraView>(null);
   const newMarkerPositionRef = useRef<{ x: number; y: number } | null>(null);
   const selectedMarkerRef = useRef<Marker | null>(null);
+
+//_________Upadting when new meta data is introduced__________________
+  useEffect(() => {
+
+    if (!takenWithCamera) {
+      if (!photoData) return;
+
+      const dateTime = photoData?.assets?.[0]?.exif?.DateTimeOriginal;
+      console.log(dateTime);
+      console.log(JSON.stringify(photoData?.assets?.[0]?.exif, null, 2));
+      const base64 = photoData?.assets?.[0]?.base64;
+      //console.log(photoData);
+      const photoUri = photoData?.assets?.[0]?.uri;
+      console.log(photoUri);
+    }
+
+    if (takenWithCamera) {
+      //console.log(photoData);
+      const dateTime = photoData?.exif?.DateTimeOriginal;
+      console.log(dateTime);
+      const base64 = photoData?.base64;
+
+      console.log(base64.length);
+      const byteSize = (str: BlobPart) => new Blob([str]).size;
+      const result = byteSize(base64);
+      console.log(result);
+
+      const photoUri = photoData?.uri;
+      console.log(photoUri);
+
+    }
+
+  }, [photoData]);
+
+//______________________________________________________
+
+
+//_________________Sending data to form_________________
+  const sendDataToForm = async () => {
+    router.push({ pathname: './photoForm', params: {
+      pictureUri: photoData?.assets?.[0]?.uri,
+      photoDate: photoData?.assets?.[0]?.exif?.DateTimeOriginal,
+    }})
+  }
+  //______________________________________________________
 
   // Keep refs in sync with state
   newMarkerPositionRef.current = newMarkerPosition;
@@ -107,16 +157,34 @@ export default function HomeScreen() {
     }
   };
 
+//________________Getting permision to access photos____________________________
+  const getPermission = async () => {
+    const { status } = await MediaLibrary.requestPermissionsAsync();
+    if (status !== "granted") {
+      console.log("Permission denied");
+      return;
+    }
+  }
+
+//______________________________________________________
+
   const handlePickFromLibraryForNewMarker = async () => {
+    await getPermission();
     setShowNewMarkerOptions(false);
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
       allowsEditing: false,
       quality: 1,
+      //__________Allowing meta data and base64________
+      base64: true,
+      exif: true
+      //_______________________________________________
     });
 
     if (!result.canceled) {
       addPhotoToMarker(result.assets[0].uri);
+      setTakenWithCamera(false);
+      setPhotoData(result);
     }
   };
 
@@ -135,8 +203,12 @@ export default function HomeScreen() {
 
   const handleTakePhoto = async () => {
     if (cameraRef.current) {
-      const photo = await cameraRef.current.takePictureAsync();
+      //__________Allowing meta data and base64 for taken photos________
+      const photo = await cameraRef.current.takePictureAsync({ base64: true, exif:true });
+      //________________________________________________________________
       if (photo) {
+        setPhotoData(photo)
+        setTakenWithCamera(true);
         addPhotoToMarker(photo.uri);
         setShowCamera(false);
       }
@@ -285,7 +357,14 @@ export default function HomeScreen() {
           </View>
         )}
       </Pressable>
-
+      
+      <View>
+        <TouchableOpacity
+          style={styles.optionButton}
+          onPress={() => sendDataToForm()}>
+            <Text style={styles.optionsTitle}>Go To Form</Text>
+          </TouchableOpacity>
+      </View>
       {/* New marker options modal */}
       <Modal visible={showNewMarkerOptions} transparent animationType="fade">
         <Pressable

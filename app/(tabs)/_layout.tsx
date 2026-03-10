@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
+import React from 'react';
 
 export default function TabLayout() {
   return (
@@ -15,6 +16,15 @@ export default function TabLayout() {
           title: 'Camera',
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="camera" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="photoForm"
+        options={{
+          title: 'Form',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="options" size={size} color={color} />
           ),
         }}
       />
