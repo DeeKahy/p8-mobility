@@ -51,8 +51,6 @@ export default function HomeScreen() {
       const dateTime = photoData?.assets?.[0]?.exif?.DateTimeOriginal;
       console.log(dateTime);
       console.log(JSON.stringify(photoData?.assets?.[0]?.exif, null, 2));
-      const base64 = photoData?.assets?.[0]?.base64;
-      //console.log(photoData);
       const photoUri = photoData?.assets?.[0]?.uri;
       console.log(photoUri);
     }
@@ -61,12 +59,9 @@ export default function HomeScreen() {
       //console.log(photoData);
       const dateTime = photoData?.exif?.DateTimeOriginal;
       console.log(dateTime);
-      const base64 = photoData?.base64;
+      console.log(photoData);
 
-      console.log(base64.length);
       const byteSize = (str: BlobPart) => new Blob([str]).size;
-      const result = byteSize(base64);
-      console.log(result);
 
       const photoUri = photoData?.uri;
       console.log(photoUri);
@@ -176,7 +171,7 @@ export default function HomeScreen() {
       allowsEditing: false,
       quality: 1,
       //__________Allowing meta data and base64________
-      base64: true,
+      base64: false,
       exif: true
       //_______________________________________________
     });
@@ -204,7 +199,7 @@ export default function HomeScreen() {
   const handleTakePhoto = async () => {
     if (cameraRef.current) {
       //__________Allowing meta data and base64 for taken photos________
-      const photo = await cameraRef.current.takePictureAsync({ base64: true, exif:true });
+      const photo = await cameraRef.current.takePictureAsync({ base64: false, exif:true });
       //________________________________________________________________
       if (photo) {
         setPhotoData(photo)
