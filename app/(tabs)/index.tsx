@@ -4,6 +4,7 @@ import * as ImagePicker from 'expo-image-picker';
 import * as MediaLibrary from 'expo-media-library'
 import { StatusBar } from 'expo-status-bar';
 import { useState, useRef, useEffect } from 'react';
+import PhotoFormModul from './photoForm';
 import {
   StyleSheet,
   Text,
@@ -33,6 +34,7 @@ export default function HomeScreen() {
   const [showCamera, setShowCamera] = useState(false);
   const [showPhotos, setShowPhotos] = useState(false);
   const [photoData, setPhotoData] = useState<any>();
+  const [showPhotoModule, setShowPhotoModule] = useState<boolean>(false);
   const [takenWithCamera, setTakenWithCamera] = useState<boolean>(false);
   const [showMarkerOptions, setShowMarkerOptions] = useState(false);
   const [showNewMarkerOptions, setShowNewMarkerOptions] = useState(false);
@@ -70,16 +72,6 @@ export default function HomeScreen() {
   }, [photoData]);
 
 //______________________________________________________
-
-
-//_________________Sending data to form_________________
-  const sendDataToForm = async () => {
-    router.push({ pathname: './photoForm', params: {
-      pictureUri: photoData?.assets?.[0]?.uri,
-      photoDate: photoData?.assets?.[0]?.exif?.DateTimeOriginal,
-    }})
-  }
-  //______________________________________________________
 
   // Keep refs in sync with state
   newMarkerPositionRef.current = newMarkerPosition;
@@ -176,9 +168,10 @@ export default function HomeScreen() {
     });
 
     if (!result.canceled) {
-      addPhotoToMarker(result.assets[0].uri);
       setTakenWithCamera(false);
       setPhotoData(result);
+
+      setShowPhotoModule(true);
     }
   };
 
@@ -203,8 +196,10 @@ export default function HomeScreen() {
       if (photo) {
         setPhotoData(photo)
         setTakenWithCamera(true);
-        addPhotoToMarker(photo.uri);
         setShowCamera(false);
+
+        setShowPhotoModule(true);
+
       }
     }
   };
@@ -351,14 +346,6 @@ export default function HomeScreen() {
           </View>
         )}
       </Pressable>
-      
-      <View>
-        <TouchableOpacity
-          style={styles.optionButton}
-          onPress={() => sendDataToForm()}>
-            <Text style={styles.optionsTitle}>Go To Form</Text>
-          </TouchableOpacity>
-      </View>
       {/* New marker options modal */}
       <Modal visible={showNewMarkerOptions} transparent animationType="fade">
         <Pressable
@@ -429,6 +416,26 @@ export default function HomeScreen() {
           </Pressable>
         </Pressable>
       </Modal>
+
+      <PhotoFormModul
+        visible={showPhotoModule}
+        photoUri={
+          takenWithCamera
+            ? photoData?.uri
+            : photoData?.assets?.[0]?.uri
+        }
+        dateTaken={
+          takenWithCamera 
+            ? photoData?.exif?.DateTimeOriginal 
+            : photoData?.assets?.[0]?.exif?.DateTimeOriginal
+        }
+        onClose={() => setShowPhotoModule(false)}
+        onSubmit={(data) => {
+          console.log("Form data: " + JSON.stringify(data));
+          addPhotoToMarker(data.photoUri);
+          setShowPhotoModule(false);
+        }}
+      />
 
       {/* Photos gallery modal */}
       <Modal visible={showPhotos} transparent animationType="slide">

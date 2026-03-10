@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
-import { View, Image, TextInput, Button, Text, StyleSheet } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import { View, Image, TextInput, Button, Text, StyleSheet, Modal, Pressable } from 'react-native';
 import { useForm, Controller } from 'react-hook-form';
 import * as yup from 'yup';
 import { yupResolver } from '@hookform/resolvers/yup';
 import DropDownPicker from 'react-native-dropdown-picker';
 
+//Expected photo data format to make it easier to pass over including only the most necessary
 type PhotoForm = {
     photoUri: string;
     dateTaken: string;
@@ -13,26 +13,26 @@ type PhotoForm = {
     areaGroup: string;
 };
 
+//Photo form to take data from index.tsx and opening and closing modal
+type PhotoFormProps = {
+    visible: boolean;
+    onClose: () => void;
+    photoUri: string;
+    dateTaken: string;
+    onSubmit: (data: PhotoForm) => void;
+};
+
+//Form validator
 const schema = yup.object({
     photoUri: yup.string().required('Photo is required'),
+    areaGroup: yup.string().required('Area group is required'),
     pictureName: yup.string().required('Picture name is required'),
-    areaGroup: yup.string().required('Please select an area group'),
     dateTaken: yup.string().required('Date is required'),
 }).required();
 
-export default () => {
-    const { pictureUri, photoDate } = useLocalSearchParams<{ pictureUri: string, photoDate: string}>();
-    const photoUri = pictureUri ?? '';
-    const dateTaken = photoDate ?? new Date().toISOString().split('T')[0];
+export default function PhotoFormModul({visible, onClose, photoUri, dateTaken, onSubmit}: PhotoFormProps) {
     const [open, setOpen] = useState(false);
-
-    useEffect (() => {
-        if ( photoDate ) {
-            setValue("dateTaken", photoDate);
-            setValue("photoUri", pictureUri);
-        }
-    }, [photoDate, pictureUri])
-
+    const [showOtherInputForm, setShowOtherInputForm] = useState(false);
     const {
         control,
         handleSubmit,
@@ -48,81 +48,99 @@ export default () => {
         resolver: yupResolver(schema),
     });
 
-    const onSubmit = (data: PhotoForm) => {
-        alert("Data: " + JSON.stringify({
-            ...data,
-        }));
-    };
+    useEffect (() => {
+        if ( dateTaken ) {
+            setValue("dateTaken", dateTaken);
+            setValue("photoUri", photoUri);
+        }
+    }, [dateTaken, photoUri])
 
     return (
-        <View style={styles.container}>
-            <View style={styles.formCard}>
-                <Text>Picture:</Text>
-                <View style={styles.imageContainer}>
-                    <Image source={{ uri: photoUri }} style={styles.image} />
+        <Modal
+            animationType="slide"
+            transparent={true}
+            visible={visible}
+        >
+            <View style={styles.container}>
+                <View style={styles.formCard}>
+                    <Text>Picture:</Text>
+                    <View style={styles.imageContainer}>
+                        <Image source={{ uri: photoUri }} style={styles.image} />
+                    </View>
+                    {errors.photoUri && <Text style={styles.error}>{errors.photoUri.message}</Text>}
+
+                    <Text>Picture name:</Text>
+                    <Controller
+                        control={control}
+                        name="pictureName"
+                        render={({ field: { onChange, value } }) => (
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Picture name..."
+                                value={value}
+                                onChangeText={onChange}
+                            />
+                        )}
+                    />
+                    {errors.pictureName && <Text style={styles.error}>{errors.pictureName.message}</Text>}
+
+                    <Text>Area group:</Text>
+                    <Controller
+                        control={control}
+                        name="areaGroup"
+                        render={({ field: { onChange, value } }) => (
+                            <View>
+                                <DropDownPicker
+                                    open={open}
+                                    value={value}
+                                    items={[
+                                        { label: 'Kitchen', value: 'Kitchen' },
+                                        { label: 'Living Room', value: 'Living Room' },
+                                        { label: 'Bathroom', value: 'Bathroom' },
+                                        { label: 'Bedroom', value: 'Bedroom' },
+                                        { label: 'Other', value: 'Other'},
+                                    ]}
+                                    setOpen={setOpen}
+                                    setValue={(callback) => {
+                                        const newValue = callback(value);
+                                        setShowOtherInputForm(newValue === 'Other');
+                                        onChange(newValue);
+
+                                    }}
+                                    placeholder="Select area group"
+                                />
+                                {showOtherInputForm && (
+                                    <TextInput
+                                        style={styles.input}
+                                        placeholder="Other..."
+                                        onChangeText={onChange}
+                                    />
+                                )}
+                            </View>
+                        )}
+                    />
+                    <Text>Date:</Text>
+                    <Controller
+                        control={control}
+                        name="dateTaken"
+                        render={({ field: { value } }) => (
+                            <TextInput
+                                style={styles.dateInput}
+                                value={value}
+                                placeholder="YYYY-MM-DD"
+                                editable= {false}
+                            />
+                        )}
+                    />
+                    {errors.dateTaken && <Text style={styles.error}>{errors.dateTaken.message}</Text>}
                 </View>
-                {errors.photoUri && <Text style={styles.error}>{errors.photoUri.message}</Text>}
 
-                <Text>Picture name:</Text>
-                <Controller
-                    control={control}
-                    name="pictureName"
-                    render={({ field: { onChange, value } }) => (
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Picture name..."
-                            value={value}
-                            onChangeText={onChange}
-                        />
-                    )}
-                />
-                {errors.pictureName && <Text style={styles.error}>{errors.pictureName.message}</Text>}
-
-                <Text>Area group:</Text>
-                <Controller
-                    control={control}
-                    name="areaGroup"
-                    render={({ field: { onChange, value } }) => (
-                        <DropDownPicker
-                            open={open}
-                            value={value}
-                            items={[
-                                { label: 'Kitchen', value: 'Kitchen' },
-                                { label: 'Living Room', value: 'Living Room' },
-                                { label: 'Bathroom', value: 'Bathroom' },
-                                { label: 'Bedroom', value: 'Bedroom' },
-                            ]}
-                            setOpen={setOpen}
-                            setValue={(callback) => {
-                                const newValue = callback(value);
-                                onChange(newValue);
-                            }}
-                            placeholder="Select area group"
-                        />
-                    )}
-                />
-                {errors.areaGroup && <Text style={styles.error}>{errors.areaGroup.message}</Text>}
-
-                <Text>Date:</Text>
-                <Controller
-                    control={control}
-                    name="dateTaken"
-                    render={({ field: { value } }) => (
-                        <TextInput
-                            style={styles.dateInput}
-                            value={value}
-                            placeholder="YYYY-MM-DD"
-                            editable= {false}
-                        />
-                    )}
-                />
-                {errors.dateTaken && <Text style={styles.error}>{errors.dateTaken.message}</Text>}
+                <View style={styles.buttonContainer}>
+                    <Button title="Done" onPress={handleSubmit(onSubmit)} />
+                    <Button title="Cancel" onPress={onClose} />
+                </View>
             </View>
-
-            <View style={styles.buttonContainer}>
-                <Button title="Done" onPress={handleSubmit(onSubmit)} />
-            </View>
-        </View>
+        </Modal>
     );
 };
 
