@@ -1,10 +1,8 @@
 import { CameraView, useCameraPermissions } from 'expo-camera';
-import { router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
-import * as MediaLibrary from 'expo-media-library'
+import * as MediaLibrary from 'expo-media-library';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useRef, useEffect } from 'react';
-import PhotoFormModul from '../../components/photoForm';
 import {
   StyleSheet,
   Text,
@@ -16,6 +14,8 @@ import {
   Pressable,
   Dimensions,
 } from 'react-native';
+
+import PhotoFormModul from '../../components/photoForm';
 
 interface Marker {
   id: string;
@@ -43,9 +43,8 @@ export default function HomeScreen() {
   const newMarkerPositionRef = useRef<{ x: number; y: number } | null>(null);
   const selectedMarkerRef = useRef<Marker | null>(null);
 
-//_________Upadting when new meta data is introduced__________________
+  //_________Upadting when new meta data is introduced__________________
   useEffect(() => {
-
     if (!takenWithCamera) {
       if (!photoData) return;
 
@@ -57,21 +56,15 @@ export default function HomeScreen() {
     }
 
     if (takenWithCamera) {
-      //console.log(photoData);
       const dateTime = photoData?.exif?.DateTimeOriginal;
       console.log(dateTime);
       console.log(photoData);
-
-      const byteSize = (str: BlobPart) => new Blob([str]).size;
-
       const photoUri = photoData?.uri;
       console.log(photoUri);
-
     }
-
   }, [photoData]);
 
-//______________________________________________________
+  //______________________________________________________
 
   // Keep refs in sync with state
   newMarkerPositionRef.current = newMarkerPosition;
@@ -143,15 +136,14 @@ export default function HomeScreen() {
     }
   };
 
-//________________Getting permision to access photos____________________________
+  //________________Getting permision to access photos____________________________
   const getPermission = async () => {
     const { status } = await MediaLibrary.requestPermissionsAsync();
-    if (status !== "granted") {
-      console.log("Permission denied");
-      return;
+    if (status !== 'granted') {
+      console.log('Permission denied');
     }
-  }
-//______________________________________________________
+  };
+  //______________________________________________________
 
   const handlePickFromLibraryForNewMarker = async () => {
     await getPermission();
@@ -161,7 +153,7 @@ export default function HomeScreen() {
       allowsEditing: false,
       quality: 1,
       //__________Allowing meta data________
-      exif: true
+      exif: true,
       //_______________________________________________
     });
 
@@ -170,7 +162,7 @@ export default function HomeScreen() {
       setPhotoData(result);
 
       //Example usage of inserting into metadata. A better option could be to add more fields to the photo form.
-      insertDataIntoImage("String", "String");
+      insertDataIntoImage('String', 'String');
 
       setShowPhotoModule(true);
     }
@@ -187,7 +179,7 @@ export default function HomeScreen() {
               ...(prev.assets[0].exif ?? {}),
               [objectName]: data,
             },
-          }
+          },
         ],
       }));
     } else if (takenWithCamera) {
@@ -196,10 +188,10 @@ export default function HomeScreen() {
         exif: {
           ...(prev.exif ?? {}),
           objectName: data,
-        }
+        },
       }));
     }
-}
+  };
 
   const handlePickFromLibraryForExistingMarker = async () => {
     setShowMarkerOptions(false);
@@ -217,15 +209,14 @@ export default function HomeScreen() {
   const handleTakePhoto = async () => {
     if (cameraRef.current) {
       //__________Allowing meta data and base64 for taken photos________
-      const photo = await cameraRef.current.takePictureAsync({ exif:true });
+      const photo = await cameraRef.current.takePictureAsync({ exif: true });
       //________________________________________________________________
       if (photo) {
-        setPhotoData(photo)
+        setPhotoData(photo);
         setTakenWithCamera(true);
         setShowCamera(false);
 
         setShowPhotoModule(true);
-
       }
     }
   };
@@ -446,18 +437,16 @@ export default function HomeScreen() {
       <PhotoFormModul
         visible={showPhotoModule}
         photoUri={
-          takenWithCamera
-            ? photoData?.uri
-            : photoData?.assets?.[0]?.uri
+          takenWithCamera ? photoData?.uri : photoData?.assets?.[0]?.uri
         }
         dateTaken={
-          takenWithCamera 
-            ? photoData?.exif?.DateTimeOriginal 
+          takenWithCamera
+            ? photoData?.exif?.DateTimeOriginal
             : photoData?.assets?.[0]?.exif?.DateTimeOriginal
         }
         onClose={() => setShowPhotoModule(false)}
         onSubmit={(data) => {
-          console.log("Form data: " + JSON.stringify(data));
+          console.log('Form data: ' + JSON.stringify(data));
           addPhotoToMarker(data.photoUri);
           setShowPhotoModule(false);
         }}
