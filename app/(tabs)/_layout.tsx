@@ -19,15 +19,6 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="photoForm"
-        options={{
-          title: 'Form',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="options" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
         name="index"
         options={{
           title: 'Floorplan',
