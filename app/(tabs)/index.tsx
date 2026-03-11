@@ -4,7 +4,7 @@ import * as ImagePicker from 'expo-image-picker';
 import * as MediaLibrary from 'expo-media-library'
 import { StatusBar } from 'expo-status-bar';
 import { useState, useRef, useEffect } from 'react';
-import PhotoFormModul from './photoForm';
+import PhotoFormModul from '../../components/photoForm';
 import {
   StyleSheet,
   Text,
@@ -151,7 +151,6 @@ export default function HomeScreen() {
       return;
     }
   }
-
 //______________________________________________________
 
   const handlePickFromLibraryForNewMarker = async () => {
@@ -161,8 +160,7 @@ export default function HomeScreen() {
       mediaTypes: ['images'],
       allowsEditing: false,
       quality: 1,
-      //__________Allowing meta data and base64________
-      base64: false,
+      //__________Allowing meta data________
       exif: true
       //_______________________________________________
     });
@@ -171,9 +169,37 @@ export default function HomeScreen() {
       setTakenWithCamera(false);
       setPhotoData(result);
 
+      //Example usage of inserting into metadata. A better option could be to add more fields to the photo form.
+      insertDataIntoImage("String", "String");
+
       setShowPhotoModule(true);
     }
   };
+
+  const insertDataIntoImage = async (data: any, objectName: string) => {
+    if (!takenWithCamera) {
+      setPhotoData((prev: any) => ({
+        ...prev,
+        assets: [
+          {
+            ...prev.assets[0],
+            exif: {
+              ...(prev.assets[0].exif ?? {}),
+              [objectName]: data,
+            },
+          }
+        ],
+      }));
+    } else if (takenWithCamera) {
+      setPhotoData((prev: any) => ({
+        ...prev,
+        exif: {
+          ...(prev.exif ?? {}),
+          objectName: data,
+        }
+      }));
+    }
+}
 
   const handlePickFromLibraryForExistingMarker = async () => {
     setShowMarkerOptions(false);
@@ -191,7 +217,7 @@ export default function HomeScreen() {
   const handleTakePhoto = async () => {
     if (cameraRef.current) {
       //__________Allowing meta data and base64 for taken photos________
-      const photo = await cameraRef.current.takePictureAsync({ base64: false, exif:true });
+      const photo = await cameraRef.current.takePictureAsync({ exif:true });
       //________________________________________________________________
       if (photo) {
         setPhotoData(photo)
