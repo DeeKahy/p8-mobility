@@ -1,7 +1,4 @@
-import {
-  CameraView,
-  useCameraPermissions,
-} from 'expo-camera';
+import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useRef, useEffect } from 'react';
