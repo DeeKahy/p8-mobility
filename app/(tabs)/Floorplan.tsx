@@ -1,36 +1,26 @@
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
 import { StatusBar } from 'expo-status-bar';
-import { useState, useRef } from 'react';
+import { useRef, useState } from 'react';
 import {
+  Dimensions,
+  Image,
+  Modal,
+  Pressable,
+  ScrollView,
   StyleSheet,
   Text,
-  View,
   TouchableOpacity,
-  Modal,
-  Image,
-  ScrollView,
-  Pressable,
-  Dimensions,
+  View,
 } from 'react-native';
 
-interface Marker {
-  id: string;
-  x: number;
-  y: number;
-  photos: string[];
-}
 export default function HomeScreen() {
-  const [floorPlan, setFloorPlan] = useState<string | null>(null);
-  const [markers, setMarkers] = useState<Marker[]>([]);
-  const [selectedMarker, setSelectedMarker] = useState<Marker | null>(null);
   const [newMarkerPosition, setNewMarkerPosition] = useState<{
     x: number;
     y: number;
   } | null>(null);
   const [showCamera, setShowCamera] = useState(false);
   const [showPhotos, setShowPhotos] = useState(false);
-  const [showMarkerOptions, setShowMarkerOptions] = useState(false);
   const [showNewMarkerOptions, setShowNewMarkerOptions] = useState(false);
   const [permission, requestPermission] = useCameraPermissions();
   const cameraRef = useRef<CameraView>(null);
@@ -41,38 +31,6 @@ export default function HomeScreen() {
   newMarkerPositionRef.current = newMarkerPosition;
   selectedMarkerRef.current = selectedMarker;
 
-  const pickFloorPlan = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsEditing: false,
-      quality: 1,
-    });
-
-    if (!result.canceled) {
-      setFloorPlan(result.assets[0].uri);
-      setMarkers([]); // Clear markers when new floor plan is selected
-    }
-  };
-
-  const handleCanvasPress = (event: any) => {
-    if (!floorPlan) return;
-
-    const { locationX, locationY } = event.nativeEvent;
-
-    // Check if tapped on existing marker (within 30px radius)
-    const existingMarker = markers.find(
-      (m) => Math.abs(m.x - locationX) < 30 && Math.abs(m.y - locationY) < 30
-    );
-
-    if (existingMarker) {
-      setSelectedMarker(existingMarker);
-      setShowMarkerOptions(true);
-    } else {
-      // Create new marker position
-      setNewMarkerPosition({ x: locationX, y: locationY });
-    }
-  };
-
   const handleTakePictureForNewMarker = async () => {
     setShowNewMarkerOptions(false);
     if (!permission?.granted) {
@@ -82,30 +40,30 @@ export default function HomeScreen() {
     setShowCamera(true);
   };
 
-  const addPhotoToMarker = (photoUri: string) => {
-    const position = newMarkerPositionRef.current;
-    const marker = selectedMarkerRef.current;
-
-    if (position) {
-      // Creating new marker with first photo
-      const newMarker: Marker = {
-        id: Date.now().toString(),
-        x: position.x,
-        y: position.y,
-        photos: [photoUri],
-      };
-      setMarkers((prev) => [...prev, newMarker]);
-      setNewMarkerPosition(null);
-    } else if (marker) {
-      // Adding photo to existing marker
-      setMarkers((prev) =>
-        prev.map((m) =>
-          m.id === marker.id ? { ...m, photos: [...m.photos, photoUri] } : m
-        )
-      );
-      setSelectedMarker({ ...marker, photos: [...marker.photos, photoUri] });
-    }
-  };
+  // const addPhotoToMarker = (photoUri: string) => {
+  //   const position = newMarkerPositionRef.current;
+  //   const marker = selectedMarkerRef.current;
+  //
+  //   if (position) {
+  //     // Creating new marker with first photo
+  //     const newMarker: Marker = {
+  //       id: Date.now().toString(),
+  //       x: position.x,
+  //       y: position.y,
+  //       photos: [photoUri],
+  //     };
+  //     setMarkers((prev) => [...prev, newMarker]);
+  //     setNewMarkerPosition(null);
+  //   } else if (marker) {
+  //     // Adding photo to existing marker
+  //     setMarkers((prev) =>
+  //       prev.map((m) =>
+  //         m.id === marker.id ? { ...m, photos: [...m.photos, photoUri] } : m
+  //       )
+  //     );
+  //     setSelectedMarker({ ...marker, photos: [...marker.photos, photoUri] });
+  //   }
+  // };
 
   const handlePickFromLibraryForNewMarker = async () => {
     setShowNewMarkerOptions(false);
@@ -189,25 +147,7 @@ export default function HomeScreen() {
 
   if (showCamera) {
     return (
-      <View style={styles.cameraContainer}>
-        <CameraView style={styles.camera} ref={cameraRef}>
-          <View style={styles.cameraButtons}>
-            <TouchableOpacity
-              style={styles.cancelButton}
-              onPress={() => setShowCamera(false)}
-            >
-              <Text style={styles.buttonText}>Cancel</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.captureButton}
-              onPress={handleTakePhoto}
-            >
-              <View style={styles.captureButtonInner} />
-            </TouchableOpacity>
-            <View style={{ width: 70 }} />
-          </View>
-        </CameraView>
-      </View>
+
     );
   }
 
@@ -260,7 +200,7 @@ export default function HomeScreen() {
 
         {/* New marker popup */}
         {newMarkerPosition && (
-          <View
+            <View
             style={[
               styles.popup,
               {
@@ -629,42 +569,6 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: 'bold',
     fontSize: 12,
-  },
-  cameraContainer: {
-    flex: 1,
-  },
-  camera: {
-    flex: 1,
-    justifyContent: 'flex-end',
-  },
-  cameraButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 30,
-    paddingBottom: 40,
-  },
-  cancelButton: {
-    padding: 15,
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  captureButton: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    backgroundColor: 'rgba(255,255,255,0.3)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  captureButtonInner: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#fff',
   },
   instructions: {
     position: 'absolute',
