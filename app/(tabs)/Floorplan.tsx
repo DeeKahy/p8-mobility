@@ -1,110 +1,35 @@
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
 import { StatusBar } from 'expo-status-bar';
-import { useState, useRef, useEffect } from 'react';
+import { useRef, useState } from 'react';
 import {
+  Dimensions,
+  Image,
+  Modal,
+  Pressable,
+  ScrollView,
   StyleSheet,
   Text,
-  View,
   TouchableOpacity,
-  Modal,
-  Image,
-  ScrollView,
-  Pressable,
-  Dimensions,
-  Alert,
+  View,
 } from 'react-native';
 
-import PhotoFormModal from '../../components/photoForm';
-import PhotoList from '../../components/photos_list';
-import { PhotoForm } from '../models/PhotoFormModel';
-
-interface Marker {
-  id: string;
-  x: number;
-  y: number;
-  photos: string[];
-}
 export default function HomeScreen() {
-  const [floorPlan, setFloorPlan] = useState<string | null>(null);
-  const [markers, setMarkers] = useState<Marker[]>([]);
-  const [selectedMarker, setSelectedMarker] = useState<Marker | null>(null);
   const [newMarkerPosition, setNewMarkerPosition] = useState<{
     x: number;
     y: number;
   } | null>(null);
   const [showCamera, setShowCamera] = useState(false);
   const [showPhotos, setShowPhotos] = useState(false);
-  const [photoData, setPhotoData] = useState<any>();
-  const [listOfPhotos, setListOfPhotos] = useState<PhotoForm[]>([]);
-  const [showPhotoModule, setShowPhotoModule] = useState<boolean>(false);
-  const [showPhotoList, setShowPhotoList] = useState<boolean>(false);
-  const [takenWithCamera, setTakenWithCamera] = useState<boolean>(false);
-  const [showMarkerOptions, setShowMarkerOptions] = useState(false);
   const [showNewMarkerOptions, setShowNewMarkerOptions] = useState(false);
   const [permission, requestPermission] = useCameraPermissions();
   const cameraRef = useRef<CameraView>(null);
   const newMarkerPositionRef = useRef<{ x: number; y: number } | null>(null);
   const selectedMarkerRef = useRef<Marker | null>(null);
 
-  //_________Updates when new meta data is introduced__________________
-  useEffect(() => {
-    if (!takenWithCamera) {
-      if (!photoData) return;
-
-      const dateTime = photoData?.assets?.[0]?.exif?.DateTimeOriginal;
-      console.log(dateTime);
-      console.log(JSON.stringify(photoData?.assets?.[0]?.exif, null, 2));
-      const photoUri = photoData?.assets?.[0]?.uri;
-      console.log(photoUri);
-    }
-
-    if (takenWithCamera) {
-      const dateTime = photoData?.exif?.DateTimeOriginal;
-      console.log(dateTime);
-      console.log(photoData);
-      const photoUri = photoData?.uri;
-      console.log(photoUri);
-    }
-  }, [photoData]);
-
-  //______________________________________________________
-
   // Keep refs in sync with state
   newMarkerPositionRef.current = newMarkerPosition;
   selectedMarkerRef.current = selectedMarker;
-
-  const pickFloorPlan = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsEditing: false,
-      quality: 1,
-    });
-
-    if (!result.canceled) {
-      setFloorPlan(result.assets[0].uri);
-      setMarkers([]); // Clear markers when new floor plan is selected
-    }
-  };
-
-  const handleCanvasPress = (event: any) => {
-    if (!floorPlan) return;
-
-    const { locationX, locationY } = event.nativeEvent;
-
-    // Check if tapped on existing marker (within 30px radius)
-    const existingMarker = markers.find(
-      (m) => Math.abs(m.x - locationX) < 30 && Math.abs(m.y - locationY) < 30
-    );
-
-    if (existingMarker) {
-      setSelectedMarker(existingMarker);
-      setShowMarkerOptions(true);
-    } else {
-      // Create new marker position
-      setNewMarkerPosition({ x: locationX, y: locationY });
-    }
-  };
 
   const handleTakePictureForNewMarker = async () => {
     setShowNewMarkerOptions(false);
@@ -115,30 +40,30 @@ export default function HomeScreen() {
     setShowCamera(true);
   };
 
-  const addPhotoToMarker = (photoUri: string) => {
-    const position = newMarkerPositionRef.current;
-    const marker = selectedMarkerRef.current;
-
-    if (position) {
-      // Creating new marker with first photo
-      const newMarker: Marker = {
-        id: Date.now().toString(),
-        x: position.x,
-        y: position.y,
-        photos: [photoUri],
-      };
-      setMarkers((prev) => [...prev, newMarker]);
-      setNewMarkerPosition(null);
-    } else if (marker) {
-      // Adding photo to existing marker
-      setMarkers((prev) =>
-        prev.map((m) =>
-          m.id === marker.id ? { ...m, photos: [...m.photos, photoUri] } : m
-        )
-      );
-      setSelectedMarker({ ...marker, photos: [...marker.photos, photoUri] });
-    }
-  };
+  // const addPhotoToMarker = (photoUri: string) => {
+  //   const position = newMarkerPositionRef.current;
+  //   const marker = selectedMarkerRef.current;
+  //
+  //   if (position) {
+  //     // Creating new marker with first photo
+  //     const newMarker: Marker = {
+  //       id: Date.now().toString(),
+  //       x: position.x,
+  //       y: position.y,
+  //       photos: [photoUri],
+  //     };
+  //     setMarkers((prev) => [...prev, newMarker]);
+  //     setNewMarkerPosition(null);
+  //   } else if (marker) {
+  //     // Adding photo to existing marker
+  //     setMarkers((prev) =>
+  //       prev.map((m) =>
+  //         m.id === marker.id ? { ...m, photos: [...m.photos, photoUri] } : m
+  //       )
+  //     );
+  //     setSelectedMarker({ ...marker, photos: [...marker.photos, photoUri] });
+  //   }
+  // };
 
   const handlePickFromLibraryForNewMarker = async () => {
     setShowNewMarkerOptions(false);
@@ -146,70 +71,12 @@ export default function HomeScreen() {
       mediaTypes: ['images'],
       allowsEditing: false,
       quality: 1,
-      //__________Allowing meta data________
-      exif: true,
-      //_______________________________________________
     });
 
-    // Not allowing too old pictures to be uploaded
-    const two_weeks_ago = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
-    const date = result?.assets?.[0]?.exif?.DateTimeOriginal;
-    const formatDate = date.replace(/(\d{4}):(\d{2}):(\d{2})/, '$1-$2-$3');
-    console.log(formatDate);
-    const dateTaken = new Date(formatDate);
-
-    if (dateTaken < two_weeks_ago) {
-      Alert.alert(
-        'Picture is older than 14 days: ' +
-          result?.assets?.[0]?.exif?.DateTimeOriginal
-      );
-      return;
-    }
-    //__________________________________________________________________________
-
     if (!result.canceled) {
-      setTakenWithCamera(false);
-      setPhotoData(result);
-
-      //Example usage of inserting into metadata. A better option could be to add more fields to the photo form.
-      insertDataIntoImage('String', 'String');
-
-      setShowPhotoModule(true);
+      addPhotoToMarker(result.assets[0].uri);
     }
   };
-
-  /**
-   * Inserts data into an image object. It is dependent on if the photo is taken with camera or from library.
-   * The reason for this is due to the fact that the object exif (meta data) is further indented when taking from library and we need to acess further in.
-   *
-   * @param {any} data - The data to insert
-   * @param {string} objectName - The name of the image object
-   */
-  const insertDataIntoImage = async (data: any, objectName: string) => {
-    if (!takenWithCamera) {
-      setPhotoData((prev: any) => ({
-        ...prev,
-        assets: [
-          {
-            ...prev.assets[0],
-            exif: {
-              ...(prev.assets[0].exif ?? {}),
-              [objectName]: data,
-            },
-          },
-        ],
-      }));
-    } else if (takenWithCamera) {
-      setPhotoData((prev: any) => ({
-        ...prev,
-        exif: {
-          ...(prev.exif ?? {}),
-          objectName: data,
-        },
-      }));
-    }
-  };
-  //____________________________________________________________
 
   const handlePickFromLibraryForExistingMarker = async () => {
     setShowMarkerOptions(false);
@@ -226,15 +93,10 @@ export default function HomeScreen() {
 
   const handleTakePhoto = async () => {
     if (cameraRef.current) {
-      //__________Allowing meta data for taken photos________
-      const photo = await cameraRef.current.takePictureAsync({ exif: true });
-      //________________________________________________________________
+      const photo = await cameraRef.current.takePictureAsync();
       if (photo) {
-        setPhotoData(photo);
-        setTakenWithCamera(true);
+        addPhotoToMarker(photo.uri);
         setShowCamera(false);
-
-        setShowPhotoModule(true);
       }
     }
   };
@@ -282,27 +144,10 @@ export default function HomeScreen() {
     setShowMarkerOptions(false);
     setShowNewMarkerOptions(false);
   };
+
   if (showCamera) {
     return (
-      <View style={styles.cameraContainer}>
-        <CameraView style={styles.camera} ref={cameraRef}>
-          <View style={styles.cameraButtons}>
-            <TouchableOpacity
-              style={styles.cancelButton}
-              onPress={() => setShowCamera(false)}
-            >
-              <Text style={styles.buttonText}>Cancel</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.captureButton}
-              onPress={handleTakePhoto}
-            >
-              <View style={styles.captureButtonInner} />
-            </TouchableOpacity>
-            <View style={{ width: 70 }} />
-          </View>
-        </CameraView>
-      </View>
+
     );
   }
 
@@ -355,7 +200,7 @@ export default function HomeScreen() {
 
         {/* New marker popup */}
         {newMarkerPosition && (
-          <View
+            <View
             style={[
               styles.popup,
               {
@@ -380,6 +225,7 @@ export default function HomeScreen() {
           </View>
         )}
       </Pressable>
+
       {/* New marker options modal */}
       <Modal visible={showNewMarkerOptions} transparent animationType="fade">
         <Pressable
@@ -450,29 +296,6 @@ export default function HomeScreen() {
           </Pressable>
         </Pressable>
       </Modal>
-      {showPhotoModule && (
-        <PhotoFormModal
-          visible={showPhotoModule}
-          photoUri={
-            takenWithCamera ? photoData?.uri : photoData?.assets?.[0]?.uri
-          }
-          date={
-            takenWithCamera
-              ? photoData?.exif?.DateTimeOriginal
-              : photoData?.assets?.[0]?.exif?.DateTimeOriginal
-          }
-          onClose={() => setShowPhotoModule(false)}
-          onSubmit={(data) => {
-            console.log('Form data: ' + JSON.stringify(data));
-            addPhotoToMarker(data.photoUri);
-            setShowPhotoModule(false);
-            if (data && !listOfPhotos.includes(data)) {
-              setListOfPhotos((current) => [...current, data]);
-              console.log('Processing photo...' + JSON.stringify(data));
-            }
-          }}
-        />
-      )}
 
       {/* Photos gallery modal */}
       <Modal visible={showPhotos} transparent animationType="slide">
@@ -500,19 +323,7 @@ export default function HomeScreen() {
           </ScrollView>
         </View>
       </Modal>
-      {showPhotoList && (
-        <View style={styles.fullscreenOverlay}>
-          <PhotoList photoList={listOfPhotos} />
-        </View>
-      )}
-      <TouchableOpacity
-        style={styles.showListButton}
-        onPress={() => {
-          setShowPhotoList(!showPhotoList);
-        }}
-      >
-        <Text>Show List</Text>
-      </TouchableOpacity>
+
       <Text style={styles.instructions}>
         Tap on the floor plan to place a marker
       </Text>
@@ -533,27 +344,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: 20,
-  },
-
-  fullscreenOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: '#fff',
-    zIndex: 5,
-  },
-
-  showListButton: {
-    position: 'absolute',
-    bottom: 40,
-    right: 20,
-    backgroundColor: '#2196F3',
-    padding: 12,
-    borderRadius: 10,
-    zIndex: 10,
-    elevation: 10,
   },
   title: {
     fontSize: 28,
@@ -779,42 +569,6 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: 'bold',
     fontSize: 12,
-  },
-  cameraContainer: {
-    flex: 1,
-  },
-  camera: {
-    flex: 1,
-    justifyContent: 'flex-end',
-  },
-  cameraButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 30,
-    paddingBottom: 40,
-  },
-  cancelButton: {
-    padding: 15,
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  captureButton: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    backgroundColor: 'rgba(255,255,255,0.3)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  captureButtonInner: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#fff',
   },
   instructions: {
     position: 'absolute',
