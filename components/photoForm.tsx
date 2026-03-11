@@ -1,5 +1,5 @@
 import { yupResolver } from '@hookform/resolvers/yup';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import {
   View,
@@ -13,7 +13,7 @@ import {
 import DropDownPicker from 'react-native-dropdown-picker';
 import * as yup from 'yup';
 
-//Expected photo data format to make it easier to pass over including only the most necessary
+//Expected photo data format to make it easier to pass over including only the most necessary. Also works in unison with yup validator.
 type PhotoForm = {
   photoUri: string;
   dateTaken: string;
@@ -49,6 +49,9 @@ export default function PhotoFormModul({
 }: PhotoFormProps) {
   const [open, setOpen] = useState(false);
   const [showOtherInputForm, setShowOtherInputForm] = useState(false);
+
+  //Is used for controlling variables (e.g. when we update a value the yup resolver will take note of that).
+  //Also for including errors in yup validator based on schema provided above, and also handling submit button.
   const {
     control,
     handleSubmit,
@@ -64,12 +67,8 @@ export default function PhotoFormModul({
     resolver: yupResolver(schema),
   });
 
-  useEffect(() => {
-    if (dateTaken) {
-      setValue('dateTaken', dateTaken);
-      setValue('photoUri', photoUri);
-    }
-  }, [dateTaken, photoUri]);
+  setValue('dateTaken', dateTaken);
+  setValue('photoUri', photoUri);
 
   return (
     <Modal animationType="slide" transparent visible={visible}>
@@ -134,6 +133,9 @@ export default function PhotoFormModul({
               </View>
             )}
           />
+          {errors.areaGroup && (
+            <Text style={styles.error}>{errors.areaGroup.message}</Text>
+          )}
           <Text>Date:</Text>
           <Controller
             control={control}

@@ -1,6 +1,8 @@
-import { CameraView, useCameraPermissions } from 'expo-camera';
+import {
+  CameraView,
+  useCameraPermissions,
+} from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
-import * as MediaLibrary from 'expo-media-library';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useRef, useEffect } from 'react';
 import {
@@ -43,7 +45,7 @@ export default function HomeScreen() {
   const newMarkerPositionRef = useRef<{ x: number; y: number } | null>(null);
   const selectedMarkerRef = useRef<Marker | null>(null);
 
-  //_________Upadting when new meta data is introduced__________________
+  //_________Upadtes when new meta data is introduced__________________
   useEffect(() => {
     if (!takenWithCamera) {
       if (!photoData) return;
@@ -136,17 +138,7 @@ export default function HomeScreen() {
     }
   };
 
-  //________________Getting permision to access photos____________________________
-  const getPermission = async () => {
-    const { status } = await MediaLibrary.requestPermissionsAsync();
-    if (status !== 'granted') {
-      console.log('Permission denied');
-    }
-  };
-  //______________________________________________________
-
   const handlePickFromLibraryForNewMarker = async () => {
-    await getPermission();
     setShowNewMarkerOptions(false);
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
@@ -168,6 +160,7 @@ export default function HomeScreen() {
     }
   };
 
+  //__________________________Insert data into image______________________
   const insertDataIntoImage = async (data: any, objectName: string) => {
     if (!takenWithCamera) {
       setPhotoData((prev: any) => ({
@@ -192,6 +185,7 @@ export default function HomeScreen() {
       }));
     }
   };
+  //____________________________________________________________
 
   const handlePickFromLibraryForExistingMarker = async () => {
     setShowMarkerOptions(false);
@@ -208,7 +202,7 @@ export default function HomeScreen() {
 
   const handleTakePhoto = async () => {
     if (cameraRef.current) {
-      //__________Allowing meta data and base64 for taken photos________
+      //__________Allowing meta data for taken photos________
       const photo = await cameraRef.current.takePictureAsync({ exif: true });
       //________________________________________________________________
       if (photo) {
