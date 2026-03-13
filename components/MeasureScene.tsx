@@ -4,7 +4,7 @@ import {
   ViroMaterials,
 } from '@viro-community/react-viro';
 import React, { useRef, useState } from 'react';
-import { Dimensions, PixelRatio } from 'react-native';
+import { Dimensions } from 'react-native';
 
 type Point3D = [number, number, number];
 
