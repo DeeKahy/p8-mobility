@@ -38,13 +38,6 @@
     "scheme": "p8mobility",
     "plugins": [
       [
-        "expo-media-library",
-        {
-          "granularPermissions": ["photo", "video"],
-          "isAccessMediaLocationEnabled": false
-        }
-      ],
-      [
         "expo-image-picker",
         {
           "microphonePermission": false
