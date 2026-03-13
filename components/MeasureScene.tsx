@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 import {
   ViroARScene,
   ViroBox,
@@ -114,7 +115,7 @@ export default function MeasureScene() {
     }
   };
   return (
-    <ViroARScene ref={arSceneRef} onClick={handleTap}>
+    <ViroARScene onClick={handleTap}>
       <ViroBox
         position={firstPoint ?? HIDDEN_POINT}
         materials={['pointMarker']}
