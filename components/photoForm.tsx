@@ -58,6 +58,7 @@ export default function PhotoFormModul({
     setValue,
     formState: { errors },
   } = useForm<PhotoForm>({
+    // Specififying what our form is gonna look like
     defaultValues: {
       photoUri,
       dateTaken,
@@ -67,6 +68,7 @@ export default function PhotoFormModul({
     resolver: yupResolver(schema),
   });
 
+  //Works similar to just having useState, but is integrated into useForm()
   setValue('dateTaken', dateTaken);
   setValue('photoUri', photoUri);
 
@@ -83,6 +85,7 @@ export default function PhotoFormModul({
           )}
 
           <Text>Picture name:</Text>
+          {/* Tracking input using control for the form  */}
           <Controller
             control={control}
             name="pictureName"
@@ -116,8 +119,8 @@ export default function PhotoFormModul({
                     { label: 'Other', value: 'Other' },
                   ]}
                   setOpen={setOpen}
-                  setValue={(callback) => {
-                    const newValue = callback(value);
+                  setValue={(currentValue) => {
+                    const newValue = currentValue(value);
                     setShowOtherInputForm(newValue === 'Other');
                     onChange(newValue);
                   }}
@@ -155,6 +158,7 @@ export default function PhotoFormModul({
         </View>
 
         <View style={styles.buttonContainer}>
+          {/* handleSubmit validates the form, and if it is incorrect, then it does not call onSubmit. */}
           <Button title="Done" onPress={handleSubmit(onSubmit)} />
           <Button title="Cancel" onPress={onClose} />
         </View>
