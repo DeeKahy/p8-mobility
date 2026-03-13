@@ -31,18 +31,32 @@ function isValidPoint(position: Point3D) {
   );
 }
 
-function extractHitPosition(hitTestResults: unknown): Point3D | null {
-  if (!Array.isArray(hitTestResults)) {
+function extractHitPosition(results: unknown): Point3D | null {
+  if (!Array.isArray(results)) {
     return null;
   }
-  for (const result of hitTestResults) {
-    if (result && typeof result === 'object') {
+
+  for (const result of results) {
+    if (
+      result &&
+      typeof result === 'object' &&
+      'type' in result &&
+      'transform' in result &&
+      result.type === 'ExistingPlaneUsingExtent'
+    ) {
       const transform = result.transform;
-      if (transform && typeof transform === 'object') {
-        return transform.position as Point3D;
+
+      if (
+        transform &&
+        typeof transform === 'object' &&
+        'position' in transform &&
+        isValidPoint(transform.position)
+      ) {
+        return transform.position;
       }
     }
   }
+
   return null;
 }
 
