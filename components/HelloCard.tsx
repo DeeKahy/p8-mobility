@@ -5,6 +5,7 @@ interface HelloCardProps {
   subtitle?: string;
 }
 
+// {condition && <Component />}
 export default function HelloCard({ title, subtitle }: HelloCardProps) {
   return (
     <View style={styles.card}>

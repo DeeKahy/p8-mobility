@@ -6,7 +6,7 @@
 try {
   // API CALL
 } catch (error) {
-  debug(`Failed to post data: ${error.message}`, ' error ');
+  debug(`Failed to post data: ${error.message}`);
 }
 ```
 
@@ -19,7 +19,7 @@ const user = {
   role: 'admin',
 };
 
-info('User object:', user);
+info(`User object:${user}`);
 ```
 
 ## Interested in seeing the proces of things happening?
@@ -27,17 +27,19 @@ info('User object:', user);
 ```javascript
 info('Starting user creation');
 const user = await createUser(userData);
-info('User created successfully', user);
+info(`User created successfully: ${user}`);
 ```
 
 ## Example for use in component
+
+When using the custom logger, you can create youre own custom group, that will be displayed on the logger screen.
 
 ```javascript
 <Button
   label="Upload new floor plan"
   onPress={() => {
     console.log('Button pressed');
-    custom('Upload new floor plan button pressed', 'buttons');
+    custom('Upload new floor plan button pressed', 'buttons group');
   }}
 />
 ```

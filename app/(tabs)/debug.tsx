@@ -39,40 +39,48 @@ function renderLogs(logsInGroup: LogEntry[]) {
 
   return renderedLogs;
 }
-// Renders ALl the groups
+// Renders all the groups
 function renderGroups(
   logsGroupedByGroup: GroupedLogs,
   openGroups: Record<string, boolean>,
   toggleGroupVisibility: (groupName: string) => void
 ) {
-  return Object.entries(logsGroupedByGroup).map(([groupName, logsInGroup]) => {
-    let arrow;
-    if (openGroups[groupName]) {
-      arrow = '▼';
-    } else {
-      arrow = '▶';
-    }
-    let renderedLogs = null;
+  const groups = Object.entries(logsGroupedByGroup).map(
+    ([groupName, logsInGroup]) => {
+      let arrow;
+      if (openGroups[groupName]) {
+        arrow = '▼';
+      } else {
+        arrow = '▶';
+      }
+      let renderedLogs = null;
 
-    if (openGroups[groupName]) {
-      renderedLogs = renderLogs(logsInGroup);
-    }
+      if (openGroups[groupName]) {
+        renderedLogs = renderLogs(logsInGroup);
+      }
 
-    return (
-      <View key={groupName} style={styles.group} nativeID="Log-group-container">
-        <Pressable
-          style={styles.groupHeader}
-          onPress={() => toggleGroupVisibility(groupName)}
+      const groupcontainer = (
+        <View
+          key={groupName}
+          style={styles.group}
+          nativeID="Log-group-container"
         >
-          <Text style={styles.groupTitle}>
-            {arrow} {groupName}
-          </Text>
-        </Pressable>
+          <Pressable
+            style={styles.groupHeader}
+            onPress={() => toggleGroupVisibility(groupName)}
+          >
+            <Text style={styles.groupTitle}>
+              {arrow} {groupName}
+            </Text>
+          </Pressable>
 
-        {renderedLogs}
-      </View>
-    );
-  });
+          {renderedLogs}
+        </View>
+      );
+      return groupcontainer;
+    }
+  );
+  return groups;
 }
 
 export default function Debug() {
@@ -95,7 +103,7 @@ export default function Debug() {
     });
   };
 
-  return (
+  const page = (
     <View style={styles.container}>
       <Text style={styles.title}>Debugger</Text>
 
@@ -112,6 +120,7 @@ export default function Debug() {
       </ScrollView>
     </View>
   );
+  return page;
 }
 
 const styles = StyleSheet.create({
