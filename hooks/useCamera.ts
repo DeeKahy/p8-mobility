@@ -1,6 +1,6 @@
-import { CameraView, useCameraPermissions } from 'expo-camera';
+import {CameraView, useCameraPermissions} from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
-import { useRef, useState } from 'react';
+import {useRef, useState} from 'react';
 
 export const useCamera = () => {
   const cameraRef = useRef<CameraView>(null);
@@ -34,6 +34,7 @@ export const useCamera = () => {
     takePhoto,
     showCamera,
     hideCamera,
+    cameraRef,
     pickPhotoFromLibrary,
     isCameraVisible,
   };
