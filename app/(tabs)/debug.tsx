@@ -92,14 +92,7 @@ export default function Debug() {
   const toggleGroupVisibility = (groupName: string) => {
     setOpenGroups((previousState) => {
       const updatedState = Object.assign({}, previousState);
-
-      if (updatedState[groupName] === true) {
-        updatedState[groupName] = false;
-      } else {
-        updatedState[groupName] = true;
-      }
-
-      return updatedState;
+      return !updatedState[groupName];
     });
   };
 
