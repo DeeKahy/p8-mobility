@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { SetStateAction, useMemo, useState } from 'react';
 import { FlatList, View, Text, Image, TouchableOpacity } from 'react-native';
 
 import { styles } from '../app/css/photo_list';
@@ -8,7 +8,7 @@ type PhotoFormProps = {
 };
 
 export default ({ photoList }: PhotoFormProps) => {
-  const [showPhoto, setShowPhoto] = useState(null);
+  const [showPhoto, setShowPhoto] = useState<string | null>(null);
   // Without useMemo, this runs on every keystroke and any state change. Sorts based on area group
   const processedPhotos = useMemo<PhotoForm[]>(() => {
     return photoList.sort((a, b) => {
@@ -16,7 +16,7 @@ export default ({ photoList }: PhotoFormProps) => {
     });
   }, [photoList]);
 
-  const showSinglePhoto = (photoToShow) => {
+  const showSinglePhoto = (photoToShow : string) => {
     setShowPhoto(showPhoto === photoToShow ? null : photoToShow);
   };
 
