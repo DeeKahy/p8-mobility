@@ -1,7 +1,25 @@
+import { ViroARSceneNavigator } from '@viro-community/react-viro';
+import { useIsFocused } from '@react-navigation/native';
 import React from 'react';
+import { View } from 'react-native';
 
-import ARView from '../../components/ARView';
+import MeasureScene from '../../components/MeasureScene';
 
-export default function ARScreen() {
-  return <ARView />;
+export default function ARView() {
+  const isFocused = useIsFocused();
+
+  // Prevent AR renderer from running when the tab is not active
+  if (!isFocused) {
+    return null;
+  }
+
+  return (
+    <View style={{ flex: 1 }}>
+      <ViroARSceneNavigator
+        autofocus
+        initialScene={{ scene: MeasureScene }}
+        style={{ flex: 1 }}
+      />
+    </View>
+  );
 }
