@@ -40,7 +40,7 @@ const schema = yup
   })
   .required();
 
-export default function PhotoFormModal({
+export default function PhotoFormModul({
   visible,
   onClose,
   photoUri,
