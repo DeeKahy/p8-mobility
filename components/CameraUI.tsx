@@ -1,32 +1,46 @@
-import { CameraView } from 'expo-camera';
-import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import {CameraView, useCameraPermissions} from 'expo-camera';
+import React, {useRef} from 'react';
+import {StyleSheet, Text, TouchableOpacity, View} from 'react-native';
 
 interface CameraUIProps {
-  onPictureTaken: () => void;
-  onCancel: () => void;
-  cameraRef: React.RefObject<CameraView>;
+  onPictureTaken: ((uri: string) => void) | undefined;
+  onCancel?: () => void;
+  cameraRef: React.RefObject<CameraView | null>;
 }
 
-export const CameraUI = (props: CameraUIProps) => {
-  const { onPictureTaken, onCancel, cameraRef } = props;
+export const CameraUI = async (props: CameraUIProps) => {
+  const {onPictureTaken, onCancel} = props;
+  const [permission, requestPermission] = useCameraPermissions();
+  const cameraRef = useRef<CameraView | null>(null);
+
+  const handleTakePicture = async () => {
+    if (!cameraRef.current) return null;
+    const res = await cameraRef.current.takePictureAsync();
+
+    if (onPictureTaken) onPictureTaken(res.uri);
+  }
+
+  if (!permission) {
+    await requestPermission();
+  }
+
   return (
-    <View style={styles.cameraContainer}>
-      <CameraView style={styles.camera} ref={cameraRef}>
-        <View style={styles.cameraButtons}>
-          <TouchableOpacity style={styles.cancelButton} onPress={onCancel}>
-            <Text style={styles.buttonText}>Cancel</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.captureButton}
-            onPress={onPictureTaken}
-          >
-            <View style={styles.captureButtonInner} />
-          </TouchableOpacity>
-          <View style={{ width: 70 }} />
-        </View>
-      </CameraView>
-    </View>
+   <View style={styles.cameraContainer}>
+     <CameraView style={styles.camera} ref={cameraRef}>
+       <View style={styles.cameraButtons}>
+         <TouchableOpacity style={styles.cancelButton} onPress={onCancel}>
+           <Text style={styles.buttonText}>Cancel</Text>
+         </TouchableOpacity>
+         <TouchableOpacity
+          style={styles.captureButton}
+          onPress={handleTakePicture}
+         >
+           <View style={styles.captureButtonInner}/>
+         </TouchableOpacity>
+         <View style={{width: 70}}/>
+       </View>
+     </CameraView>
+   </View>
   );
 };
 

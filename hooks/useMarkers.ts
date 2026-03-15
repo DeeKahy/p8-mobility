@@ -1,65 +1,77 @@
-import { useState } from 'react';
+import {useState} from 'react';
 
 export interface Marker {
-  id: string;
-  x: number;
-  y: number;
-  photos: string[];
+    id: string;
+    x: number;
+    y: number;
+    photos: string[];
 }
 
 export const useMarkers = () => {
-  const [markers, setMarkers] = useState<Marker[]>([]);
-  const [selectedMarker, setSelectedMarker] = useState<Marker | null>(null);
+    const [markers, setMarkers] = useState<Marker[]>([]);
 
-  const clearMarkers = () => {
-    setMarkers([]);
-  };
-
-  const addMarker = (x: number, y: number, photoURI: string) => {
-    const newMarker: Marker = {
-      id: Date.now().toString(),
-      photos: [photoURI],
-      x,
-      y,
+    const clearMarkers = () => {
+        setMarkers([]);
     };
-    setMarkers((curr) => curr.concat(newMarker));
-  };
 
-  const editMarker = (id: string, editorFnc: (old: Marker) => Marker) => {
-    const index = markers.findIndex((m) => m.id === id);
-    markers[index] = editorFnc(markers[index]); // Set the index of the entry with matching ID to the output of the editor function
-    setMarkers(markers);
-  };
+    const addMarker = (x: number, y: number, photoURIs: string[]) => {
+        const newMarker: Marker = {
+            id: Date.now().toString(),
+            photos: photoURIs,
+            x,
+            y,
+        };
+        setMarkers((curr) => curr.concat(newMarker));
+    };
 
-  const addPhoto = (id: string, photoURI: string) => {
-    editMarker(id, (old) => {
-      return { ...old, photos: old.photos.concat(photoURI) }; // Deconstruct old marker and override photos with concatenated field
-    });
-  };
+    const editMarker = (id: string, editorFnc: (old: Marker) => Marker) => {
+        const index = markers.findIndex((m) => m.id === id);
+        markers[index] = editorFnc(markers[index]); // Set the index of the entry with matching ID to the output of the editor function
+        setMarkers(markers);
+    };
 
-  const tryGetMarker = (x: number, y: number) => {
-    const TOLERANCE = 30;
-    let nearMarkers = markers.filter(
-      (m) => Math.abs(m.x - x) + Math.abs(m.y - y) < TOLERANCE
-    ); // Check if any markers are within tolerance (Manhattan Distance)
-    if (nearMarkers.length === 0) return null;
+    const deleteMarker = (id: string) => {
+        setMarkers(markers.filter((m) => m.id !== id));
+    } //Todo? Possible rewrite to use find
 
-    if (nearMarkers.length === 1) return nearMarkers[0];
-    nearMarkers = nearMarkers.sort((a, b) =>
-      Math.abs(a.x - x) + Math.abs(a.y - y) <
-      Math.abs(b.x - x) + Math.abs(b.y - y)
-        ? -1
-        : 1
-    );
-    return nearMarkers[0];
-  };
+    const addPhotos = (id: string, photoURIs: string[]) => {
+        editMarker(id, (old) => {
+            return {...old, photos: old.photos.concat(photoURIs)}; // Deconstruct old marker and override photos with concatenated field
+        }); //Todo duplicate detection
+    };
 
-  return {
-    markers,
-    addMarker,
-    clearMarkers,
-    editMarker,
-    addPhoto,
-    tryGetMarker,
-  };
+    const removePhoto = (id: string, photoURI: string) => {
+        editMarker(id, (old) => {
+            const photoIndex = old.photos.indexOf(photoURI);
+            return {...old, photos: old.photos.splice(photoIndex, 1)}
+        })
+    }
+
+    const tryGetMarker = (x: number, y: number) => {
+        const TOLERANCE = 30;
+        let nearMarkers = markers.filter(
+            (m) => Math.abs(m.x - x) + Math.abs(m.y - y) < TOLERANCE
+        ); // Check if any markers are within tolerance (Manhattan Distance)
+        if (nearMarkers.length === 0) return null;
+
+        if (nearMarkers.length === 1) return nearMarkers[0];
+        nearMarkers = nearMarkers.sort((a, b) =>
+            Math.abs(a.x - x) + Math.abs(a.y - y) <
+            Math.abs(b.x - x) + Math.abs(b.y - y)
+                ? -1
+                : 1
+        );
+        return nearMarkers[0];
+    };
+
+    return {
+        markers,
+        addMarker,
+        deleteMarker,
+        clearMarkers,
+        editMarker,
+        addPhotos,
+        removePhoto,
+        tryGetMarker,
+    };
 };

@@ -1,134 +1,92 @@
-import { CameraView, useCameraPermissions } from 'expo-camera';
-import * as ImagePicker from 'expo-image-picker';
-import { StatusBar } from 'expo-status-bar';
-import { useRef, useState } from 'react';
-import {
-  Dimensions,
-  Image,
-  Modal,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import {StatusBar} from 'expo-status-bar';
+import {useRef, useState} from 'react';
+import {Dimensions, Image, Modal, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View,} from 'react-native';
+import {useFloorplan} from "../../context/FloorplanContext";
+import {CameraUI} from "../../components/CameraUI";
+import * as ImagePicker from "expo-image-picker";
+import {CameraView} from "expo-camera";
 
 export default function HomeScreen() {
   const [newMarkerPosition, setNewMarkerPosition] = useState<{
     x: number;
     y: number;
   } | null>(null);
-  const [showCamera, setShowCamera] = useState(false);
+  const {
+    markers,
+    floorplan,
+    selectedMarker,
+    pickFloorplan,
+    handleCanvasPress,
+    addPhotos,
+    removePhoto,
+    addMarker,
+    tempMarker,
+    setSelectedMarker,
+  } = useFloorplan();
+
   const [showPhotos, setShowPhotos] = useState(false);
+  const [showCamera, setShowCamera] = useState(false);
   const [showNewMarkerOptions, setShowNewMarkerOptions] = useState(false);
-  const [permission, requestPermission] = useCameraPermissions();
+  const [showMarkerOptions, setShowMarkerOptions] = useState(false);
+
+  const cameraAction = useRef<((uri: string) => void) | undefined>(undefined);
   const cameraRef = useRef<CameraView>(null);
-  const newMarkerPositionRef = useRef<{ x: number; y: number } | null>(null);
-  const selectedMarkerRef = useRef<Marker | null>(null);
 
-  // Keep refs in sync with state
-  newMarkerPositionRef.current = newMarkerPosition;
-  selectedMarkerRef.current = selectedMarker;
-
-  const handleTakePictureForNewMarker = async () => {
-    setShowNewMarkerOptions(false);
-    if (!permission?.granted) {
-      await requestPermission();
-      return;
-    }
-    setShowCamera(true);
+  const addPhotoToMarker = (photoUri: string) => {
+    if (!selectedMarker) return;
+    addPhotos(selectedMarker.id, [photoUri]);
   };
 
-  // const addPhotoToMarker = (photoUri: string) => {
-  //   const position = newMarkerPositionRef.current;
-  //   const marker = selectedMarkerRef.current;
-  //
-  //   if (position) {
-  //     // Creating new marker with first photo
-  //     const newMarker: Marker = {
-  //       id: Date.now().toString(),
-  //       x: position.x,
-  //       y: position.y,
-  //       photos: [photoUri],
-  //     };
-  //     setMarkers((prev) => [...prev, newMarker]);
-  //     setNewMarkerPosition(null);
-  //   } else if (marker) {
-  //     // Adding photo to existing marker
-  //     setMarkers((prev) =>
-  //       prev.map((m) =>
-  //         m.id === marker.id ? { ...m, photos: [...m.photos, photoUri] } : m
-  //       )
-  //     );
-  //     setSelectedMarker({ ...marker, photos: [...marker.photos, photoUri] });
-  //   }
-  // };
-
-  const handlePickFromLibraryForNewMarker = async () => {
+  const handleNewMarkerFromCameraRoll = async () => {
     setShowNewMarkerOptions(false);
-    const result = await ImagePicker.launchImageLibraryAsync({
+    const result = await pickPhotoFromLibrary(0);
+    if (!result || !tempMarker) return;
+
+    addMarker(tempMarker.x, tempMarker.y, result.map(p => p.uri))
+  }
+
+  const handleNewMarkerFromPicture = async () => {
+    setShowNewMarkerOptions(false);
+    setShowCamera(true);
+    if (!tempMarker) return;
+
+    cameraAction.current = (img) => {
+      addMarker(tempMarker.x, tempMarker.y, [img])
+    };
+  }
+
+  const handleAddFromCameraRollToMarker = async () => {
+    setShowNewMarkerOptions(false);
+    const result = await pickPhotoFromLibrary(0);
+    if (!result || !selectedMarker) return;
+
+    addPhotos(selectedMarker.id, result.map(p => p.uri))
+  }
+
+  const handleAddFromPictureToMarker = async () => {
+    setShowNewMarkerOptions(false);
+    const result = await pickPhotoFromLibrary(0);
+    if (!result || !selectedMarker) return;
+
+    addPhotos(selectedMarker.id, result.map(p => p.uri))
+  }
+
+  const handleDeletePhoto = (photoURI: string) => {
+    if (!selectedMarker) return;
+    removePhoto(selectedMarker.id, photoURI);
+
+    //ToDo add check to delete marker, if necessary
+  };
+
+  const pickPhotoFromLibrary = async (selectionLimit = 1) => {
+    const res = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
+      selectionLimit,
       allowsEditing: false,
       quality: 1,
     });
-
-    if (!result.canceled) {
-      addPhotoToMarker(result.assets[0].uri);
-    }
-  };
-
-  const handlePickFromLibraryForExistingMarker = async () => {
-    setShowMarkerOptions(false);
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsEditing: false,
-      quality: 1,
-    });
-
-    if (!result.canceled) {
-      addPhotoToMarker(result.assets[0].uri);
-    }
-  };
-
-  const handleTakePhoto = async () => {
-    if (cameraRef.current) {
-      const photo = await cameraRef.current.takePictureAsync();
-      if (photo) {
-        addPhotoToMarker(photo.uri);
-        setShowCamera(false);
-      }
-    }
-  };
-
-  const handleDeletePhoto = (photoIndex: number) => {
-    if (selectedMarker) {
-      const updatedPhotos = selectedMarker.photos.filter(
-        (_, i) => i !== photoIndex
-      );
-      if (updatedPhotos.length === 0) {
-        // Remove marker if no photos left
-        setMarkers(markers.filter((m) => m.id !== selectedMarker.id));
-        setSelectedMarker(null);
-        setShowPhotos(false);
-      } else {
-        setMarkers(
-          markers.map((m) =>
-            m.id === selectedMarker.id ? { ...m, photos: updatedPhotos } : m
-          )
-        );
-        setSelectedMarker({ ...selectedMarker, photos: updatedPhotos });
-      }
-    }
-  };
-
-  const handleTakeAnotherPicture = async () => {
-    setShowMarkerOptions(false);
-    if (!permission?.granted) {
-      await requestPermission();
-      return;
-    }
-    setShowCamera(true);
+    if (res.canceled) return null;
+    return res.assets;
   };
 
   const handleShowPhotos = () => {
@@ -137,201 +95,199 @@ export default function HomeScreen() {
   };
 
   const closeAllModals = () => {
-    setNewMarkerPosition(null);
-    setSelectedMarker(null);
     setShowCamera(false);
     setShowPhotos(false);
+    setSelectedMarker(null);
+    setNewMarkerPosition(null);
     setShowMarkerOptions(false);
     setShowNewMarkerOptions(false);
   };
 
   if (showCamera) {
-    return (
-
-    );
+    return <CameraUI onPictureTaken={cameraAction.current} cameraRef={cameraRef}/>
   }
 
-  // Show floor plan picker if no floor plan selected
-  if (!floorPlan) {
+// Show floor plan picker if no floor plan selected
+  if (!floorplan) {
     return (
-      <View style={styles.pickerContainer}>
-        <StatusBar style="auto" />
-        <Text style={styles.title}>Floor Plan Marker</Text>
-        <Text style={styles.subtitle}>
-          Select a floor plan image to get started
-        </Text>
-        <TouchableOpacity style={styles.pickButton} onPress={pickFloorPlan}>
-          <Text style={styles.pickButtonText}>Select Floor Plan</Text>
-        </TouchableOpacity>
-      </View>
+     <View style={styles.pickerContainer}>
+       <StatusBar style="auto"/>
+       <Text style={styles.title}>Floor Plan Marker</Text>
+       <Text style={styles.subtitle}>
+         Select a floor plan image to get started
+       </Text>
+       <TouchableOpacity style={styles.pickButton} onPress={pickFloorplan}>
+         <Text style={styles.pickButtonText}>Select Floor Plan</Text>
+       </TouchableOpacity>
+     </View>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <StatusBar style="auto" />
+   <View style={styles.container}>
+     <StatusBar style="auto"/>
 
-      {/* Header with change floor plan option */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Floor Plan</Text>
-        <TouchableOpacity onPress={pickFloorPlan}>
-          <Text style={styles.headerButton}>Change</Text>
-        </TouchableOpacity>
-      </View>
+     {/* Header with change floor plan option */}
+     <View style={styles.header}>
+       <Text style={styles.headerTitle}>Floor Plan</Text>
+       <TouchableOpacity onPress={pickFloorplan}>
+         <Text style={styles.headerButton}>Change</Text>
+       </TouchableOpacity>
+     </View>
 
-      {/* Floor plan with markers */}
-      <Pressable style={styles.canvas} onPress={handleCanvasPress}>
-        <Image
-          source={{ uri: floorPlan }}
-          style={styles.floorPlanImage}
-          resizeMode="contain"
-        />
+     {/* Floor plan with markers */}
+     <Pressable style={styles.canvas} onPress={handleCanvasPress}>
+       <Image
+        source={{uri: floorplan}}
+        style={styles.floorPlanImage}
+        resizeMode="contain"
+       />
 
-        {/* Render markers */}
-        {markers.map((marker) => (
-          <View
-            key={marker.id}
-            style={[styles.marker, { left: marker.x, top: marker.y }]}
-          >
-            <View style={styles.markerDot} />
-            <Text style={styles.markerCount}>{marker.photos.length}</Text>
-          </View>
-        ))}
-
-        {/* New marker popup */}
-        {newMarkerPosition && (
-            <View
-            style={[
-              styles.popup,
-              {
-                left: newMarkerPosition.x - 82,
-                top: newMarkerPosition.y - 120,
-              },
-            ]}
-          >
-            <TouchableOpacity
-              style={styles.popupButton}
-              onPress={() => setShowNewMarkerOptions(true)}
-            >
-              <Text style={styles.popupText}>Add picture for this space?</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.popupCancel}
-              onPress={() => setNewMarkerPosition(null)}
-            >
-              <Text style={styles.popupCancelText}>Cancel</Text>
-            </TouchableOpacity>
-            <View style={styles.popupArrow} />
-          </View>
-        )}
-      </Pressable>
-
-      {/* New marker options modal */}
-      <Modal visible={showNewMarkerOptions} transparent animationType="fade">
-        <Pressable
-          style={styles.modalOverlay}
-          onPress={() => setShowNewMarkerOptions(false)}
+       {/* Render markers */}
+       {markers.map((marker) => (
+        <View
+         key={marker.id}
+         style={[styles.marker, {left: marker.x, top: marker.y}]}
         >
-          <Pressable
-            style={styles.optionsModal}
-            onPress={(e) => e.stopPropagation()}
-          >
-            <Text style={styles.optionsTitle}>Add Picture</Text>
-            <TouchableOpacity
-              style={styles.optionButton}
-              onPress={handleTakePictureForNewMarker}
-            >
-              <Text style={styles.optionText}>Take Photo</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.optionButton}
-              onPress={handlePickFromLibraryForNewMarker}
-            >
-              <Text style={styles.optionText}>Choose from Library</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.optionCancelButton}
-              onPress={() => setShowNewMarkerOptions(false)}
-            >
-              <Text style={styles.optionCancelText}>Cancel</Text>
-            </TouchableOpacity>
-          </Pressable>
-        </Pressable>
-      </Modal>
-
-      {/* Marker options modal */}
-      <Modal visible={showMarkerOptions} transparent animationType="fade">
-        <Pressable style={styles.modalOverlay} onPress={closeAllModals}>
-          <Pressable
-            style={styles.optionsModal}
-            onPress={(e) => e.stopPropagation()}
-          >
-            <Text style={styles.optionsTitle}>Marker Options</Text>
-            <TouchableOpacity
-              style={styles.optionButton}
-              onPress={handleShowPhotos}
-            >
-              <Text style={styles.optionText}>
-                Show Pictures ({selectedMarker?.photos.length})
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.optionButton}
-              onPress={handleTakeAnotherPicture}
-            >
-              <Text style={styles.optionText}>Take Photo</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.optionButton}
-              onPress={handlePickFromLibraryForExistingMarker}
-            >
-              <Text style={styles.optionText}>Choose from Library</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.optionCancelButton}
-              onPress={closeAllModals}
-            >
-              <Text style={styles.optionCancelText}>Cancel</Text>
-            </TouchableOpacity>
-          </Pressable>
-        </Pressable>
-      </Modal>
-
-      {/* Photos gallery modal */}
-      <Modal visible={showPhotos} transparent animationType="slide">
-        <View style={styles.photosModal}>
-          <View style={styles.photosHeader}>
-            <Text style={styles.photosTitle}>
-              Photos ({selectedMarker?.photos.length})
-            </Text>
-            <TouchableOpacity onPress={closeAllModals}>
-              <Text style={styles.closeButton}>Close</Text>
-            </TouchableOpacity>
-          </View>
-          <ScrollView contentContainerStyle={styles.photosGrid}>
-            {selectedMarker?.photos.map((photo, index) => (
-              <View key={index} style={styles.photoContainer}>
-                <Image source={{ uri: photo }} style={styles.photoThumbnail} />
-                <TouchableOpacity
-                  style={styles.deleteButton}
-                  onPress={() => handleDeletePhoto(index)}
-                >
-                  <Text style={styles.deleteButtonText}>✕</Text>
-                </TouchableOpacity>
-              </View>
-            ))}
-          </ScrollView>
+          <View style={styles.markerDot}/>
+          <Text style={styles.markerCount}>{marker.photos.length}</Text>
         </View>
-      </Modal>
+       ))}
 
-      <Text style={styles.instructions}>
-        Tap on the floor plan to place a marker
-      </Text>
-    </View>
+       {/* New marker popup */}
+       {newMarkerPosition && (
+        <View
+         style={[
+           styles.popup,
+           {
+             left: newMarkerPosition.x - 82,
+             top: newMarkerPosition.y - 120,
+           },
+         ]}
+        >
+          <TouchableOpacity
+           style={styles.popupButton}
+           onPress={() => setShowNewMarkerOptions(true)}
+          >
+            <Text style={styles.popupText}>Add picture for this space?</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+           style={styles.popupCancel}
+           onPress={() => setNewMarkerPosition(null)}
+          >
+            <Text style={styles.popupCancelText}>Cancel</Text>
+          </TouchableOpacity>
+          <View style={styles.popupArrow}/>
+        </View>
+       )}
+     </Pressable>
+
+     {/* New marker options modal */}
+     <Modal visible={showNewMarkerOptions} transparent animationType="fade">
+       <Pressable
+        style={styles.modalOverlay}
+        onPress={() => setShowNewMarkerOptions(false)}
+       >
+         <Pressable
+          style={styles.optionsModal}
+          onPress={(e) => e.stopPropagation()}
+         >
+           <Text style={styles.optionsTitle}>Add Picture</Text>
+           <TouchableOpacity
+            style={styles.optionButton}
+            onPress={handleNewMarkerFromPicture}
+           >
+             <Text style={styles.optionText}>Take Photo</Text>
+           </TouchableOpacity>
+           <TouchableOpacity
+            style={styles.optionButton}
+            onPress={handleNewMarkerFromCameraRoll}
+           >
+             <Text style={styles.optionText}>Choose from Library</Text>
+           </TouchableOpacity>
+           <TouchableOpacity
+            style={styles.optionCancelButton}
+            onPress={() => setShowNewMarkerOptions(false)}
+           >
+             <Text style={styles.optionCancelText}>Cancel</Text>
+           </TouchableOpacity>
+         </Pressable>
+       </Pressable>
+     </Modal>
+
+     {/* Marker options modal */}
+     <Modal visible={showMarkerOptions} transparent animationType="fade">
+       <Pressable style={styles.modalOverlay} onPress={closeAllModals}>
+         <Pressable
+          style={styles.optionsModal}
+          onPress={(e) => e.stopPropagation()}
+         >
+           <Text style={styles.optionsTitle}>Marker Options</Text>
+           <TouchableOpacity
+            style={styles.optionButton}
+            onPress={handleShowPhotos}
+           >
+             <Text style={styles.optionText}>
+               Show Pictures ({selectedMarker?.photos.length})
+             </Text>
+           </TouchableOpacity>
+           <TouchableOpacity
+            style={styles.optionButton}
+            onPress={handleAddFromPictureToMarker}
+           >
+             <Text style={styles.optionText}>Take Photo</Text>
+           </TouchableOpacity>
+           <TouchableOpacity
+            style={styles.optionButton}
+            onPress={handleAddFromCameraRollToMarker}
+           >
+             <Text style={styles.optionText}>Choose from Library</Text>
+           </TouchableOpacity>
+           <TouchableOpacity
+            style={styles.optionCancelButton}
+            onPress={closeAllModals}
+           >
+             <Text style={styles.optionCancelText}>Cancel</Text>
+           </TouchableOpacity>
+         </Pressable>
+       </Pressable>
+     </Modal>
+
+     {/* Photos gallery modal */}
+     <Modal visible={showPhotos} transparent animationType="slide">
+       <View style={styles.photosModal}>
+         <View style={styles.photosHeader}>
+           <Text style={styles.photosTitle}>
+             Photos ({selectedMarker?.photos.length})
+           </Text>
+           <TouchableOpacity onPress={closeAllModals}>
+             <Text style={styles.closeButton}>Close</Text>
+           </TouchableOpacity>
+         </View>
+         <ScrollView contentContainerStyle={styles.photosGrid}>
+           {selectedMarker?.photos.map((photo, index) => (
+            <View key={index} style={styles.photoContainer}>
+              <Image source={{uri: photo}} style={styles.photoThumbnail}/>
+              <TouchableOpacity
+               style={styles.deleteButton}
+               onPress={() => handleDeletePhoto(photo)}
+              >
+                <Text style={styles.deleteButtonText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+           ))}
+         </ScrollView>
+       </View>
+     </Modal>
+
+     <Text style={styles.instructions}>
+       Tap on the floor plan to place a marker
+     </Text>
+   </View>
   );
 }
 
-const { width } = Dimensions.get('window');
+const {width} = Dimensions.get('window');
 
 const styles = StyleSheet.create({
   container: {
@@ -411,7 +367,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FF5722',
     borderWidth: 3,
     borderColor: '#fff',
-    transform: [{ translateX: -10 }, { translateY: -10 }],
+    transform: [{translateX: -10}, {translateY: -10}],
     pointerEvents: 'none',
   },
   markerCount: {
@@ -436,7 +392,7 @@ const styles = StyleSheet.create({
     padding: 10,
     width: 180,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.25,
     shadowRadius: 4,
     elevation: 5,
