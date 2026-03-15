@@ -158,12 +158,12 @@ export default function HomeScreen() {
   };
 
   /**
- * Inserts data into an image object. It is dependent on if the photo is taken with camera or from library.
- * The reason for this is due to the fact that the object exif (meta data) is further indented when taking from library and we need to acess further in.
- *
- * @param {any} data - The data to insert
- * @param {string} objectName - The name of the image object
- */
+   * Inserts data into an image object. It is dependent on if the photo is taken with camera or from library.
+   * The reason for this is due to the fact that the object exif (meta data) is further indented when taking from library and we need to acess further in.
+   *
+   * @param {any} data - The data to insert
+   * @param {string} objectName - The name of the image object
+   */
   const insertDataIntoImage = async (data: any, objectName: string) => {
     if (!takenWithCamera) {
       setPhotoData((prev: any) => ({
