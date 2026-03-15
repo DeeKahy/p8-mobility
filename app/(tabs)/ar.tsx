@@ -1,5 +1,5 @@
-import { ViroARSceneNavigator } from '@viro-community/react-viro';
 import { useIsFocused } from '@react-navigation/native';
+import { ViroARSceneNavigator } from '@viro-community/react-viro';
 import React from 'react';
 import { View } from 'react-native';
 
