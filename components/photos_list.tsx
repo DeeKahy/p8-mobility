@@ -1,13 +1,8 @@
 import { useMemo, useState } from 'react';
-import {
-  FlatList,
-  View,
-  Text,
-  Image,
-  TouchableOpacity,
-} from 'react-native';
-import { PhotoForm } from "../app/models/PhotoFormModel"
+import { FlatList, View, Text, Image, TouchableOpacity } from 'react-native';
+
 import { styles } from '../app/css/photo_list';
+import { PhotoForm } from '../app/models/PhotoFormModel';
 type PhotoFormProps = {
   photoList: PhotoForm[];
 };
@@ -21,23 +16,25 @@ export default ({ photoList }: PhotoFormProps) => {
     });
   }, [photoList]);
 
-  const showSinglePhoto = ( photoToShow ) => {
+  const showSinglePhoto = (photoToShow) => {
     setShowPhoto(showPhoto === photoToShow ? null : photoToShow);
-  }
+  };
 
   const Item = ({ pictureName, dateTaken, photoUri, areaGroup }: PhotoForm) => (
     <View style={styles.card}>
       <View style={styles.textContainer}>
         <Text style={styles.subtitle}>{areaGroup}</Text>
         <TouchableOpacity onPress={() => showSinglePhoto(photoUri)}>
-          <Text style={styles.title}>{pictureName} {showPhoto === photoUri ? "<" : ">"}</Text>
+          <Text style={styles.title}>
+            {pictureName} {showPhoto === photoUri ? '<' : '>'}
+          </Text>
         </TouchableOpacity>
       </View>
       {showPhoto === photoUri && (
-      <View style={styles.textContainer}>
-        <View style={styles.imageContainer}>
-          <Image source={{ uri: photoUri }} style={styles.image} />
-        </View>
+        <View style={styles.textContainer}>
+          <View style={styles.imageContainer}>
+            <Image source={{ uri: photoUri }} style={styles.image} />
+          </View>
           <Text style={styles.date}>{dateTaken}</Text>
         </View>
       )}
@@ -61,4 +58,4 @@ export default ({ photoList }: PhotoFormProps) => {
       />
     </>
   );
-}
+};

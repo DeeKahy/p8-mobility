@@ -1,9 +1,6 @@
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
 import { StatusBar } from 'expo-status-bar';
-import PhotoFormModul from '../../components/photoForm';
-import PhotoList from '../../components/photos_list';
-import { PhotoForm } from "../models/PhotoFormModel"
 import { useState, useRef, useEffect } from 'react';
 import {
   StyleSheet,
@@ -16,6 +13,10 @@ import {
   Pressable,
   Dimensions,
 } from 'react-native';
+
+import PhotoFormModul from '../../components/photoForm';
+import PhotoList from '../../components/photos_list';
+import { PhotoForm } from '../models/PhotoFormModel';
 
 interface Marker {
   id: string;
@@ -250,7 +251,6 @@ export default function HomeScreen() {
     setShowPhotos(true);
   };
 
-
   const closeAllModals = () => {
     setNewMarkerPosition(null);
     setSelectedMarker(null);
@@ -481,7 +481,12 @@ export default function HomeScreen() {
           <PhotoList photoList={listOfPhotos} />
         </View>
       )}
-      <TouchableOpacity style={styles.showListButton} onPress={() => { setShowPhotoList(!showPhotoList); }}>
+      <TouchableOpacity
+        style={styles.showListButton}
+        onPress={() => {
+          setShowPhotoList(!showPhotoList);
+        }}
+      >
         <Text>Show List</Text>
       </TouchableOpacity>
       <Text style={styles.instructions}>
@@ -507,20 +512,20 @@ const styles = StyleSheet.create({
   },
 
   fullscreenOverlay: {
-    position: "absolute",
+    position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: "#fff",
+    backgroundColor: '#fff',
     zIndex: 5,
   },
 
   showListButton: {
-    position: "absolute",
+    position: 'absolute',
     bottom: 40,
     right: 20,
-    backgroundColor: "#2196F3",
+    backgroundColor: '#2196F3',
     padding: 12,
     borderRadius: 10,
     zIndex: 10,

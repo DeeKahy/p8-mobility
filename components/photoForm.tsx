@@ -2,19 +2,12 @@ import { yupResolver } from '@hookform/resolvers/yup';
 import { useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 //Expected photo data format to make it easier to pass over including only the most necessary. Also works in unison with yup validator.
-import { PhotoForm } from '../app/models/PhotoFormModel';
-import { styles } from '../app/css/photoForm';
-import {
-  View,
-  Image,
-  TextInput,
-  Button,
-  Text,
-  Modal
-} from 'react-native';
+import { View, Image, TextInput, Button, Text, Modal } from 'react-native';
 import DropDownPicker from 'react-native-dropdown-picker';
 import * as yup from 'yup';
 
+import { styles } from '../app/css/photoForm';
+import { PhotoForm } from '../app/models/PhotoFormModel';
 //Photo form to take data from index.tsx and opening and closing modal
 type PhotoFormProps = {
   visible: boolean;
@@ -150,14 +143,16 @@ export default function PhotoFormModul({
         </View>
 
         <View style={styles.buttonContainer}>
-          <Button title="Done"
+          <Button
+            title="Done"
             onPress={() => {
               handleSubmit(onSubmit)();
               reset();
-            }} />
+            }}
+          />
           <Button title="Cancel" onPress={onClose} />
         </View>
       </View>
-    </Modal >
+    </Modal>
   );
 }
