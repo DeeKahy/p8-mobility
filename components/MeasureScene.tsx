@@ -40,7 +40,11 @@ function extractHitPosition(results: unknown): Point3D | null {
     return null;
   }
 
+  // Loop through each hit test result returned by the AR engine
   for (const result of results) {
+    // Validate that the result exists and has the expected properties
+    // result is not null, it is an object, has a type property(surface type),
+    // transform property (position/orientation data), and the hit corresponds to detected plane
     if (
       result &&
       typeof result === 'object' &&
@@ -49,13 +53,16 @@ function extractHitPosition(results: unknown): Point3D | null {
       result.type === 'ExistingPlaneUsingExtent'
     ) {
       const transform = result.transform;
-
+      // Validate the transform object
+      // Ensure it exists and contains a valid 3D position
       if (
         transform &&
         typeof transform === 'object' &&
         'position' in transform &&
         isValidPoint(transform.position)
       ) {
+        // Return the 3D coordinates where the ray intersected the plane
+        // Format: [x, y, z] in AR world space (meters)
         return transform.position;
       }
     }
