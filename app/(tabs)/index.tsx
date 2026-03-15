@@ -1,6 +1,9 @@
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
 import { StatusBar } from 'expo-status-bar';
+import PhotoFormModul from '../../components/photoForm';
+import PhotoList from '../../components/photos_list';
+import { PhotoForm } from "../models/PhotoFormModel"
 import { useState, useRef, useEffect } from 'react';
 import {
   StyleSheet,
@@ -13,8 +16,6 @@ import {
   Pressable,
   Dimensions,
 } from 'react-native';
-
-import PhotoFormModul from '../../components/photoForm';
 
 interface Marker {
   id: string;
@@ -33,7 +34,9 @@ export default function HomeScreen() {
   const [showCamera, setShowCamera] = useState(false);
   const [showPhotos, setShowPhotos] = useState(false);
   const [photoData, setPhotoData] = useState<any>();
+  const [listOfPhotos, setListOfPhotos] = useState<PhotoForm[]>([]);
   const [showPhotoModule, setShowPhotoModule] = useState<boolean>(false);
+  const [showPhotoList, setShowPhotoList] = useState<boolean>(false);
   const [takenWithCamera, setTakenWithCamera] = useState<boolean>(false);
   const [showMarkerOptions, setShowMarkerOptions] = useState(false);
   const [showNewMarkerOptions, setShowNewMarkerOptions] = useState(false);
@@ -247,6 +250,7 @@ export default function HomeScreen() {
     setShowPhotos(true);
   };
 
+
   const closeAllModals = () => {
     setNewMarkerPosition(null);
     setSelectedMarker(null);
@@ -255,7 +259,6 @@ export default function HomeScreen() {
     setShowMarkerOptions(false);
     setShowNewMarkerOptions(false);
   };
-
   if (showCamera) {
     return (
       <View style={styles.cameraContainer}>
@@ -440,6 +443,10 @@ export default function HomeScreen() {
           console.log('Form data: ' + JSON.stringify(data));
           addPhotoToMarker(data.photoUri);
           setShowPhotoModule(false);
+          if (data && !listOfPhotos.includes(data)) {
+            setListOfPhotos((current) => [...current, data]);
+            console.log('Processing photo...' + JSON.stringify(data));
+          }
         }}
       />
 
@@ -469,7 +476,14 @@ export default function HomeScreen() {
           </ScrollView>
         </View>
       </Modal>
-
+      {showPhotoList && (
+        <View style={styles.fullscreenOverlay}>
+          <PhotoList photoList={listOfPhotos} />
+        </View>
+      )}
+      <TouchableOpacity style={styles.showListButton} onPress={() => { setShowPhotoList(!showPhotoList); }}>
+        <Text>Show List</Text>
+      </TouchableOpacity>
       <Text style={styles.instructions}>
         Tap on the floor plan to place a marker
       </Text>
@@ -490,6 +504,27 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: 20,
+  },
+
+  fullscreenOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "#fff",
+    zIndex: 5,
+  },
+
+  showListButton: {
+    position: "absolute",
+    bottom: 40,
+    right: 20,
+    backgroundColor: "#2196F3",
+    padding: 12,
+    borderRadius: 10,
+    zIndex: 10,
+    elevation: 10,
   },
   title: {
     fontSize: 28,
