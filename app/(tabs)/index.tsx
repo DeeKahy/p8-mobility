@@ -14,7 +14,7 @@ import {
   Dimensions,
 } from 'react-native';
 
-import PhotoFormModul from '../../components/photoForm';
+import PhotoFormModal from '../../components/photoForm';
 
 interface Marker {
   id: string;
@@ -157,7 +157,13 @@ export default function HomeScreen() {
     }
   };
 
-  //__________________________Insert data into image______________________
+  /**
+ * Inserts data into an image object. It is dependent on if the photo is taken with camera or from library.
+ * The reason for this is due to the fact that the object exif (meta data) is further indented when taking from library and we need to acess further in.
+ *
+ * @param {any} data - The data to insert
+ * @param {string} objectName - The name of the image object
+ */
   const insertDataIntoImage = async (data: any, objectName: string) => {
     if (!takenWithCamera) {
       setPhotoData((prev: any) => ({
@@ -425,7 +431,7 @@ export default function HomeScreen() {
         </Pressable>
       </Modal>
 
-      <PhotoFormModul
+      <PhotoFormModal
         visible={showPhotoModule}
         photoUri={
           takenWithCamera ? photoData?.uri : photoData?.assets?.[0]?.uri
