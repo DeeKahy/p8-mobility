@@ -1,4 +1,4 @@
-import { SetStateAction, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { FlatList, View, Text, Image, TouchableOpacity } from 'react-native';
 
 import { styles } from '../app/css/photo_list';
@@ -16,7 +16,7 @@ export default ({ photoList }: PhotoFormProps) => {
     });
   }, [photoList]);
 
-  const showSinglePhoto = (photoToShow : string) => {
+  const showSinglePhoto = (photoToShow: string) => {
     setShowPhoto(showPhoto === photoToShow ? null : photoToShow);
   };
 
