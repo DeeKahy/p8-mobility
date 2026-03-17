@@ -1,7 +1,7 @@
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
 import { StatusBar } from 'expo-status-bar';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
   StyleSheet,
   Text,
@@ -13,6 +13,8 @@ import {
   Pressable,
   Dimensions,
 } from 'react-native';
+
+import PhotoFormModal from '../../components/photoForm';
 
 interface Marker {
   id: string;
@@ -30,12 +32,38 @@ export default function HomeScreen() {
   } | null>(null);
   const [showCamera, setShowCamera] = useState(false);
   const [showPhotos, setShowPhotos] = useState(false);
+  const [photoData, setPhotoData] = useState<any>();
+  const [showPhotoModule, setShowPhotoModule] = useState<boolean>(false);
+  const [takenWithCamera, setTakenWithCamera] = useState<boolean>(false);
   const [showMarkerOptions, setShowMarkerOptions] = useState(false);
   const [showNewMarkerOptions, setShowNewMarkerOptions] = useState(false);
   const [permission, requestPermission] = useCameraPermissions();
   const cameraRef = useRef<CameraView>(null);
   const newMarkerPositionRef = useRef<{ x: number; y: number } | null>(null);
   const selectedMarkerRef = useRef<Marker | null>(null);
+
+  //_________Updates when new meta data is introduced__________________
+  useEffect(() => {
+    if (!takenWithCamera) {
+      if (!photoData) return;
+
+      const dateTime = photoData?.assets?.[0]?.exif?.DateTimeOriginal;
+      console.log(dateTime);
+      console.log(JSON.stringify(photoData?.assets?.[0]?.exif, null, 2));
+      const photoUri = photoData?.assets?.[0]?.uri;
+      console.log(photoUri);
+    }
+
+    if (takenWithCamera) {
+      const dateTime = photoData?.exif?.DateTimeOriginal;
+      console.log(dateTime);
+      console.log(photoData);
+      const photoUri = photoData?.uri;
+      console.log(photoUri);
+    }
+  }, [photoData]);
+
+  //______________________________________________________
 
   // Keep refs in sync with state
   newMarkerPositionRef.current = newMarkerPosition;
@@ -113,12 +141,54 @@ export default function HomeScreen() {
       mediaTypes: ['images'],
       allowsEditing: false,
       quality: 1,
+      //__________Allowing meta data________
+      exif: true,
+      //_______________________________________________
     });
 
     if (!result.canceled) {
-      addPhotoToMarker(result.assets[0].uri);
+      setTakenWithCamera(false);
+      setPhotoData(result);
+
+      //Example usage of inserting into metadata. A better option could be to add more fields to the photo form.
+      insertDataIntoImage('String', 'String');
+
+      setShowPhotoModule(true);
     }
   };
+
+  /**
+   * Inserts data into an image object. It is dependent on if the photo is taken with camera or from library.
+   * The reason for this is due to the fact that the object exif (meta data) is further indented when taking from library and we need to acess further in.
+   *
+   * @param {any} data - The data to insert
+   * @param {string} objectName - The name of the image object
+   */
+  const insertDataIntoImage = async (data: any, objectName: string) => {
+    if (!takenWithCamera) {
+      setPhotoData((prev: any) => ({
+        ...prev,
+        assets: [
+          {
+            ...prev.assets[0],
+            exif: {
+              ...(prev.assets[0].exif ?? {}),
+              [objectName]: data,
+            },
+          },
+        ],
+      }));
+    } else if (takenWithCamera) {
+      setPhotoData((prev: any) => ({
+        ...prev,
+        exif: {
+          ...(prev.exif ?? {}),
+          objectName: data,
+        },
+      }));
+    }
+  };
+  //____________________________________________________________
 
   const handlePickFromLibraryForExistingMarker = async () => {
     setShowMarkerOptions(false);
@@ -135,10 +205,15 @@ export default function HomeScreen() {
 
   const handleTakePhoto = async () => {
     if (cameraRef.current) {
-      const photo = await cameraRef.current.takePictureAsync();
+      //__________Allowing meta data for taken photos________
+      const photo = await cameraRef.current.takePictureAsync({ exif: true });
+      //________________________________________________________________
       if (photo) {
-        addPhotoToMarker(photo.uri);
+        setPhotoData(photo);
+        setTakenWithCamera(true);
         setShowCamera(false);
+
+        setShowPhotoModule(true);
       }
     }
   };
@@ -285,7 +360,6 @@ export default function HomeScreen() {
           </View>
         )}
       </Pressable>
-
       {/* New marker options modal */}
       <Modal visible={showNewMarkerOptions} transparent animationType="fade">
         <Pressable
@@ -356,6 +430,24 @@ export default function HomeScreen() {
           </Pressable>
         </Pressable>
       </Modal>
+
+      <PhotoFormModal
+        visible={showPhotoModule}
+        photoUri={
+          takenWithCamera ? photoData?.uri : photoData?.assets?.[0]?.uri
+        }
+        dateTaken={
+          takenWithCamera
+            ? photoData?.exif?.DateTimeOriginal
+            : photoData?.assets?.[0]?.exif?.DateTimeOriginal
+        }
+        onClose={() => setShowPhotoModule(false)}
+        onSubmit={(data) => {
+          console.log('Form data: ' + JSON.stringify(data));
+          addPhotoToMarker(data.photoUri);
+          setShowPhotoModule(false);
+        }}
+      />
 
       {/* Photos gallery modal */}
       <Modal visible={showPhotos} transparent animationType="slide">
