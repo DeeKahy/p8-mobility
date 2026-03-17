@@ -35,7 +35,6 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "scheme": "p8mobility",
     "plugins": [
       [
         "expo-image-picker",
