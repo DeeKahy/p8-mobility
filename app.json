@@ -20,8 +20,7 @@
         "NSPhotoLibraryUsageDescription": "Allow $(PRODUCT_NAME) to access your photos",
         "NSPhotoLibraryAddUsageDescription": "Allow $(PRODUCT_NAME) to save photos",
         "NSMicrophoneUsageDescription": "Allow $(PRODUCT_NAME) to use your microphone"
-      }
-
+      },
       "bundleIdentifier": "com.anonymous.p8mobility"
     },
     "android": {
