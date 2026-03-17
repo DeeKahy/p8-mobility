@@ -94,7 +94,6 @@ export default function Debug() {
       const updatedState = Object.assign({}, previousState);
       updatedState[groupName] = !updatedState[groupName];
       return updatedState;
-
     });
   };
 
