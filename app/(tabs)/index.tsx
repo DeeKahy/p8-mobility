@@ -42,7 +42,7 @@ export default function HomeScreen() {
   const newMarkerPositionRef = useRef<{ x: number; y: number } | null>(null);
   const selectedMarkerRef = useRef<Marker | null>(null);
 
-  //_________Upadtes when new meta data is introduced__________________
+  //_________Updates when new meta data is introduced__________________
   useEffect(() => {
     if (!takenWithCamera) {
       if (!photoData) return;
