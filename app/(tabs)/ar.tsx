@@ -18,6 +18,12 @@ export default function ARView() {
       <ViroARSceneNavigator
         autofocus
         initialScene={{ scene: MeasureScene }}
+        hdrEnabled={false}
+        pbrEnabled={false}
+        bloomEnabled={false}
+        shadowsEnabled={false}
+        multisamplingEnabled={false}
+        videoQuality="Low"
         style={{ flex: 1 }}
       />
     </View>

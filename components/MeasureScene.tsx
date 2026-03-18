@@ -2,15 +2,15 @@ import {
   ViroARScene,
   ViroBox,
   ViroMaterials,
+  ViroText,
 } from '@viro-community/react-viro';
-import React, { useRef, useState } from 'react';
-import { Dimensions } from 'react-native';
+import React, { useMemo, useRef, useState } from 'react';
+import { Dimensions, PixelRatio, StyleSheet } from 'react-native';
 
 type Point3D = [number, number, number];
 
-const HIDDEN_POINT: Point3D = [0, 0, 0];
+const HIDDEN_POINT: Point3D = [0, -10, 0];
 
-// Materials define how AR objects look when rendered in the scene
 ViroMaterials.createMaterials({
   pointMarker: {
     diffuseColor: '#ff0303',
@@ -22,8 +22,34 @@ ViroMaterials.createMaterials({
   },
 });
 
-// Simple check that a position is a valid 3D coordinate
-function isValidPoint(position: Point3D) {
+const styles = StyleSheet.create({
+  distanceLabel: {
+    fontFamily: 'Roboto',
+    fontSize: 56,
+    color: '#ffffff',
+    textAlign: 'center',
+    textAlignVertical: 'center',
+  },
+});
+
+type HitTransform = {
+  position: Point3D;
+};
+
+type HitResult = {
+  type: string;
+  transform?: HitTransform;
+};
+
+const PLANE_HIT_TYPES = new Set([
+  'ExistingPlaneUsingExtent',
+  'ExistingPlane',
+  'EstimatedHorizontalPlane',
+  'EstimatedVerticalPlane',
+  'FeaturePoint',
+]);
+
+function isValidPoint(position: unknown): position is Point3D {
   return (
     Array.isArray(position) &&
     position.length === 3 &&
@@ -33,46 +59,31 @@ function isValidPoint(position: Point3D) {
   );
 }
 
-// Extracts the world position from a Viro AR hit test result
-// Hit tests cast a ray from the screen into the AR world to find surfaces
 function extractHitPosition(results: unknown): Point3D | null {
   if (!Array.isArray(results)) {
     return null;
   }
 
-  // Loop through each hit test result returned by the AR engine
-  for (const result of results) {
-    // Validate that the result exists and has the expected properties
-    // result is not null, it is an object, has a type property(surface type),
-    // transform property (position/orientation data), and the hit corresponds to detected plane
-    if (
-      result &&
-      typeof result === 'object' &&
-      'type' in result &&
-      'transform' in result &&
-      result.type === 'ExistingPlaneUsingExtent'
-    ) {
-      const transform = result.transform;
-      // Validate the transform object
-      // Ensure it exists and contains a valid 3D position
-      if (
-        transform &&
-        typeof transform === 'object' &&
-        'position' in transform &&
-        isValidPoint(transform.position)
-      ) {
-        // Return the 3D coordinates where the ray intersected the plane
-        // Format: [x, y, z] in AR world space (meters)
-        return transform.position;
-      }
+  for (const entry of results) {
+    if (!entry || typeof entry !== 'object') {
+      continue;
+    }
+
+    const result = entry as HitResult;
+    if (!PLANE_HIT_TYPES.has(result.type)) {
+      continue;
+    }
+
+    const position = result.transform?.position;
+    if (isValidPoint(position)) {
+      return position;
     }
   }
 
   return null;
 }
 
-// Calculates distance between two 3D points in AR space
-function calculateDistance(points: Point3D[]) {
+function calculateDistanceMeters(points: [Point3D, Point3D]) {
   const [p1, p2] = points;
   const dx = p2[0] - p1[0];
   const dy = p2[1] - p1[1];
@@ -80,70 +91,97 @@ function calculateDistance(points: Point3D[]) {
   return Math.sqrt(dx ** 2 + dy ** 2 + dz ** 2);
 }
 
-// Formats meters into cm or meters for display
-function formatDistance(distanceInMeters: number) {
-  if (distanceInMeters < 1) {
-    return `${Math.round(distanceInMeters * 100)} cm`;
-  }
-  return `${distanceInMeters.toFixed(2)} m`;
+function formatDistanceCm(distanceMeters: number) {
+  return `${(distanceMeters * 100).toFixed(2)} cm`;
 }
 
 export default function MeasureScene() {
   const [firstPoint, setFirstPoint] = useState<Point3D | null>(null);
   const [secondPoint, setSecondPoint] = useState<Point3D | null>(null);
-
-  // Ref lets us call Viro AR scene methods like hit testing
   const arSceneRef = useRef<ViroARScene | null>(null);
 
-  const handleTap = async () => {
+  const distanceLabel = useMemo(() => {
+    if (!firstPoint || !secondPoint) {
+      return '';
+    }
+
+    const distanceMeters = calculateDistanceMeters([firstPoint, secondPoint]);
+    return formatDistanceCm(distanceMeters);
+  }, [firstPoint, secondPoint]);
+
+  const handleSceneClick = async (tapPosition: Point3D) => {
     if (!arSceneRef.current) return;
 
-    // Use the center of the screen for the AR hit test
-    const centerX = Dimensions.get('window').width / 2;
-    const centerY = Dimensions.get('window').height / 2;
     try {
-      // Cast a ray into the AR world to detect a real-world surface
-      const result = await arSceneRef.current.performARHitTestWithPoint(
-        centerX,
-        centerY
-      );
-      const hitPosition = extractHitPosition(result);
-      console.log('Hit test result:', hitPosition);
+      // Use the actual tap position first; fallback to center raycast if needed.
+      let hitPosition: Point3D | null = isValidPoint(tapPosition)
+        ? tapPosition
+        : null;
+
+      if (!hitPosition) {
+        const centerX = (Dimensions.get('window').width * PixelRatio.get()) / 2;
+        const centerY =
+          (Dimensions.get('window').height * PixelRatio.get()) / 2;
+
+        const result = await arSceneRef.current.performARHitTestWithPoint(
+          centerX,
+          centerY
+        );
+        hitPosition = extractHitPosition(result);
+      }
+
       if (!hitPosition) {
         console.log('No surface detected at this point.');
         return;
       }
 
-      console.log('Extracted hit position:', hitPosition);
-
-      // First tap places the first point, second tap places the second point
       if (!firstPoint || secondPoint) {
         setFirstPoint(hitPosition);
         setSecondPoint(null);
         return;
       }
-      console.log(
-        'distance: ',
-        formatDistance(calculateDistance([firstPoint, hitPosition]))
-      );
+
       setSecondPoint(hitPosition);
     } catch (error) {
       console.error('Error performing hit test:', error);
     }
   };
+
+  const handleSecondPointDrag = (dragToPos: Point3D) => {
+    if (!isValidPoint(dragToPos)) {
+      return;
+    }
+
+    setSecondPoint(dragToPos);
+  };
+
   return (
-    // ViroARScene is the root container for AR objects
-    <ViroARScene ref={arSceneRef} onClick={handleTap}>
+    <ViroARScene ref={arSceneRef} onClick={handleSceneClick}>
       <ViroBox
         position={firstPoint ?? HIDDEN_POINT}
         materials={['pointMarker']}
         scale={[0.025, 0.025, 0.025]}
         visible={firstPoint !== null}
       />
+
       <ViroBox
         position={secondPoint ?? HIDDEN_POINT}
         materials={['secondPointMarker']}
         scale={[0.025, 0.025, 0.025]}
+        visible={secondPoint !== null}
+        dragType="FixedToWorld"
+        onDrag={handleSecondPointDrag}
+      />
+
+      <ViroText
+        text={distanceLabel}
+        position={
+          secondPoint
+            ? [secondPoint[0], secondPoint[1] + 0.06, secondPoint[2]]
+            : HIDDEN_POINT
+        }
+        scale={[0.2, 0.2, 0.2]}
+        style={styles.distanceLabel}
         visible={secondPoint !== null}
       />
     </ViroARScene>
