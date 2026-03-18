@@ -12,6 +12,7 @@ import {
   ScrollView,
   Pressable,
   Dimensions,
+  Alert,
 } from 'react-native';
 
 import PhotoFormModul from '../../components/photoForm';
@@ -149,6 +150,19 @@ export default function HomeScreen() {
       exif: true,
       //_______________________________________________
     });
+
+    // Not allowing too old pictures to be uploaded
+    const two_weeks_ago = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
+    const date = result?.assets?.[0]?.exif?.DateTimeOriginal;
+    const formatDate = date.replace(/(\d{4}):(\d{2}):(\d{2})/, "$1-$2-$3");
+    console.log(formatDate);
+    const dateTaken = new Date(formatDate);
+
+    if (dateTaken < two_weeks_ago) {
+      Alert.alert("Picture is older than 14 days: " + result?.assets?.[0]?.exif?.DateTimeOriginal)
+      return;
+    }
+    //__________________________________________________________________________
 
     if (!result.canceled) {
       setTakenWithCamera(false);
