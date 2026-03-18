@@ -41,6 +41,14 @@ type HitResult = {
   transform?: HitTransform;
 };
 
+const ACCEPTED_HIT_TYPES = new Set([
+  'ExistingPlaneUsingExtent',
+  'ExistingPlane',
+  'EstimatedHorizontalPlane',
+  'EstimatedVerticalPlane',
+  'FeaturePoint',
+]);
+
 function isValidPoint(position: unknown): position is Point3D {
   return (
     Array.isArray(position) &&
@@ -62,7 +70,7 @@ function extractHitPosition(results: unknown): Point3D | null {
     }
 
     const result = entry as HitResult;
-    if (result.type !== 'ExistingPlaneUsingExtent') {
+    if (!ACCEPTED_HIT_TYPES.has(result.type)) {
       continue;
     }
 
@@ -106,18 +114,25 @@ export default function MeasureScene() {
     return formatDistanceCm(distanceMeters);
   }, [firstPoint, secondPoint]);
 
-  const handleSceneClick = async () => {
+  const handleSceneClick = async (tapPosition: Point3D) => {
     if (!arSceneRef.current) return;
 
     try {
-      const centerX = (Dimensions.get('window').width * PixelRatio.get()) / 2;
-      const centerY = (Dimensions.get('window').height * PixelRatio.get()) / 2;
+      let hitPosition: Point3D | null = isValidPoint(tapPosition)
+        ? tapPosition
+        : null;
 
-      const result = await arSceneRef.current.performARHitTestWithPoint(
-        centerX,
-        centerY
-      );
-      const hitPosition = extractHitPosition(result);
+      if (!hitPosition) {
+        const centerX = (Dimensions.get('window').width * PixelRatio.get()) / 2;
+        const centerY =
+          (Dimensions.get('window').height * PixelRatio.get()) / 2;
+
+        const result = await arSceneRef.current.performARHitTestWithPoint(
+          centerX,
+          centerY
+        );
+        hitPosition = extractHitPosition(result);
+      }
 
       if (!hitPosition) {
         console.log('No surface detected at this point.');
