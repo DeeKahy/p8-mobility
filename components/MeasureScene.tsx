@@ -41,14 +41,6 @@ type HitResult = {
   transform?: HitTransform;
 };
 
-const PLANE_HIT_TYPES = new Set([
-  'ExistingPlaneUsingExtent',
-  'ExistingPlane',
-  'EstimatedHorizontalPlane',
-  'EstimatedVerticalPlane',
-  'FeaturePoint',
-]);
-
 function isValidPoint(position: unknown): position is Point3D {
   return (
     Array.isArray(position) &&
@@ -70,7 +62,7 @@ function extractHitPosition(results: unknown): Point3D | null {
     }
 
     const result = entry as HitResult;
-    if (!PLANE_HIT_TYPES.has(result.type)) {
+    if (result.type !== 'ExistingPlaneUsingExtent') {
       continue;
     }
 
@@ -95,6 +87,11 @@ function formatDistanceCm(distanceMeters: number) {
   return `${(distanceMeters * 100).toFixed(2)} cm`;
 }
 
+function logDistanceCm(firstPoint: Point3D, secondPoint: Point3D) {
+  const distanceMeters = calculateDistanceMeters([firstPoint, secondPoint]);
+  console.log('Distance:', formatDistanceCm(distanceMeters));
+}
+
 export default function MeasureScene() {
   const [firstPoint, setFirstPoint] = useState<Point3D | null>(null);
   const [secondPoint, setSecondPoint] = useState<Point3D | null>(null);
@@ -109,26 +106,18 @@ export default function MeasureScene() {
     return formatDistanceCm(distanceMeters);
   }, [firstPoint, secondPoint]);
 
-  const handleSceneClick = async (tapPosition: Point3D) => {
+  const handleSceneClick = async () => {
     if (!arSceneRef.current) return;
 
     try {
-      // Use the actual tap position first; fallback to center raycast if needed.
-      let hitPosition: Point3D | null = isValidPoint(tapPosition)
-        ? tapPosition
-        : null;
+      const centerX = (Dimensions.get('window').width * PixelRatio.get()) / 2;
+      const centerY = (Dimensions.get('window').height * PixelRatio.get()) / 2;
 
-      if (!hitPosition) {
-        const centerX = (Dimensions.get('window').width * PixelRatio.get()) / 2;
-        const centerY =
-          (Dimensions.get('window').height * PixelRatio.get()) / 2;
-
-        const result = await arSceneRef.current.performARHitTestWithPoint(
-          centerX,
-          centerY
-        );
-        hitPosition = extractHitPosition(result);
-      }
+      const result = await arSceneRef.current.performARHitTestWithPoint(
+        centerX,
+        centerY
+      );
+      const hitPosition = extractHitPosition(result);
 
       if (!hitPosition) {
         console.log('No surface detected at this point.');
@@ -142,17 +131,19 @@ export default function MeasureScene() {
       }
 
       setSecondPoint(hitPosition);
+      logDistanceCm(firstPoint, hitPosition);
     } catch (error) {
       console.error('Error performing hit test:', error);
     }
   };
 
   const handleSecondPointDrag = (dragToPos: Point3D) => {
-    if (!isValidPoint(dragToPos)) {
+    if (!isValidPoint(dragToPos) || !firstPoint) {
       return;
     }
 
     setSecondPoint(dragToPos);
+    logDistanceCm(firstPoint, dragToPos);
   };
 
   return (
@@ -182,6 +173,7 @@ export default function MeasureScene() {
         }
         scale={[0.2, 0.2, 0.2]}
         style={styles.distanceLabel}
+        transformBehaviors={['billboard']}
         visible={secondPoint !== null}
       />
     </ViroARScene>
