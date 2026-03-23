@@ -1,0 +1,15 @@
+# Maestro Configuration for Web Testing
+# https://maestro.mobile.dev/
+
+# Default web app configuration
+appId: "http://localhost:8081"
+
+# Global test settings
+testTimeout: 60000
+interactionTimeout: 15000
+
+# Environment variables
+env:
+  MAESTRO_DRIVER_STARTUP_TIMEOUT: 60000
+  # Use Chrome/Chromium for web testing  
+  MAESTRO_WEB_BROWSER: chrome

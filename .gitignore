@@ -21,6 +21,9 @@ expo-env.d.ts
 # Metro
 .metro-health-check*
 
+# Idea
+/.idea/
+
 # debug
 npm-debug.*
 yarn-debug.*
@@ -40,3 +43,14 @@ yarn-error.*
 /ios
 /android
 project_dump.txt
+
+# Nix
+result
+result-*
+.direnv/
+
+# Maestro
+.maestro/reports/
+.maestro/screenshots/
+maestro-*.mp4
+maestro-*.png
