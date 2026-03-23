@@ -1,0 +1,51 @@
+{
+  "cli": {
+    "version": ">= 19.0.0"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal"
+    },
+    "preview": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      }
+    },
+    "production": {}
+  },
+  "submit": {
+    "production": {}
+  },
+  "test": {
+    "maestro_android": {
+      "extends": "preview",
+      "platform": "android",
+      "env": {
+        "MAESTRO_APP_ID": "com.anonymous.p8mobility"
+      },
+      "maestro": {
+        "flows": [
+          ".maestro/main-screen.yaml",
+          ".maestro/navigation-flow.yaml", 
+          ".maestro/button-interactions.yaml"
+        ]
+      }
+    },
+    "maestro_ios": {
+      "extends": "preview", 
+      "platform": "ios",
+      "env": {
+        "MAESTRO_APP_ID": "com.anonymous.p8mobility"
+      },
+      "maestro": {
+        "flows": [
+          ".maestro/main-screen.yaml",
+          ".maestro/navigation-flow.yaml",
+          ".maestro/button-interactions.yaml"
+        ]
+      }
+    }
+  }
+}
