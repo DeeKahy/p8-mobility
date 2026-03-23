@@ -1,6 +1,5 @@
 import { render } from '@testing-library/react-native';
 
-
 import Main from '../app/(tabs)/main';
 import { LoggerProvider } from '../context/LoggerContext';
 

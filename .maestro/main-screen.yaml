@@ -1,8 +1,8 @@
 # Web version - no appId needed
 ---
 - launchApp:
-    appId: "http://localhost:8081"
-- assertVisible: "Welcome to our very Hygge App"
-- assertVisible: "My apartments" 
-- assertVisible: "Upload new floor plan"
-- assertVisible: "Scan Area"
+    appId: 'http://localhost:8081'
+- assertVisible: 'Welcome to our very Hygge App'
+- assertVisible: 'My apartments'
+- assertVisible: 'Upload new floor plan'
+- assertVisible: 'Scan Area'

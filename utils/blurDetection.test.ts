@@ -1,12 +1,8 @@
-import { readFile } from "node:fs/promises";
-import path from "node:path";
-import UPNG from "upng-js";
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
+import UPNG from 'upng-js';
 
-import {
-  isImageBlurry,
-  isDecodedImageBlurry,
-  varianceOfLaplacian,
-} from "./blurDetection";
+import { isDecodedImageBlurry, varianceOfLaplacian } from './blurDetection';
 
 // Helper function for the test
 function toArrayBuffer(buffer: Buffer): ArrayBuffer {
@@ -30,11 +26,10 @@ async function loadPng(fileName: string) {
   };
 }
 
-describe("blurDetection", () => {
-  it("gives lower score for blured.png than for not_blured.png", async () => {
-    const blurred = await loadPng("../assets/test-images/blured.png");
-    const sharp = await loadPng("../assets/test-images/not_blured.png");
-    
+describe('blurDetection', () => {
+  it('gives lower score for blured.png than for not_blured.png', async () => {
+    const blurred = await loadPng('../assets/test-images/blured.png');
+    const sharp = await loadPng('../assets/test-images/not_blured.png');
 
     const blurredScore = varianceOfLaplacian(
       blurred.data,
@@ -51,22 +46,19 @@ describe("blurDetection", () => {
     expect(blurredScore).toBeLessThan(sharpScore);
   });
 
-  it("clasifies blured.png as blurry with default threshold", async () => {
-
-    const blurred = await loadPng("../assets/test-images/blured.png");
+  it('clasifies blured.png as blurry with default threshold', async () => {
+    const blurred = await loadPng('../assets/test-images/blured.png');
 
     expect(
       isDecodedImageBlurry(blurred.data, blurred.width, blurred.height)
     ).toBe(true);
   });
 
-  it("clasifies not_blured.png as not blurry with default threshold", async () => {
-    const sharp = await loadPng("../assets/test-images/not_blured.png");
-    console.log("Trying to ge score for not blured:")
-    expect(
-      isDecodedImageBlurry(sharp.data, sharp.width, sharp.height)
-    ).toBe(false);
+  it('clasifies not_blured.png as not blurry with default threshold', async () => {
+    const sharp = await loadPng('../assets/test-images/not_blured.png');
+    console.log('Trying to ge score for not blured:');
+    expect(isDecodedImageBlurry(sharp.data, sharp.width, sharp.height)).toBe(
+      false
+    );
   });
-
-
 });
