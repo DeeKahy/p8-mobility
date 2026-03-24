@@ -30,7 +30,7 @@ export const styles = StyleSheet.create({
     borderColor: '#ccc',
     borderRadius: 10,
     padding: 10,
-    color: "black",
+    color: 'black',
     fontSize: 16,
   },
   textarea: {
@@ -40,7 +40,7 @@ export const styles = StyleSheet.create({
     padding: 10,
     fontSize: 16,
     height: 100,
-    color: "black",
+    color: 'black',
     textAlignVertical: 'top',
   },
   dateInput: {
