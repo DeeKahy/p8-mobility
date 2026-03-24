@@ -141,7 +141,7 @@ export function varianceOfLaplacian(
       const i = (y * width + x) * 4;
 
       // For each pixel we compare it to its four neighbours:
-      // The data is an flat array of all pixels. And one pixel has 4 values: red green blue and gennemsigtighed hence why we do +4
+      // The data is an flat array of all pixels. And one pixel has 4 values: red green blue and opacity hence why we do +4
       const center = luminanceAt(data, i);
       const left = luminanceAt(data, i - 4);
       const right = luminanceAt(data, i + 4);
