@@ -9,8 +9,11 @@ import { Dimensions, PixelRatio, StyleSheet } from 'react-native';
 
 type Point3D = [number, number, number];
 
+// Used to "hide" AR objects by moving them far below the scene instead of removing them.
+// This keeps components mounted, avoids null position issues, and prevents flickering.
 const HIDDEN_POINT: Point3D = [0, -10, 0];
 
+// Define materials for the markers (red + green)
 ViroMaterials.createMaterials({
   pointMarker: {
     diffuseColor: '#ff0303',
@@ -41,6 +44,8 @@ type HitResult = {
   transform?: HitTransform;
 };
 
+// AR hit test types we accept (planes + feature points)
+// https://developers.google.com/ar/develop/hit-test
 const ACCEPTED_HIT_TYPES = new Set([
   'ExistingPlaneUsingExtent',
   'ExistingPlane',
@@ -49,6 +54,7 @@ const ACCEPTED_HIT_TYPES = new Set([
   'FeaturePoint',
 ]);
 
+// Validates that a value is a proper 3D coordinate
 function isValidPoint(position: unknown): position is Point3D {
   return (
     Array.isArray(position) &&
@@ -59,6 +65,7 @@ function isValidPoint(position: unknown): position is Point3D {
   );
 }
 
+// Extracts the first valid hit position from AR hit test results
 function extractHitPosition(results: unknown): Point3D | null {
   if (!Array.isArray(results)) {
     return null;
@@ -83,6 +90,7 @@ function extractHitPosition(results: unknown): Point3D | null {
   return null;
 }
 
+//Measuring distance formula (Euclidean distance)
 function calculateDistanceMeters(points: [Point3D, Point3D]) {
   const [p1, p2] = points;
   const dx = p2[0] - p1[0];
@@ -118,6 +126,7 @@ export default function MeasureScene() {
     if (!arSceneRef.current) return;
 
     try {
+      // Use direct tap if valid, otherwise do a hit test from screen center
       let hitPosition: Point3D | null = isValidPoint(tapPosition)
         ? tapPosition
         : null;
@@ -138,7 +147,9 @@ export default function MeasureScene() {
         console.log('No surface detected at this point.');
         return;
       }
-
+      // First tap = first point
+      // Second tap = second point
+      // Third tap resets measurement
       if (!firstPoint || secondPoint) {
         setFirstPoint(hitPosition);
         setSecondPoint(null);
@@ -152,6 +163,7 @@ export default function MeasureScene() {
     }
   };
 
+  // Allows dragging the second point to update measurement dynamically
   const handleSecondPointDrag = (dragToPos: Point3D) => {
     if (!isValidPoint(dragToPos) || !firstPoint) {
       return;
