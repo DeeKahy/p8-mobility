@@ -11,6 +11,7 @@ type Point3D = [number, number, number];
 
 // Used to "hide" AR objects by moving them far below the scene instead of removing them.
 // This keeps components mounted, avoids null position issues, and prevents flickering.
+// https://viro-community.readme.io/docs/scenes
 const HIDDEN_POINT: Point3D = [0, -10, 0];
 
 // Define materials for the markers (red + green)
