@@ -1,0 +1,32 @@
+appId: 'com.anonymous.p8mobility'
+---
+- launchApp:
+    appId: 'com.anonymous.p8mobility'
+
+# Comprehensive smoke test covering main user flows
+- runFlow: main-screen.yaml
+- runFlow: navigation-flow.yaml
+- runFlow: button-interactions.yaml
+
+# Additional comprehensive checks
+- tapOn: 'Main page'
+
+# Test that all main elements are interactive
+- assertVisible: 'Welcome to our very Hygge App'
+
+# Verify dropdown works
+- tapOn: 'My apartments'
+
+# Test both main action buttons work
+- tapOn: 'Upload new floor plan'
+
+- tapOn: 'Scan Area'
+
+# Quick navigation test through all tabs
+- tapOn: 'Camera'
+- tapOn: 'Floorplan'
+- tapOn: 'debug'
+- tapOn: 'Main page'
+
+# Final assertion that we're back to main screen
+- assertVisible: 'Welcome to our very Hygge App'
