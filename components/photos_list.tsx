@@ -52,8 +52,8 @@ export default ({ photoList }: PhotoFormProps) => {
             pictureName={item.pictureName}
             photoUri={item.photoUri}
             dateTaken={item.dateTaken}
-            areaGroup={item.areaGroup} 
-            description={item.description}          
+            areaGroup={item.areaGroup}
+            description={item.description}
           />
         )}
       />

@@ -154,12 +154,15 @@ export default function HomeScreen() {
     // Not allowing too old pictures to be uploaded
     const two_weeks_ago = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
     const date = result?.assets?.[0]?.exif?.DateTimeOriginal;
-    const formatDate = date.replace(/(\d{4}):(\d{2}):(\d{2})/, "$1-$2-$3");
+    const formatDate = date.replace(/(\d{4}):(\d{2}):(\d{2})/, '$1-$2-$3');
     console.log(formatDate);
     const dateTaken = new Date(formatDate);
 
     if (dateTaken < two_weeks_ago) {
-      Alert.alert("Picture is older than 14 days: " + result?.assets?.[0]?.exif?.DateTimeOriginal)
+      Alert.alert(
+        'Picture is older than 14 days: ' +
+          result?.assets?.[0]?.exif?.DateTimeOriginal
+      );
       return;
     }
     //__________________________________________________________________________
@@ -447,8 +450,7 @@ export default function HomeScreen() {
           </Pressable>
         </Pressable>
       </Modal>
-      {
-        showPhotoModule &&
+      {showPhotoModule && (
         <PhotoFormModal
           visible={showPhotoModule}
           photoUri={
@@ -470,8 +472,7 @@ export default function HomeScreen() {
             }
           }}
         />
-
-      }
+      )}
 
       {/* Photos gallery modal */}
       <Modal visible={showPhotos} transparent animationType="slide">

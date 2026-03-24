@@ -43,13 +43,12 @@ export default function PhotoFormModal({
   const {
     control,
     handleSubmit,
-    setValue,
     reset,
     formState: { errors, isLoading },
   } = useForm<PhotoForm>({
     // Specififying what our form is gonna look like
     defaultValues: {
-      photoUri: photoUri,
+      photoUri,
       dateTaken: date,
       pictureName: '',
       areaGroup: '',
@@ -131,7 +130,7 @@ export default function PhotoFormModal({
             name="description"
             render={({ field: { value, onChange } }) => (
               <TextInput
-                multiline={true}
+                multiline
                 numberOfLines={5}
                 style={styles.textarea}
                 value={value}
@@ -162,15 +161,29 @@ export default function PhotoFormModal({
             title="Done"
             disabled={isLoading}
             onPress={() => {
-
               handleSubmit(onSubmit)();
-              reset({ photoUri: '', dateTaken: '', pictureName: '', areaGroup: '', description: '' });
+              reset({
+                photoUri: '',
+                dateTaken: '',
+                pictureName: '',
+                areaGroup: '',
+                description: '',
+              });
             }}
           />
-          <Button title="Cancel" onPress={() => {
-            onClose();
-            reset({ photoUri: '', dateTaken: '', pictureName: '', areaGroup: '', description: '' });
-          }} />
+          <Button
+            title="Cancel"
+            onPress={() => {
+              onClose();
+              reset({
+                photoUri: '',
+                dateTaken: '',
+                pictureName: '',
+                areaGroup: '',
+                description: '',
+              });
+            }}
+          />
         </View>
       </View>
     </Modal>
