@@ -12,9 +12,12 @@ import {
   ScrollView,
   Pressable,
   Dimensions,
+  Alert,
 } from 'react-native';
 
 import PhotoFormModal from '../../components/photoForm';
+import PhotoList from '../../components/photos_list';
+import { PhotoForm } from '../models/PhotoFormModel';
 
 interface Marker {
   id: string;
@@ -33,7 +36,9 @@ export default function HomeScreen() {
   const [showCamera, setShowCamera] = useState(false);
   const [showPhotos, setShowPhotos] = useState(false);
   const [photoData, setPhotoData] = useState<any>();
+  const [listOfPhotos, setListOfPhotos] = useState<PhotoForm[]>([]);
   const [showPhotoModule, setShowPhotoModule] = useState<boolean>(false);
+  const [showPhotoList, setShowPhotoList] = useState<boolean>(false);
   const [takenWithCamera, setTakenWithCamera] = useState<boolean>(false);
   const [showMarkerOptions, setShowMarkerOptions] = useState(false);
   const [showNewMarkerOptions, setShowNewMarkerOptions] = useState(false);
@@ -145,6 +150,22 @@ export default function HomeScreen() {
       exif: true,
       //_______________________________________________
     });
+
+    // Not allowing too old pictures to be uploaded
+    const two_weeks_ago = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
+    const date = result?.assets?.[0]?.exif?.DateTimeOriginal;
+    const formatDate = date.replace(/(\d{4}):(\d{2}):(\d{2})/, '$1-$2-$3');
+    console.log(formatDate);
+    const dateTaken = new Date(formatDate);
+
+    if (dateTaken < two_weeks_ago) {
+      Alert.alert(
+        'Picture is older than 14 days: ' +
+          result?.assets?.[0]?.exif?.DateTimeOriginal
+      );
+      return;
+    }
+    //__________________________________________________________________________
 
     if (!result.canceled) {
       setTakenWithCamera(false);
@@ -261,7 +282,6 @@ export default function HomeScreen() {
     setShowMarkerOptions(false);
     setShowNewMarkerOptions(false);
   };
-
   if (showCamera) {
     return (
       <View style={styles.cameraContainer}>
@@ -430,24 +450,29 @@ export default function HomeScreen() {
           </Pressable>
         </Pressable>
       </Modal>
-
-      <PhotoFormModal
-        visible={showPhotoModule}
-        photoUri={
-          takenWithCamera ? photoData?.uri : photoData?.assets?.[0]?.uri
-        }
-        dateTaken={
-          takenWithCamera
-            ? photoData?.exif?.DateTimeOriginal
-            : photoData?.assets?.[0]?.exif?.DateTimeOriginal
-        }
-        onClose={() => setShowPhotoModule(false)}
-        onSubmit={(data) => {
-          console.log('Form data: ' + JSON.stringify(data));
-          addPhotoToMarker(data.photoUri);
-          setShowPhotoModule(false);
-        }}
-      />
+      {showPhotoModule && (
+        <PhotoFormModal
+          visible={showPhotoModule}
+          photoUri={
+            takenWithCamera ? photoData?.uri : photoData?.assets?.[0]?.uri
+          }
+          date={
+            takenWithCamera
+              ? photoData?.exif?.DateTimeOriginal
+              : photoData?.assets?.[0]?.exif?.DateTimeOriginal
+          }
+          onClose={() => setShowPhotoModule(false)}
+          onSubmit={(data) => {
+            console.log('Form data: ' + JSON.stringify(data));
+            addPhotoToMarker(data.photoUri);
+            setShowPhotoModule(false);
+            if (data && !listOfPhotos.includes(data)) {
+              setListOfPhotos((current) => [...current, data]);
+              console.log('Processing photo...' + JSON.stringify(data));
+            }
+          }}
+        />
+      )}
 
       {/* Photos gallery modal */}
       <Modal visible={showPhotos} transparent animationType="slide">
@@ -475,7 +500,19 @@ export default function HomeScreen() {
           </ScrollView>
         </View>
       </Modal>
-
+      {showPhotoList && (
+        <View style={styles.fullscreenOverlay}>
+          <PhotoList photoList={listOfPhotos} />
+        </View>
+      )}
+      <TouchableOpacity
+        style={styles.showListButton}
+        onPress={() => {
+          setShowPhotoList(!showPhotoList);
+        }}
+      >
+        <Text>Show List</Text>
+      </TouchableOpacity>
       <Text style={styles.instructions}>
         Tap on the floor plan to place a marker
       </Text>
@@ -496,6 +533,27 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: 20,
+  },
+
+  fullscreenOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: '#fff',
+    zIndex: 5,
+  },
+
+  showListButton: {
+    position: 'absolute',
+    bottom: 40,
+    right: 20,
+    backgroundColor: '#2196F3',
+    padding: 12,
+    borderRadius: 10,
+    zIndex: 10,
+    elevation: 10,
   },
   title: {
     fontSize: 28,
