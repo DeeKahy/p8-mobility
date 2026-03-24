@@ -13,7 +13,7 @@ type PhotoFormProps = {
   visible: boolean;
   onClose: () => void;
   photoUri: string;
-  dateTaken: string;
+  date: string;
   onSubmit: (data: PhotoForm) => void;
 };
 
@@ -32,7 +32,7 @@ export default function PhotoFormModul({
   visible,
   onClose,
   photoUri,
-  dateTaken,
+  date,
   onSubmit,
 }: PhotoFormProps) {
   const [open, setOpen] = useState(false);
@@ -45,20 +45,17 @@ export default function PhotoFormModul({
     handleSubmit,
     setValue,
     reset,
-    formState: { errors },
+    formState: { errors, isLoading },
   } = useForm<PhotoForm>({
     defaultValues: {
-      photoUri: '',
-      dateTaken: '',
+      photoUri: photoUri,
+      dateTaken: date,
       pictureName: '',
       areaGroup: '',
       description: '',
     },
     resolver: yupResolver(schema) as any,
   });
-
-  setValue('dateTaken', dateTaken);
-  setValue('photoUri', photoUri);
 
   return (
     <Modal animationType="slide" transparent visible={visible}>
@@ -133,7 +130,7 @@ export default function PhotoFormModul({
             render={({ field: { value, onChange } }) => (
               <TextInput
                 multiline={true}
-                numberOfLines = {5}
+                numberOfLines={5}
                 style={styles.textarea}
                 value={value}
                 onChangeText={onChange}
@@ -161,15 +158,17 @@ export default function PhotoFormModul({
         <View style={styles.buttonContainer}>
           <Button
             title="Done"
+            disabled={isLoading}
             onPress={() => {
+
               handleSubmit(onSubmit)();
-              reset({photoUri: '', dateTaken: '', pictureName: '', areaGroup: '', description: ''});
+              reset({ photoUri: '', dateTaken: '', pictureName: '', areaGroup: '', description: '' });
             }}
           />
           <Button title="Cancel" onPress={() => {
             onClose();
-            reset({photoUri: '', dateTaken: '', pictureName: '', areaGroup: '', description: ''});
-            }} />
+            reset({ photoUri: '', dateTaken: '', pictureName: '', areaGroup: '', description: '' });
+          }} />
         </View>
       </View>
     </Modal>

@@ -441,28 +441,31 @@ export default function HomeScreen() {
           </Pressable>
         </Pressable>
       </Modal>
-
-      <PhotoFormModul
-        visible={showPhotoModule}
-        photoUri={
-          takenWithCamera ? photoData?.uri : photoData?.assets?.[0]?.uri
-        }
-        dateTaken={
-          takenWithCamera
-            ? photoData?.exif?.DateTimeOriginal
-            : photoData?.assets?.[0]?.exif?.DateTimeOriginal
-        }
-        onClose={() => setShowPhotoModule(false)}
-        onSubmit={(data) => {
-          console.log('Form data: ' + JSON.stringify(data));
-          addPhotoToMarker(data.photoUri);
-          setShowPhotoModule(false);
-          if (data && !listOfPhotos.includes(data)) {
-            setListOfPhotos((current) => [...current, data]);
-            console.log('Processing photo...' + JSON.stringify(data));
+      {
+        showPhotoModule &&
+        <PhotoFormModul
+          visible={showPhotoModule}
+          photoUri={
+            takenWithCamera ? photoData?.uri : photoData?.assets?.[0]?.uri
           }
-        }}
-      />
+          date={
+            takenWithCamera
+              ? photoData?.exif?.DateTimeOriginal
+              : photoData?.assets?.[0]?.exif?.DateTimeOriginal
+          }
+          onClose={() => setShowPhotoModule(false)}
+          onSubmit={(data) => {
+            console.log('Form data: ' + JSON.stringify(data));
+            addPhotoToMarker(data.photoUri);
+            setShowPhotoModule(false);
+            if (data && !listOfPhotos.includes(data)) {
+              setListOfPhotos((current) => [...current, data]);
+              console.log('Processing photo...' + JSON.stringify(data));
+            }
+          }}
+        />
+
+      }
 
       {/* Photos gallery modal */}
       <Modal visible={showPhotos} transparent animationType="slide">
