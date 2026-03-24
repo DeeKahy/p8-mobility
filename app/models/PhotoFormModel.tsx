@@ -3,4 +3,5 @@ export type PhotoForm = {
   dateTaken: string;
   pictureName: string;
   areaGroup: string;
+  description?: string;
 };

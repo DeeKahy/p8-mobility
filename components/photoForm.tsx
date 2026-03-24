@@ -13,7 +13,7 @@ type PhotoFormProps = {
   visible: boolean;
   onClose: () => void;
   photoUri: string;
-  dateTaken: string;
+  date: string;
   onSubmit: (data: PhotoForm) => void;
 };
 
@@ -24,6 +24,7 @@ const schema = yup
     areaGroup: yup.string().required('Area group is required'),
     pictureName: yup.string().required('Picture name is required'),
     dateTaken: yup.string().required('Date is required'),
+    description: yup.string().optional(),
   })
   .required();
 
@@ -31,7 +32,7 @@ export default function PhotoFormModal({
   visible,
   onClose,
   photoUri,
-  dateTaken,
+  date,
   onSubmit,
 }: PhotoFormProps) {
   const [open, setOpen] = useState(false);
@@ -44,21 +45,18 @@ export default function PhotoFormModal({
     handleSubmit,
     setValue,
     reset,
-    formState: { errors },
+    formState: { errors, isLoading },
   } = useForm<PhotoForm>({
     // Specififying what our form is gonna look like
     defaultValues: {
-      photoUri: '',
-      dateTaken: '',
+      photoUri: photoUri,
+      dateTaken: date,
       pictureName: '',
       areaGroup: '',
+      description: '',
     },
-    resolver: yupResolver(schema),
+    resolver: yupResolver(schema) as any,
   });
-
-  //Works similar to just having useState, but is integrated into useForm()
-  setValue('dateTaken', dateTaken);
-  setValue('photoUri', photoUri);
 
   return (
     <Modal animationType="slide" transparent visible={visible}>
@@ -127,6 +125,20 @@ export default function PhotoFormModal({
           {errors.areaGroup && (
             <Text style={styles.error}>{errors.areaGroup.message}</Text>
           )}
+          <Text>Description:</Text>
+          <Controller
+            control={control}
+            name="description"
+            render={({ field: { value, onChange } }) => (
+              <TextInput
+                multiline={true}
+                numberOfLines={5}
+                style={styles.textarea}
+                value={value}
+                onChangeText={onChange}
+              />
+            )}
+          />
           <Text>Date:</Text>
           <Controller
             control={control}
@@ -148,12 +160,17 @@ export default function PhotoFormModal({
         <View style={styles.buttonContainer}>
           <Button
             title="Done"
+            disabled={isLoading}
             onPress={() => {
+
               handleSubmit(onSubmit)();
-              reset();
+              reset({ photoUri: '', dateTaken: '', pictureName: '', areaGroup: '', description: '' });
             }}
           />
-          <Button title="Cancel" onPress={onClose} />
+          <Button title="Cancel" onPress={() => {
+            onClose();
+            reset({ photoUri: '', dateTaken: '', pictureName: '', areaGroup: '', description: '' });
+          }} />
         </View>
       </View>
     </Modal>

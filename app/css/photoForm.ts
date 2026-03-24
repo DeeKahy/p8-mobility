@@ -32,6 +32,15 @@ export const styles = StyleSheet.create({
     padding: 10,
     fontSize: 16,
   },
+  textarea: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 10,
+    padding: 10,
+    fontSize: 16,
+    height: 100,
+    textAlignVertical: 'top',
+  },
   dateInput: {
     borderWidth: 1,
     borderColor: '#a6f4d6',
