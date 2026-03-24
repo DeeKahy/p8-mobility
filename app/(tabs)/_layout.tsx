@@ -10,9 +10,9 @@ export default function TabLayout() {
       }}
     >
       <Tabs.Screen
-        name="camera"
+        name="ar"
         options={{
-          title: 'Camera',
+          title: 'Create a floorplan',
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="camera" size={size} color={color} />
           ),

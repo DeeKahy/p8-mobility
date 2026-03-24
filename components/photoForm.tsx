@@ -27,7 +27,7 @@ const schema = yup
   })
   .required();
 
-export default function PhotoFormModul({
+export default function PhotoFormModal({
   visible,
   onClose,
   photoUri,
@@ -46,6 +46,7 @@ export default function PhotoFormModul({
     reset,
     formState: { errors },
   } = useForm<PhotoForm>({
+    // Specififying what our form is gonna look like
     defaultValues: {
       photoUri: '',
       dateTaken: '',
@@ -55,6 +56,7 @@ export default function PhotoFormModul({
     resolver: yupResolver(schema),
   });
 
+  //Works similar to just having useState, but is integrated into useForm()
   setValue('dateTaken', dateTaken);
   setValue('photoUri', photoUri);
 
@@ -71,6 +73,7 @@ export default function PhotoFormModul({
           )}
 
           <Text>Picture name:</Text>
+          {/* Tracking input using control for the form  */}
           <Controller
             control={control}
             name="pictureName"
@@ -104,8 +107,8 @@ export default function PhotoFormModul({
                     { label: 'Other', value: 'Other' },
                   ]}
                   setOpen={setOpen}
-                  setValue={(callback) => {
-                    const newValue = callback(value);
+                  setValue={(currentValue) => {
+                    const newValue = currentValue(value);
                     setShowOtherInputForm(newValue === 'Other');
                     onChange(newValue);
                   }}
