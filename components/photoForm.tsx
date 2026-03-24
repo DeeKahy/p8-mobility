@@ -24,7 +24,7 @@ const schema = yup
     areaGroup: yup.string().required('Area group is required'),
     pictureName: yup.string().required('Picture name is required'),
     dateTaken: yup.string().required('Date is required'),
-    description: yup.string().optional(),
+    description: yup.string().required(),
   })
   .required();
 
@@ -54,7 +54,7 @@ export default function PhotoFormModal({
       areaGroup: '',
       description: '',
     },
-    resolver: yupResolver(schema) as any,
+    resolver: yupResolver(schema),
   });
 
   return (
