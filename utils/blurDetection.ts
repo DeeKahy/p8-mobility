@@ -27,7 +27,6 @@ const IMAGE_BLUR_THRESHOLD = 100;
 
 // All of the following is async, as the image manipulating tools we use are async.
 /**
- *
  * @param uri
  * @returns True if is blurry else false
  */
