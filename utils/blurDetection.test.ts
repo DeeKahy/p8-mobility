@@ -5,13 +5,14 @@ import UPNG from 'upng-js';
 import { isDecodedImageBlurry, varianceOfLaplacian } from './blurDetection';
 
 // Helper function for the test
+// Converts a Node.js Buffer into a standard ArrayBuffer.
 function toArrayBuffer(buffer: Buffer): ArrayBuffer {
   return buffer.buffer.slice(
     buffer.byteOffset,
     buffer.byteOffset + buffer.byteLength
   ) as ArrayBuffer;
 }
-
+// Loads a PNG image from disk and converts it into raw RGBA pixel data in javascript friend format.
 async function loadPng(fileName: string) {
   const filePath = path.resolve(__dirname, fileName);
   const fileBuffer = await readFile(filePath);
