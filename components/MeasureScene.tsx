@@ -81,17 +81,9 @@ function logDistanceCm(firstPoint: Point3D, secondPoint: Point3D) {
   console.log('Distance:', formatDistanceCm(distanceMeters));
 }
 
-type ViroProps = {
-  arSceneNavigator: {
-    viroAppProps: {
-      isMeasuring: boolean
-    }
-  }
-}
-
-export default function MeasureScene(props : any) {
+export default function MeasureScene(props: any) {
   const [points, setPoints] = useState<Point3D[]>([]);
-  const {isMeasuring} = props.arSceneNavigator.viroAppProps || {isMeasuring: true};
+  const { isMeasuring = true, onPointAdded } = props;
   const arSceneRef = useRef<ViroARScene | null>(null);
 
 
@@ -101,40 +93,40 @@ export default function MeasureScene(props : any) {
     const last = points[points.length - 1];
     const prev = points[points.length - 2];
 
-    const distanceMeters = calculateDistanceMeters([prev,last]);
+    const distanceMeters = calculateDistanceMeters([prev, last]);
     return formatDistanceCm(distanceMeters);
   }, [points]);
 
   const handleSceneClick = async (tapPosition: Point3D, e: NativeTouchEvent) => {
+    if (!isMeasuring) return;
     if (!arSceneRef.current) return;
 
     try {
-      // Use direct tap if valid, otherwise do a hit test from screen center
       let hitPosition: Point3D | null = isValidPoint(tapPosition)
         ? tapPosition
         : null;
 
       if (!hitPosition) {
         const centerX = (Dimensions.get('window').width * PixelRatio.get()) / 2;
-        const centerY =
-          (Dimensions.get('window').height * PixelRatio.get()) / 2;
+        const centerY = (Dimensions.get('window').height * PixelRatio.get()) / 2;
 
-        const result = await arSceneRef.current.performARHitTestWithPoint(
-          centerX,
-          centerY
-        );
+        const result = await arSceneRef.current.performARHitTestWithPoint(centerX, centerY);
+        console.log('AR hit test results:', result); // <-- log everything
         hitPosition = extractHitPosition(result);
+        if (!hitPosition) {
+          console.log('No valid surface detected at tap.');
+        }
       }
 
-      if (!hitPosition) {
-        console.log('No surface detected at this point.');
-        return;
-      }
+      if (!hitPosition) return;
 
-      console.log('New Point: ' + hitPosition);
-      setPoints((prev) => [...prev, hitPosition]);
-      if (!isMeasuring) return;
-
+      setPoints((prev) => {
+        const updatedPoints = [...prev, hitPosition];
+      setTimeout(() => {
+        onPointAdded?.(updatedPoints);
+      }, 0);
+        return updatedPoints;
+      });
     } catch (error) {
       console.error('Error performing hit test:', error);
     }
@@ -154,8 +146,8 @@ export default function MeasureScene(props : any) {
       <ViroText
         text={distanceLabel}
         position={
-          points.length > 0 ? [points[points.length-1][0], points[points.length-1][1], points[points.length-1][2]]
-          : HIDDEN_POINT
+          points.length > 0 ? [points[points.length - 1][0], points[points.length - 1][1], points[points.length - 1][2]]
+            : HIDDEN_POINT
         }
         scale={[0.2, 0.2, 0.2]}
         style={styles.distanceLabel}
