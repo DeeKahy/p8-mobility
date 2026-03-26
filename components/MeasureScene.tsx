@@ -4,10 +4,12 @@ import {
   ViroMaterials,
   ViroText,
 } from '@viro-community/react-viro';
+import { area } from "@turf/area";
 import React, { useMemo, useRef, useState } from 'react';
-import { Dimensions, PixelRatio, StyleSheet } from 'react-native';
-
-type Point3D = [number, number, number];
+import { ACCEPTED_HIT_TYPES } from '../app/models/ArCoreAcceptedTypes'
+import { Dimensions, NativeTouchEvent, PixelRatio, StyleSheet } from 'react-native';
+import { Point3D } from '../app/models/3Dpoints'
+import { isValidPoint, calculateDistanceMeters, formatDistanceCm } from '../utils/arMath'
 
 // Used to "hide" AR objects by moving them far below the scene instead of removing them.
 // This keeps components mounted, avoids null position issues, and prevents flickering.
@@ -22,14 +24,6 @@ ViroMaterials.createMaterials({
   },
   secondPointMarker: {
     diffuseColor: '#03ff03',
-    lightingModel: 'Constant',
-  },
-  thirdPointMarker: {
-    diffuseColor: '#21435a',
-    lightingModel: 'Constant',
-  },
-  fourthPointMarker: {
-    diffuseColor: '#ce0f8e',
     lightingModel: 'Constant',
   },
 });
@@ -52,27 +46,6 @@ type HitResult = {
   type: string;
   transform?: HitTransform;
 };
-
-// AR hit test types we accept (planes + feature points)
-// https://developers.google.com/ar/develop/hit-test
-const ACCEPTED_HIT_TYPES = new Set([
-  'ExistingPlaneUsingExtent',
-  'ExistingPlane',
-  'EstimatedHorizontalPlane',
-  'EstimatedVerticalPlane',
-  'FeaturePoint',
-]);
-
-// Validates that a value is a proper 3D coordinate
-function isValidPoint(position: unknown): position is Point3D {
-  return (
-    Array.isArray(position) &&
-    position.length === 3 &&
-    position.every(
-      (value) => typeof value === 'number' && Number.isFinite(value)
-    )
-  );
-}
 
 // Extracts the first valid hit position from AR hit test results
 function extractHitPosition(results: unknown): Point3D | null {
@@ -99,55 +72,40 @@ function extractHitPosition(results: unknown): Point3D | null {
   return null;
 }
 
-//Measuring distance formula (Euclidean distance)
-function calculateDistanceMeters(points: [Point3D, Point3D]) {
-  const [p1, p2] = points;
-  const dx = p2[0] - p1[0];
-  const dy = p2[1] - p1[1];
-  const dz = p2[2] - p1[2];
-  return Math.sqrt(dx ** 2 + dy ** 2 + dz ** 2);
-}
-
-function calculateAreaOfPolygooner(points: [Point3D, Point3D, Point3D, Point3D]) {
-  const [p1, p2, p3, p4] = points;
-  const first = ((p1[0] * p2[1]) + (p2[0] * p3[1]) + (p3[0] * p4[1]) + (p4[0] * p1[1]));
-  const second = ((p2[0] * p1[1]) + (p3[0] * p2[1]) + (p4[0] * p3[1]) + (p1[0] * p4[1]));
-  return Math.abs(0.5 * (first - second));
-}
-
-function formatDistanceCm(distanceMeters: number) {
-  return `${(distanceMeters * 100).toFixed(2)} cm`;
-}
-
-function logArea(firstPoint: Point3D, secondPoint: Point3D, thirdPoint: Point3D, forthPoint: Point3D) {
-  const areaCalculator = calculateAreaOfPolygooner([firstPoint, secondPoint, thirdPoint, forthPoint]);
-  console.log('Area:', formatDistanceCm(areaCalculator));
-}
+// function calulateTurf = (...arg: Point3D) => {
+//   const result = area(arg);
+// }
 
 function logDistanceCm(firstPoint: Point3D, secondPoint: Point3D) {
   const distanceMeters = calculateDistanceMeters([firstPoint, secondPoint]);
   console.log('Distance:', formatDistanceCm(distanceMeters));
 }
 
-export default function MeasureScene() {
-  const [firstPoint, setFirstPoint] = useState<Point3D | null>(null);
-  const [secondPoint, setSecondPoint] = useState<Point3D | null>(null);
-  const [thirdPoint, setThirdPoint] = useState<Point3D | null>(null);
-  const [forthPoint, setfourthPoint] = useState<Point3D | null>(null);
+type ViroProps = {
+  arSceneNavigator: {
+    viroAppProps: {
+      isMeasuring: boolean
+    }
+  }
+}
+
+export default function MeasureScene(props : any) {
+  const [points, setPoints] = useState<Point3D[]>([]);
+  const {isMeasuring} = props.arSceneNavigator.viroAppProps || {isMeasuring: true};
   const arSceneRef = useRef<ViroARScene | null>(null);
 
+
   const distanceLabel = useMemo(() => {
-    if (!firstPoint || !secondPoint || !thirdPoint || !forthPoint) {
-      return '';
-    }
+    if (points.length < 2) return '';
 
-    //const distanceMeters = calculateDistanceMeters([firstPoint, secondPoint]);
-    //return formatDistanceCm(distanceMeters);
-    const areaCalculator = calculateAreaOfPolygooner([firstPoint, secondPoint, thirdPoint, forthPoint])
-    return `${areaCalculator.toFixed(2)} m²`;
-  }, [firstPoint, secondPoint, thirdPoint, forthPoint]);
+    const last = points[points.length - 1];
+    const prev = points[points.length - 2];
 
-  const handleSceneClick = async (tapPosition: Point3D) => {
+    const distanceMeters = calculateDistanceMeters([prev,last]);
+    return formatDistanceCm(distanceMeters);
+  }, [points]);
+
+  const handleSceneClick = async (tapPosition: Point3D, e: NativeTouchEvent) => {
     if (!arSceneRef.current) return;
 
     try {
@@ -172,98 +130,37 @@ export default function MeasureScene() {
         console.log('No surface detected at this point.');
         return;
       }
-      // First tap = first point
-      // Second tap = second point
-      // Third tap resets measurement
-      if (!firstPoint) {
-        setFirstPoint(hitPosition);
-        return;
-      }
 
-      if (!secondPoint) {
-        setSecondPoint(hitPosition);
-        return;
-      }
+      console.log('New Point: ' + hitPosition);
+      setPoints((prev) => [...prev, hitPosition]);
+      if (!isMeasuring) return;
 
-      if (!thirdPoint) {
-        setThirdPoint(hitPosition);
-        return;
-      }
-
-
-      if (!forthPoint) {
-        setfourthPoint(hitPosition);
-        return;
-      }
-
-      logDistanceCm(firstPoint, hitPosition);
-      logArea(firstPoint, secondPoint, thirdPoint, forthPoint)
-      setFirstPoint(hitPosition);
-      setSecondPoint(null);
-      setThirdPoint(null);
-      setfourthPoint(null);
     } catch (error) {
       console.error('Error performing hit test:', error);
     }
   };
 
-  // Allows dragging the second point to update measurement dynamically
-  const handleSecondPointDrag = (dragToPos: Point3D) => {
-    if (!isValidPoint(dragToPos) || !firstPoint) {
-      return;
-    }
-
-    setSecondPoint(dragToPos);
-    logDistanceCm(firstPoint, dragToPos);
-  };
-
   return (
     <ViroARScene ref={arSceneRef} onClick={handleSceneClick}>
-      <ViroBox
-        position={firstPoint ?? HIDDEN_POINT}
-        materials={['pointMarker']}
-        scale={[0.025, 0.025, 0.025]}
-        visible={firstPoint !== null}
-      />
-
-      <ViroBox
-        position={secondPoint ?? HIDDEN_POINT}
-        materials={['secondPointMarker']}
-        scale={[0.025, 0.025, 0.025]}
-        visible={secondPoint !== null}
-        dragType="FixedToWorld"
-        onDrag={handleSecondPointDrag}
-      />
-
-      <ViroBox
-        position={thirdPoint ?? HIDDEN_POINT}
-        materials={['thirdPointMarker']}
-        scale={[0.025, 0.025, 0.025]}
-        visible={thirdPoint !== null}
-        dragType="FixedToWorld"
-        onDrag={handleSecondPointDrag}
-      />
-
-      <ViroBox
-        position={forthPoint ?? HIDDEN_POINT}
-        materials={['fourthPointMarker']}
-        scale={[0.025, 0.025, 0.025]}
-        visible={forthPoint !== null}
-        dragType="FixedToWorld"
-        onDrag={handleSecondPointDrag}
-      />
+      {points.map((p, index) =>
+        <ViroBox
+          key={index}
+          position={p}
+          materials={['pointMarker']}
+          scale={[0.025, 0.025, 0.025]}
+        />
+      )}
 
       <ViroText
         text={distanceLabel}
         position={
-          secondPoint
-            ? [secondPoint[0], secondPoint[1] + 0.06, secondPoint[2]]
-            : HIDDEN_POINT
+          points.length > 0 ? [points[points.length-1][0], points[points.length-1][1], points[points.length-1][2]]
+          : HIDDEN_POINT
         }
         scale={[0.2, 0.2, 0.2]}
         style={styles.distanceLabel}
         transformBehaviors={['billboard']}
-        visible={secondPoint !== null}
+        visible={points.length >= 2}
       />
     </ViroARScene>
   );
