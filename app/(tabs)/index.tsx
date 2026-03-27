@@ -1,10 +1,10 @@
+import { CameraView } from "expo-camera";
 import { StatusBar } from "expo-status-bar";
 import { useRef, useState } from "react";
 import { Image, Pressable, Text, TouchableOpacity, View } from "react-native";
 import { useFloorplan } from "../../context/FloorplanContext";
 import { CameraUI } from "../../components/CameraUI";
 import * as ImagePicker from "expo-image-picker";
-import { CameraView } from "expo-camera";
 import { EditMarkerModal } from "../../components/index/EditMarkerModal";
 import { styles } from "../../css/indexStyle";
 import { PhotoGalleryModal } from "../../components/index/PhotoGalleryModal";
@@ -46,7 +46,7 @@ export default function HomeScreen() {
     addMarker(
       tempMarker.x,
       tempMarker.y,
-      result.map((p) => p.uri),
+      result.map((p) => p.uri)
     );
     setShowNewMarkerOptions(false);
     setShowTempMarker(false);
@@ -72,7 +72,7 @@ export default function HomeScreen() {
 
     addPhotos(
       selectedMarkerId,
-      result.map((p) => p.uri),
+      result.map((p) => p.uri)
     );
   };
 
@@ -82,10 +82,7 @@ export default function HomeScreen() {
     setShowCamera(true);
 
     cameraAction.current = (img) => {
-      addPhotos(
-        selectedMarkerId,
-        [img],
-      );
+      addPhotos(selectedMarkerId, [img]);
       setShowCamera(false);
     };
   };
@@ -121,7 +118,11 @@ export default function HomeScreen() {
 
   if (showCamera) {
     return (
-      <CameraUI onPictureTaken={cameraAction.current} cameraRef={cameraRef} onCancel={() => setShowCamera(false)} />
+      <CameraUI
+        onPictureTaken={cameraAction.current}
+        cameraRef={cameraRef}
+        onCancel={() => setShowCamera(false)}
+      />
     );
   }
 
@@ -175,22 +176,35 @@ export default function HomeScreen() {
             }}
             onAddPicture={() => {
               setShowNewMarkerOptions(true);
-            }} />
+            }}
+          />
         )}
       </Pressable>
 
       {/* New marker options modal */}
-      <NewMarkerOptionsModal handleNewMarkerFromCameraRoll={handleNewMarkerFromCameraRoll}
-                             showModal={showNewMarkerOptions}
-                             handleNewMarkerFromPicture={handleNewMarkerFromPicture}
-                             setShowNewMarkerOptions={setShowNewMarkerOptions} setShowTempMarker={setShowTempMarker} />
+      <NewMarkerOptionsModal
+        handleNewMarkerFromCameraRoll={handleNewMarkerFromCameraRoll}
+        showModal={showNewMarkerOptions}
+        handleNewMarkerFromPicture={handleNewMarkerFromPicture}
+        setShowNewMarkerOptions={setShowNewMarkerOptions}
+        setShowTempMarker={setShowTempMarker}
+      />
 
-      <MarkerOptionsModal showModal={showMarkerOptions} marker={selectedMarker} handleShowPhotos={handleShowPhotos}
-                          closeAllModals={closeAllModals} handleAddFromPictureToMarker={handleAddFromPictureToMarker}
-                          handleAddFromCameraRollToMarker={handleAddFromCameraRollToMarker} />
+      <MarkerOptionsModal
+        showModal={showMarkerOptions}
+        marker={selectedMarker}
+        handleShowPhotos={handleShowPhotos}
+        closeAllModals={closeAllModals}
+        handleAddFromPictureToMarker={handleAddFromPictureToMarker}
+        handleAddFromCameraRollToMarker={handleAddFromCameraRollToMarker}
+      />
 
-      <PhotoGalleryModal showModal={showPhotos} marker={selectedMarker} handleDeletePhoto={handleDeletePhoto}
-                         closeAllModals={closeAllModals} />
+      <PhotoGalleryModal
+        showModal={showPhotos}
+        marker={selectedMarker}
+        handleDeletePhoto={handleDeletePhoto}
+        closeAllModals={closeAllModals}
+      />
 
       <Text style={styles.instructions}>
         Tap on the floor plan to place a marker

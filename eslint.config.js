@@ -1,4 +1,4 @@
-const nativeConfig = require('eslint-config-universe/flat/native');
+const nativeConfig = require("eslint-config-universe/flat/native");
 
 module.exports = [
   ...nativeConfig,
@@ -9,6 +9,6 @@ module.exports = [
     },
   },
   {
-    ignores: ['node_modules/', '.expo/', 'dist/', 'build/', 'web/'],
+    ignores: ["node_modules/", ".expo/", "dist/", "build/", "web/"],
   },
 ];

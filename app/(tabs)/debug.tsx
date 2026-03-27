@@ -1,7 +1,7 @@
-import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useState } from "react";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
-import { type LogEntry, useLogger } from '../../context/LoggerContext';
+import { type LogEntry, useLogger } from "../../context/LoggerContext";
 
 type GroupedLogs = Record<string, LogEntry[]>;
 
@@ -51,9 +51,9 @@ function renderGroups(
     ([groupName, logsInGroup]) => {
       let arrow;
       if (openGroups[groupName]) {
-        arrow = '▼';
+        arrow = "▼";
       } else {
-        arrow = '▶';
+        arrow = "▶";
       }
       let renderedLogs = null;
 
@@ -122,19 +122,19 @@ export default function Debug() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    alignItems: 'center',
+    alignItems: "center",
     paddingTop: 60,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: "#f5f5f5",
   },
 
   title: {
     fontSize: 26,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginBottom: 10,
   },
 
   clearButton: {
-    backgroundColor: '#ff4444',
+    backgroundColor: "#ff4444",
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 8,
@@ -142,12 +142,12 @@ const styles = StyleSheet.create({
   },
 
   clearText: {
-    color: 'white',
-    fontWeight: '600',
+    color: "white",
+    fontWeight: "600",
   },
 
   logContainer: {
-    width: '90%',
+    width: "90%",
   },
 
   group: {
@@ -155,26 +155,26 @@ const styles = StyleSheet.create({
   },
 
   groupHeader: {
-    backgroundColor: '#ddd',
+    backgroundColor: "#ddd",
     padding: 12,
     borderRadius: 8,
   },
 
   groupTitle: {
-    fontWeight: '600',
+    fontWeight: "600",
     fontSize: 16,
   },
 
   logItem: {
-    backgroundColor: 'white',
+    backgroundColor: "white",
     padding: 10,
     borderBottomWidth: 1,
-    borderColor: '#eee',
+    borderColor: "#eee",
   },
 
   time: {
     fontSize: 12,
-    color: '#666',
+    color: "#666",
   },
 
   message: {

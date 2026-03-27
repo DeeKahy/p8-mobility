@@ -1,8 +1,8 @@
-import { useMemo, useState } from 'react';
-import { FlatList, View, Text, Image, TouchableOpacity } from 'react-native';
+import { useMemo, useState } from "react";
+import { FlatList, View, Text, Image, TouchableOpacity } from "react-native";
 
-import { styles } from '../css/photo_list';
-import { PhotoForm } from '../models/PhotoFormModel';
+import { styles } from "../css/photo_list";
+import { PhotoForm } from "../models/PhotoFormModel";
 type PhotoFormProps = {
   photoList: PhotoForm[];
 };
@@ -26,7 +26,7 @@ export default ({ photoList }: PhotoFormProps) => {
         <Text style={styles.subtitle}>{areaGroup}</Text>
         <TouchableOpacity onPress={() => showSinglePhoto(photoUri)}>
           <Text style={styles.title}>
-            {pictureName} {showPhoto === photoUri ? '<' : '>'}
+            {pictureName} {showPhoto === photoUri ? "<" : ">"}
           </Text>
         </TouchableOpacity>
       </View>

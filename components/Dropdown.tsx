@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, Pressable, StyleSheet, FlatList } from 'react-native';
+import React, { useState } from "react";
+import { View, Text, Pressable, StyleSheet, FlatList } from "react-native";
 
 export default function Dropdown({ items, selected, onSelect }: any) {
   const [open, setOpen] = useState(false);
@@ -9,7 +9,7 @@ export default function Dropdown({ items, selected, onSelect }: any) {
       {/* Header */}
       <Pressable style={styles.header} onPress={() => setOpen(!open)}>
         <Text style={styles.text}>{selected}</Text>
-        <Text style={styles.arrow}>{open ? '▲' : '▼'}</Text>
+        <Text style={styles.arrow}>{open ? "▲" : "▼"}</Text>
       </Pressable>
 
       {/* Dropdown list */}
@@ -38,18 +38,18 @@ export default function Dropdown({ items, selected, onSelect }: any) {
 
 const styles = StyleSheet.create({
   container: {
-    width: '100%',
+    width: "100%",
   },
   header: {
-    backgroundColor: '#fafafa',
+    backgroundColor: "#fafafa",
     borderRadius: 10,
     paddingVertical: 14,
     paddingHorizontal: 16,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: "#ddd",
   },
   text: {
     fontSize: 16,
@@ -59,16 +59,16 @@ const styles = StyleSheet.create({
   },
   list: {
     marginTop: 8,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#ddd',
-    overflow: 'hidden',
+    borderColor: "#ddd",
+    overflow: "hidden",
   },
   item: {
     paddingVertical: 14,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: "#eee",
   },
 });

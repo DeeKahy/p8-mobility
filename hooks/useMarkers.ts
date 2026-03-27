@@ -44,7 +44,7 @@ export const useMarkers = () => {
 
       try {
         return prev.map((marker, i) =>
-          i === index ? editorFnc(marker) : marker,
+          i === index ? editorFnc(marker) : marker
         );
       } catch (error) {
         if (error instanceof MarkerDeletionException) {
@@ -65,11 +65,14 @@ export const useMarkers = () => {
   const addPhotos = (id: string, photoURIs: string[]) => {
     editMarker(id, (old) => {
       const old_len = photoURIs.length;
-      photoURIs = photoURIs.filter(   // We only want to add photos we can't find in the list already.
-        (x) => old.photos.indexOf(x) == -1,
+      photoURIs = photoURIs.filter(
+        // We only want to add photos we can't find in the list already.
+        (x) => old.photos.indexOf(x) === -1
       );
-      const new_len = photoURIs.length;   // REVIEW: Prevent selection of already present photos or just report an error here?
-      debug(`Adding ${photoURIs.length} photos to marker. ${old_len - new_len} photos were already present.`);
+      const new_len = photoURIs.length; // REVIEW: Prevent selection of already present photos or just report an error here?
+      debug(
+        `Adding ${photoURIs.length} photos to marker. ${old_len - new_len} photos were already present.`
+      );
       return { ...old, photos: old.photos.concat(photoURIs) }; // Deconstruct old marker and override photos with concatenated field
     });
   };
@@ -77,8 +80,10 @@ export const useMarkers = () => {
   const removePhoto = (id: string, photoURI: string) => {
     editMarker(id, (old) => {
       const index = old.photos.indexOf(photoURI);
-      if (index == -1) {
-        throw new RangeError(`${photoURI} not found in photos list of marker ${id} when deletion was attempted.`);
+      if (index === -1) {
+        throw new RangeError(
+          `${photoURI} not found in photos list of marker ${id} when deletion was attempted.`
+        );
       } else if (old.photos.length < 2) {
         throw new MarkerDeletionException("Last photo deleted.");
       }
@@ -93,7 +98,7 @@ export const useMarkers = () => {
   const tryGetMarker = (x: number, y: number) => {
     const TOLERANCE = 30;
     let nearMarkers = markers.filter(
-      (m) => Math.abs(m.x - x) + Math.abs(m.y - y) < TOLERANCE,
+      (m) => Math.abs(m.x - x) + Math.abs(m.y - y) < TOLERANCE
     ); // Check if any markers are within tolerance (Manhattan Distance)
     if (nearMarkers.length === 0) return null;
 
@@ -102,7 +107,7 @@ export const useMarkers = () => {
       Math.abs(a.x - x) + Math.abs(a.y - y) <
       Math.abs(b.x - x) + Math.abs(b.y - y)
         ? -1
-        : 1,
+        : 1
     );
     return nearMarkers[0];
   };

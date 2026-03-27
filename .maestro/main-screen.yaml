@@ -1,9 +1,9 @@
-appId: 'com.anonymous.p8mobility'
+appId: "com.anonymous.p8mobility"
 ---
 - launchApp:
-    appId: 'com.anonymous.p8mobility'
-- tapOn: 'Main page'
-- assertVisible: 'Welcome to our very Hygge App'
-- assertVisible: 'My apartments'
-- assertVisible: 'Upload new floor plan'
-- assertVisible: 'Scan Area'
+    appId: "com.anonymous.p8mobility"
+- tapOn: "Main page"
+- assertVisible: "Welcome to our very Hygge App"
+- assertVisible: "My apartments"
+- assertVisible: "Upload new floor plan"
+- assertVisible: "Scan Area"

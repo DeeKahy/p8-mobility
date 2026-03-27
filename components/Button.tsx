@@ -1,4 +1,4 @@
-import { Pressable, Text, StyleSheet } from 'react-native';
+import { Pressable, Text, StyleSheet } from "react-native";
 
 interface ButtonProps {
   label: string;
@@ -24,22 +24,22 @@ export default function Button({ label, onPress, disabled }: ButtonProps) {
 
 const styles = StyleSheet.create({
   button: {
-    backgroundColor: '#fafafa',
+    backgroundColor: "#fafafa",
     paddingVertical: 14,
     paddingHorizontal: 20,
     borderRadius: 10,
-    alignItems: 'center',
+    alignItems: "center",
     width: 400,
   },
   pressed: {
     opacity: 0.7,
   },
   disabled: {
-    backgroundColor: '#aaa',
+    backgroundColor: "#aaa",
   },
   text: {
-    color: '#100d0d',
+    color: "#100d0d",
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
 });

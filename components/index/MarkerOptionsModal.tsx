@@ -21,40 +21,42 @@ export const MarkerOptionsModal = (props: MarkerOptionsModalProps) => {
     handleAddFromCameraRollToMarker,
   } = props;
 
-  return <Modal visible={showModal} transparent animationType="fade">
-    <Pressable style={styles.modalOverlay} onPress={closeAllModals}>
-      <Pressable
-        style={styles.optionsModal}
-        onPress={(e) => e.stopPropagation()}
-      >
-        <Text style={styles.optionsTitle}>Marker Options</Text>
-        <TouchableOpacity
-          style={styles.optionButton}
-          onPress={handleShowPhotos}
+  return (
+    <Modal visible={showModal} transparent animationType="fade">
+      <Pressable style={styles.modalOverlay} onPress={closeAllModals}>
+        <Pressable
+          style={styles.optionsModal}
+          onPress={(e) => e.stopPropagation()}
         >
-          <Text style={styles.optionText}>
-            Show Pictures ({marker?.photos.length})
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.optionButton}
-          onPress={handleAddFromPictureToMarker}
-        >
-          <Text style={styles.optionText}>Take Photo</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.optionButton}
-          onPress={handleAddFromCameraRollToMarker}
-        >
-          <Text style={styles.optionText}>Choose from Library</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.optionCancelButton}
-          onPress={closeAllModals}
-        >
-          <Text style={styles.optionCancelText}>Cancel</Text>
-        </TouchableOpacity>
+          <Text style={styles.optionsTitle}>Marker Options</Text>
+          <TouchableOpacity
+            style={styles.optionButton}
+            onPress={handleShowPhotos}
+          >
+            <Text style={styles.optionText}>
+              Show Pictures ({marker?.photos.length})
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.optionButton}
+            onPress={handleAddFromPictureToMarker}
+          >
+            <Text style={styles.optionText}>Take Photo</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.optionButton}
+            onPress={handleAddFromCameraRollToMarker}
+          >
+            <Text style={styles.optionText}>Choose from Library</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.optionCancelButton}
+            onPress={closeAllModals}
+          >
+            <Text style={styles.optionCancelText}>Cancel</Text>
+          </TouchableOpacity>
+        </Pressable>
       </Pressable>
-    </Pressable>
-  </Modal>;
+    </Modal>
+  );
 };
