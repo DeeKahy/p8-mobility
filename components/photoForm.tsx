@@ -1,32 +1,19 @@
 import { yupResolver } from '@hookform/resolvers/yup';
 import { useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
-import {
-  View,
-  Image,
-  TextInput,
-  Button,
-  Text,
-  StyleSheet,
-  Modal,
-} from 'react-native';
+//Expected photo data format to make it easier to pass over including only the most necessary. Also works in unison with yup validator.
+import { View, Image, TextInput, Button, Text, Modal } from 'react-native';
 import DropDownPicker from 'react-native-dropdown-picker';
 import * as yup from 'yup';
 
-//Expected photo data format to make it easier to pass over including only the most necessary. Also works in unison with yup validator.
-type PhotoForm = {
-  photoUri: string;
-  dateTaken: string;
-  pictureName: string;
-  areaGroup: string;
-};
-
+import { styles } from '../app/css/photoForm';
+import { PhotoForm } from '../app/models/PhotoFormModel';
 //Photo form to take data from index.tsx and opening and closing modal
 type PhotoFormProps = {
   visible: boolean;
   onClose: () => void;
   photoUri: string;
-  dateTaken: string;
+  date: string;
   onSubmit: (data: PhotoForm) => void;
 };
 
@@ -37,6 +24,7 @@ const schema = yup
     areaGroup: yup.string().required('Area group is required'),
     pictureName: yup.string().required('Picture name is required'),
     dateTaken: yup.string().required('Date is required'),
+    description: yup.string().required(),
   })
   .required();
 
@@ -44,7 +32,7 @@ export default function PhotoFormModal({
   visible,
   onClose,
   photoUri,
-  dateTaken,
+  date,
   onSubmit,
 }: PhotoFormProps) {
   const [open, setOpen] = useState(false);
@@ -55,22 +43,19 @@ export default function PhotoFormModal({
   const {
     control,
     handleSubmit,
-    setValue,
-    formState: { errors },
+    reset,
+    formState: { errors, isLoading },
   } = useForm<PhotoForm>({
     // Specififying what our form is gonna look like
     defaultValues: {
       photoUri,
-      dateTaken,
+      dateTaken: date,
       pictureName: '',
       areaGroup: '',
+      description: '',
     },
     resolver: yupResolver(schema),
   });
-
-  //Works similar to just having useState, but is integrated into useForm()
-  setValue('dateTaken', dateTaken);
-  setValue('photoUri', photoUri);
 
   return (
     <Modal animationType="slide" transparent visible={visible}>
@@ -139,6 +124,20 @@ export default function PhotoFormModal({
           {errors.areaGroup && (
             <Text style={styles.error}>{errors.areaGroup.message}</Text>
           )}
+          <Text>Description:</Text>
+          <Controller
+            control={control}
+            name="description"
+            render={({ field: { value, onChange } }) => (
+              <TextInput
+                multiline
+                numberOfLines={5}
+                style={styles.textarea}
+                value={value}
+                onChangeText={onChange}
+              />
+            )}
+          />
           <Text>Date:</Text>
           <Controller
             control={control}
@@ -158,62 +157,35 @@ export default function PhotoFormModal({
         </View>
 
         <View style={styles.buttonContainer}>
-          {/* handleSubmit validates the form, and if it is incorrect, then it does not call onSubmit. */}
-          <Button title="Done" onPress={handleSubmit(onSubmit)} />
-          <Button title="Cancel" onPress={onClose} />
+          <Button
+            title="Done"
+            disabled={isLoading}
+            onPress={() => {
+              handleSubmit(onSubmit)();
+              reset({
+                photoUri: '',
+                dateTaken: '',
+                pictureName: '',
+                areaGroup: '',
+                description: '',
+              });
+            }}
+          />
+          <Button
+            title="Cancel"
+            onPress={() => {
+              onClose();
+              reset({
+                photoUri: '',
+                dateTaken: '',
+                pictureName: '',
+                areaGroup: '',
+                description: '',
+              });
+            }}
+          />
         </View>
       </View>
     </Modal>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
-    justifyContent: 'center',
-    backgroundColor: '#fff',
-  },
-  formCard: {
-    borderColor: '#ccc',
-    borderRadius: 20,
-    padding: 20,
-    gap: 15,
-  },
-  imageContainer: {
-    borderColor: '#ccc',
-    borderRadius: 20,
-    height: 160,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  image: {
-    width: 120,
-    height: 120,
-    resizeMode: 'contain',
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 10,
-    padding: 10,
-    fontSize: 16,
-  },
-  dateInput: {
-    borderWidth: 1,
-    borderColor: '#a6f4d6',
-    color: 'grey',
-    borderRadius: 10,
-    padding: 8,
-    minWidth: 120,
-    textAlign: 'center',
-  },
-  buttonContainer: {
-    marginTop: 20,
-  },
-  error: {
-    color: 'red',
-    marginBottom: 5,
-  },
-});

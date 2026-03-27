@@ -1,0 +1,21 @@
+appId: 'com.anonymous.p8mobility'
+---
+- launchApp:
+    appId: 'com.anonymous.p8mobility'
+- tapOn: 'Main page'
+- assertVisible: 'Welcome to our very Hygge App'
+
+# Test dropdown interaction
+- assertVisible: 'My apartments'
+- tapOn: 'My apartments'
+
+# Test Upload floor plan button
+- assertVisible: 'Upload new floor plan'
+- tapOn: 'Upload new floor plan'
+
+# Test Scan Area button
+- assertVisible: 'Scan Area'
+- tapOn: 'Scan Area'
+
+# Verify we're back on main screen
+- assertVisible: 'Welcome to our very Hygge App'
