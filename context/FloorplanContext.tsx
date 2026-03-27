@@ -14,17 +14,17 @@ interface FloorplanContextReturn {
   editMarker: (id: string, editorFnc: (old: Marker) => Marker) => void;
   addPhotos: (id: string, photoURIs: string[]) => void;
   removePhoto: (id: string, photoURI: string) => void;
-  tryGetMarkerByScreenSpace: (x: number, y: number) => (Marker | null);
+  tryGetMarker: (x: number, y: number) => (Marker | null);
   deleteMarker: (id: string) => void;
-  selectedMarker: Marker | null;
-  setSelectedMarker: (marker: Marker | null) => void;
+  selectedMarkerId: string | null;
+  setSelectedMarkerId: Dispatch<SetStateAction<string | null>>;
   tempMarker: TempMarker | null;
   setTempMarker: Dispatch<SetStateAction<TempMarker>>;
   showTempMarker: boolean;
   setShowTempMarker: Dispatch<SetStateAction<boolean>>;
   showMarkerOptions: boolean;
   setShowMarkerOptions: Dispatch<SetStateAction<boolean>>;
-  getMarkersById: (id: string) => (Marker | null);
+  selectedMarker: Marker | undefined;
 }
 
 interface TempMarker {
@@ -44,7 +44,7 @@ export const FloorplanProvider = ({ children }: { children: React.ReactNode }) =
   const [tempMarker, setTempMarker] = useState<TempMarker>({ x: 0, y: 0 });
   const [showTempMarker, setShowTempMarker] = useState(false);
 
-  const [selectedMarker, setSelectedMarker] = useState<Marker | null>(null);
+  const [selectedMarkerId, setSelectedMarkerId] = useState<string | null>(null);
 
   const handleCanvasPress = (event: GestureResponderEvent) => {
     if (!floorplan) {
@@ -53,10 +53,10 @@ export const FloorplanProvider = ({ children }: { children: React.ReactNode }) =
     }
 
     const { locationX, locationY } = event.nativeEvent;
-    const existingMarker = marker.tryGetMarkerByScreenSpace(locationX, locationY);
+    const existingMarker = marker.tryGetMarker(locationX, locationY);
 
     if (existingMarker) {
-      setSelectedMarker(existingMarker);
+      setSelectedMarkerId(existingMarker.id);
       setShowMarkerOptions(true);
       setShowTempMarker(false);
       debug("Trying to select existing Marker");
@@ -87,8 +87,9 @@ export const FloorplanProvider = ({ children }: { children: React.ReactNode }) =
       floorplan,
       pickFloorplan,
       handleCanvasPress,
-      selectedMarker,
-      setSelectedMarker,
+      selectedMarker: selectedMarkerId ? marker.markers.find((m) => m.id == selectedMarkerId) : undefined,
+      selectedMarkerId,
+      setSelectedMarkerId,
       tempMarker,
       setTempMarker,
       showTempMarker,
