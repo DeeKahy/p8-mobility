@@ -14,7 +14,7 @@ interface FloorplanContextReturn {
   editMarker: (id: string, editorFnc: (old: Marker) => Marker) => void;
   addPhotos: (id: string, photoURIs: string[]) => void;
   removePhoto: (id: string, photoURI: string) => void;
-  tryGetMarker: (x: number, y: number) => (Marker | null);
+  tryGetMarkerByScreenSpace: (x: number, y: number) => (Marker | null);
   deleteMarker: (id: string) => void;
   selectedMarker: Marker | null;
   setSelectedMarker: (marker: Marker | null) => void;
@@ -22,6 +22,9 @@ interface FloorplanContextReturn {
   setTempMarker: Dispatch<SetStateAction<TempMarker>>;
   showTempMarker: boolean;
   setShowTempMarker: Dispatch<SetStateAction<boolean>>;
+  showMarkerOptions: boolean;
+  setShowMarkerOptions: Dispatch<SetStateAction<boolean>>;
+  getMarkersById: (id: string) => (Marker | null);
 }
 
 interface TempMarker {
@@ -50,7 +53,7 @@ export const FloorplanProvider = ({ children }: { children: React.ReactNode }) =
     }
 
     const { locationX, locationY } = event.nativeEvent;
-    const existingMarker = marker.tryGetMarker(locationX, locationY);
+    const existingMarker = marker.tryGetMarkerByScreenSpace(locationX, locationY);
 
     if (existingMarker) {
       setSelectedMarker(existingMarker);
@@ -90,6 +93,8 @@ export const FloorplanProvider = ({ children }: { children: React.ReactNode }) =
       setTempMarker,
       showTempMarker,
       setShowTempMarker,
+      showMarkerOptions,
+      setShowMarkerOptions,
     }}>{children}</FloorplanContext.Provider>;
 };
 

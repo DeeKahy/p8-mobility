@@ -14,6 +14,7 @@ export const EditMarkerModal = (props: EditMarkerModalProps) => {
 
   return (
     <View
+
       style={[
         styles.popup,
         {

@@ -18,10 +18,6 @@ import { CameraView } from 'expo-camera';
 import { EditMarkerModal } from '../../components/index/EditMarkerModal';
 
 export default function HomeScreen() {
-  const [newMarkerPosition, setNewMarkerPosition] = useState<{
-    x: number;
-    y: number;
-  } | null>(null);
   const {
     markers,
     floorplan,
@@ -35,12 +31,14 @@ export default function HomeScreen() {
     showTempMarker,
     setSelectedMarker,
     setShowTempMarker,
+    showMarkerOptions,
+    setShowMarkerOptions,
+    getMarkersById,
   } = useFloorplan();
 
   const [showPhotos, setShowPhotos] = useState(false);
   const [showCamera, setShowCamera] = useState(false);
   const [showNewMarkerOptions, setShowNewMarkerOptions] = useState(false);
-  const [showMarkerOptions, setShowMarkerOptions] = useState(false);
 
   const cameraAction = useRef<((uri: string) => void) | undefined>(undefined);
   const cameraRef = useRef<CameraView>(null);
@@ -60,6 +58,8 @@ export default function HomeScreen() {
       tempMarker.y,
       result.map((p) => p.uri),
     );
+    setShowNewMarkerOptions(false);
+    setShowTempMarker(false);
   };
 
   const handleNewMarkerFromPicture = async () => {
@@ -69,6 +69,7 @@ export default function HomeScreen() {
 
     cameraAction.current = (img) => {
       addMarker(tempMarker.x, tempMarker.y, [img]);
+      setShowCamera(false);
     };
   };
 
@@ -81,17 +82,21 @@ export default function HomeScreen() {
       selectedMarker.id,
       result.map((p) => p.uri),
     );
+    setSelectedMarker(getMarkersById(selectedMarker.id));
   };
 
   const handleAddFromPictureToMarker = async () => {
+    if (!selectedMarker) return;
     setShowNewMarkerOptions(false);
-    const result = await pickPhotoFromLibrary(0);
-    if (!result || !selectedMarker) return;
+    setShowCamera(true);
 
-    addPhotos(
-      selectedMarker.id,
-      result.map((p) => p.uri),
-    );
+    cameraAction.current = (img) => {
+      addPhotos(
+        selectedMarker.id,
+        [img],
+      );
+      setShowCamera(false);
+    };
   };
 
   const handleDeletePhoto = (photoURI: string) => {
@@ -121,14 +126,13 @@ export default function HomeScreen() {
     setShowCamera(false);
     setShowPhotos(false);
     setSelectedMarker(null);
-    setNewMarkerPosition(null);
     setShowMarkerOptions(false);
     setShowTempMarker(false);
   };
 
   if (showCamera) {
     return (
-      <CameraUI onPictureTaken={cameraAction.current} cameraRef={cameraRef} />
+      <CameraUI onPictureTaken={cameraAction.current} cameraRef={cameraRef} onCancel={() => setShowCamera(false)} />
     );
   }
 
@@ -180,15 +184,18 @@ export default function HomeScreen() {
         ))}
 
         {/* New marker popup */}
-        {showMarkerOptions && tempMarker && <EditMarkerModal
-          tempMarker={tempMarker}
-          onCancel={() => {
-            setShowMarkerOptions(false);
-            setShowTempMarker(false);
-          }}
-          onAddPicture={()=>{
-            
-          }} />}
+        {showTempMarker && tempMarker && (
+          <>
+            <EditMarkerModal
+              tempMarker={tempMarker}
+              onCancel={() => {
+                setShowTempMarker(false);
+              }}
+              onAddPicture={() => {
+                setShowNewMarkerOptions(true);
+              }} />
+          </>
+        )}
       </Pressable>
 
       {/* New marker options modal */}
@@ -216,7 +223,10 @@ export default function HomeScreen() {
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.optionCancelButton}
-              onPress={() => setShowTempMarker(false)}
+              onPress={() => {
+                setShowTempMarker(false);
+                setShowNewMarkerOptions(false);
+              }}
             >
               <Text style={styles.optionCancelText}>Cancel</Text>
             </TouchableOpacity>
