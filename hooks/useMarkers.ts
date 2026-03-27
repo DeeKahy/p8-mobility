@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useLogger } from '../context/LoggerContext';
 
 export interface Marker {
     id: string;
@@ -7,8 +8,18 @@ export interface Marker {
     photos: string[];
 }
 
+// Throw this error when you want the affected marker to be deleted by editMarker instead of edited.
+class MarkerDeletionException extends Error {
+    constructor(message: string) {
+        super(message);
+        this.name = this.constructor.name;
+    }
+}
+
 export const useMarkers = () => {
     const [markers, setMarkers] = useState<Marker[]>([]);
+
+    const { debug } = useLogger();
 
     const clearMarkers = () => {
         setMarkers([]);
@@ -26,24 +37,33 @@ export const useMarkers = () => {
 
     const editMarker = (id: string, editorFnc: (old: Marker) => Marker) => {
         const index = markers.findIndex((m) => m.id === id);
-        markers[index] = editorFnc(markers[index]); // Set the index of the entry with matching ID to the output of the editor function
-        //setMarkers(markers);
+        if (index == -1) { throw new RangeError(`Marker ${id} not found in markers list when edit was attempted.`) };
+        try {
+            markers[index] = editorFnc(markers[index]); // Try to replace the affected marker with the edited version.
+        } catch (error) {
+            if (error instanceof MarkerDeletionException) {
+                markers.splice(index, 1);
+            } else {
+                throw error;    // Re-throw any editing errors we don't want to handle here.
+            }
+        }
     };
 
+    // editMarker handles deletion because it already finds the information needed to make a deletion. DRY!
     const deleteMarker = (id: string) => {
-        const index = markers.findIndex((m) => m.id === id);
-        if (index != -1) {
-            markers.splice(index, 1);
-            //setMarkers(markers);
-        }
-        // REVIEW: Throw if an id is invalid?
+        editMarker(id, (_) => {
+            throw new MarkerDeletionException("Deletion requested.");
+        });
     }
 
     const addPhotos = (id: string, photoURIs: string[]) => {
         editMarker(id, (old) => {
+            const old_len = photoURIs.length;
             photoURIs = photoURIs.filter(   // We only want to add photos we can't find in the list already.
                 (x) => old.photos.indexOf(x) == -1
-            );  // REVIEW: Throw if a photo is already present or just fail silently?
+            );
+            const new_len = photoURIs.length;   // REVIEW: Prevent selection of already present photos or just report an error here?
+            debug(`Adding ${photoURIs.length} photos to marker. ${old_len - new_len} photos were already present.`);
             return { ...old, photos: old.photos.concat(photoURIs) }; // Deconstruct old marker and override photos with concatenated field
         });
     };
@@ -51,15 +71,16 @@ export const useMarkers = () => {
     const removePhoto = (id: string, photoURI: string) => {
         editMarker(id, (old) => {
             const index = old.photos.indexOf(photoURI);
-            if (index == -1) {   // URI must exist in the photos list.
-                return old;     // REVIEW: Throw if URI couldn't be found?
+            if (index == -1) {
+                throw new RangeError(`${photoURI} not found in photos list of marker ${id} when deletion was attempted.`);
             } else if (old.photos.length < 2) {
-                // REVIEW: Delete marker if last photo would be deleted or disallow photo deletion?
+                throw new MarkerDeletionException("Last photo deleted.");
             }
             return { ...old, photos: old.photos.splice(index, 1) };
         })
     }
 
+    // FIXME: (x,y) is the top-left corner of a marker. Change the way markers are drawn so (x,y) becomes the center.
     const tryGetMarker = (x: number, y: number) => {
         const TOLERANCE = 30;
         let nearMarkers = markers.filter(
