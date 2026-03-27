@@ -164,7 +164,7 @@ export default function HomeScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Floor plan with markers */}
+      {/* Floor plan with markers. THIS IS WHERE PINCH-TO-ZOOM FUNCTIONALITY SHOULD GO */}
       <Pressable style={styles.canvas} onPress={handleCanvasPress}>
         <Image
           source={{ uri: floorplan }}
@@ -176,7 +176,10 @@ export default function HomeScreen() {
         {markers.map((marker) => (
           <View
             key={marker.id}
-            style={[styles.marker, { left: marker.x, top: marker.y }]}
+            style={[styles.marker, {  /* (x,y) should be the center of the marker */
+              left: marker.x - (styles.marker.width / 2),
+              top: marker.y - (styles.marker.height / 2),
+            }]}
           >
             <View style={styles.markerDot} />
             <Text style={styles.markerCount}>{marker.photos.length}</Text>
@@ -185,16 +188,14 @@ export default function HomeScreen() {
 
         {/* New marker popup */}
         {showTempMarker && tempMarker && (
-          <>
-            <EditMarkerModal
-              tempMarker={tempMarker}
-              onCancel={() => {
-                setShowTempMarker(false);
-              }}
-              onAddPicture={() => {
-                setShowNewMarkerOptions(true);
-              }} />
-          </>
+          <EditMarkerModal
+            tempMarker={tempMarker}
+            onCancel={() => {
+              setShowTempMarker(false);
+            }}
+            onAddPicture={() => {
+              setShowNewMarkerOptions(true);
+            }} />
         )}
       </Pressable>
 
