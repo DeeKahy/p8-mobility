@@ -1,6 +1,7 @@
-import { Modal, Pressable, Text, TouchableOpacity } from "react-native";
-import { styles } from "../../css/indexStyle";
 import { Dispatch, SetStateAction } from "react";
+import { Modal, Pressable, Text, TouchableOpacity } from "react-native";
+
+import { styles } from "../../css/indexStyle";
 
 interface NewMarkerOptionsModalProps {
   showModal: boolean;

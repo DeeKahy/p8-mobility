@@ -1,4 +1,5 @@
 import { Modal, Pressable, Text, TouchableOpacity } from "react-native";
+
 import { styles } from "../../css/indexStyle";
 import { Marker } from "../../hooks/useMarkers";
 

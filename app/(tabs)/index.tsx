@@ -1,16 +1,17 @@
 import { CameraView } from "expo-camera";
+import * as ImagePicker from "expo-image-picker";
 import { StatusBar } from "expo-status-bar";
 import { useRef, useState } from "react";
 import { Image, Pressable, Text, TouchableOpacity, View } from "react-native";
-import { useFloorplan } from "../../context/FloorplanContext";
+
 import { CameraUI } from "../../components/CameraUI";
-import * as ImagePicker from "expo-image-picker";
 import { EditMarkerModal } from "../../components/index/EditMarkerModal";
-import { styles } from "../../css/indexStyle";
-import { PhotoGalleryModal } from "../../components/index/PhotoGalleryModal";
+import { MarkerElement } from "../../components/index/MarkerElement";
 import { MarkerOptionsModal } from "../../components/index/MarkerOptionsModal";
 import { NewMarkerOptionsModal } from "../../components/index/NewMarkerOptionsModal";
-import { MarkerElement } from "../../components/index/MarkerElement";
+import { PhotoGalleryModal } from "../../components/index/PhotoGalleryModal";
+import { useFloorplan } from "../../context/FloorplanContext";
+import { styles } from "../../css/indexStyle";
 
 export default function HomeScreen() {
   const {

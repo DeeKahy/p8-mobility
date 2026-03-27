@@ -6,8 +6,9 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { Marker } from "../../hooks/useMarkers";
+
 import { styles } from "../../css/indexStyle";
+import { Marker } from "../../hooks/useMarkers";
 
 interface PhotoGalleryModalProps {
   showModal: boolean;

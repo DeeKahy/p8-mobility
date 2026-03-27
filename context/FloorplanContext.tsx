@@ -1,3 +1,4 @@
+import * as ImagePicker from "expo-image-picker";
 import {
   createContext,
   Dispatch,
@@ -6,9 +7,9 @@ import {
   useState,
 } from "react";
 import { GestureResponderEvent } from "react-native";
-import * as ImagePicker from "expo-image-picker";
-import { Marker, useMarkers } from "../hooks/useMarkers";
+
 import { useLogger } from "../context/LoggerContext";
+import { Marker, useMarkers } from "../hooks/useMarkers";
 
 interface FloorplanContextReturn {
   floorplan: string | null;
@@ -101,7 +102,7 @@ export const FloorplanProvider = ({
         pickFloorplan,
         handleCanvasPress,
         selectedMarker: selectedMarkerId
-          ? marker.markers.find((m) => m.id == selectedMarkerId)
+          ? marker.markers.find((m) => m.id === selectedMarkerId)
           : undefined,
         selectedMarkerId,
         setSelectedMarkerId,
