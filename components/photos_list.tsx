@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react';
 import { FlatList, View, Text, Image, TouchableOpacity } from 'react-native';
 
-import { styles } from '../app/css/photo_list';
-import { PhotoForm } from '../app/models/PhotoFormModel';
+import { styles } from '../css/photo_list';
+import { PhotoForm } from '../models/PhotoFormModel';
 type PhotoFormProps = {
   photoList: PhotoForm[];
 };

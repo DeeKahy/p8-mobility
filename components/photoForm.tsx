@@ -6,8 +6,8 @@ import { View, Image, TextInput, Button, Text, Modal } from 'react-native';
 import DropDownPicker from 'react-native-dropdown-picker';
 import * as yup from 'yup';
 
-import { styles } from '../app/css/photoForm';
-import { PhotoForm } from '../app/models/PhotoFormModel';
+import { styles } from '../css/photoForm';
+import { PhotoForm } from '../models/PhotoFormModel';
 //Photo form to take data from index.tsx and opening and closing modal
 type PhotoFormProps = {
   visible: boolean;
