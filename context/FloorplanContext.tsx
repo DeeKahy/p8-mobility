@@ -8,7 +8,7 @@ import {
 } from "react";
 import { GestureResponderEvent } from "react-native";
 
-import { useLogger } from "../context/LoggerContext";
+import { useLogger } from "./LoggerContext";
 import { Marker, useMarkers } from "../hooks/useMarkers";
 
 interface FloorplanContextReturn {
