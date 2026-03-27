@@ -3,9 +3,9 @@ import {
   ViroBox,
   ViroMaterials,
   ViroText,
-} from '@viro-community/react-viro';
-import React, { useMemo, useRef, useState } from 'react';
-import { Dimensions, PixelRatio, StyleSheet } from 'react-native';
+} from "@viro-community/react-viro";
+import React, { useMemo, useRef, useState } from "react";
+import { Dimensions, PixelRatio, StyleSheet } from "react-native";
 
 type Point3D = [number, number, number];
 
@@ -17,22 +17,22 @@ const HIDDEN_POINT: Point3D = [0, -10, 0];
 // Define materials for the markers (red + green)
 ViroMaterials.createMaterials({
   pointMarker: {
-    diffuseColor: '#ff0303',
-    lightingModel: 'Constant',
+    diffuseColor: "#ff0303",
+    lightingModel: "Constant",
   },
   secondPointMarker: {
-    diffuseColor: '#03ff03',
-    lightingModel: 'Constant',
+    diffuseColor: "#03ff03",
+    lightingModel: "Constant",
   },
 });
 
 const styles = StyleSheet.create({
   distanceLabel: {
-    fontFamily: 'Roboto',
+    fontFamily: "Roboto",
     fontSize: 56,
-    color: '#ffffff',
-    textAlign: 'center',
-    textAlignVertical: 'center',
+    color: "#ffffff",
+    textAlign: "center",
+    textAlignVertical: "center",
   },
 });
 
@@ -48,11 +48,11 @@ type HitResult = {
 // AR hit test types we accept (planes + feature points)
 // https://developers.google.com/ar/develop/hit-test
 const ACCEPTED_HIT_TYPES = new Set([
-  'ExistingPlaneUsingExtent',
-  'ExistingPlane',
-  'EstimatedHorizontalPlane',
-  'EstimatedVerticalPlane',
-  'FeaturePoint',
+  "ExistingPlaneUsingExtent",
+  "ExistingPlane",
+  "EstimatedHorizontalPlane",
+  "EstimatedVerticalPlane",
+  "FeaturePoint",
 ]);
 
 // Validates that a value is a proper 3D coordinate
@@ -61,7 +61,7 @@ function isValidPoint(position: unknown): position is Point3D {
     Array.isArray(position) &&
     position.length === 3 &&
     position.every(
-      (value) => typeof value === 'number' && Number.isFinite(value)
+      (value) => typeof value === "number" && Number.isFinite(value)
     )
   );
 }
@@ -73,7 +73,7 @@ function extractHitPosition(results: unknown): Point3D | null {
   }
 
   for (const entry of results) {
-    if (!entry || typeof entry !== 'object') {
+    if (!entry || typeof entry !== "object") {
       continue;
     }
 
@@ -106,7 +106,7 @@ function formatDistanceCm(distanceMeters: number) {
 
 function logDistanceCm(firstPoint: Point3D, secondPoint: Point3D) {
   const distanceMeters = calculateDistanceMeters([firstPoint, secondPoint]);
-  console.log('Distance:', formatDistanceCm(distanceMeters));
+  console.log("Distance:", formatDistanceCm(distanceMeters));
 }
 
 export default function MeasureScene() {
@@ -116,7 +116,7 @@ export default function MeasureScene() {
 
   const distanceLabel = useMemo(() => {
     if (!firstPoint || !secondPoint) {
-      return '';
+      return "";
     }
 
     const distanceMeters = calculateDistanceMeters([firstPoint, secondPoint]);
@@ -133,9 +133,9 @@ export default function MeasureScene() {
         : null;
 
       if (!hitPosition) {
-        const centerX = (Dimensions.get('window').width * PixelRatio.get()) / 2;
+        const centerX = (Dimensions.get("window").width * PixelRatio.get()) / 2;
         const centerY =
-          (Dimensions.get('window').height * PixelRatio.get()) / 2;
+          (Dimensions.get("window").height * PixelRatio.get()) / 2;
 
         const result = await arSceneRef.current.performARHitTestWithPoint(
           centerX,
@@ -145,7 +145,7 @@ export default function MeasureScene() {
       }
 
       if (!hitPosition) {
-        console.log('No surface detected at this point.');
+        console.log("No surface detected at this point.");
         return;
       }
       // First tap = first point
@@ -160,7 +160,7 @@ export default function MeasureScene() {
       setSecondPoint(hitPosition);
       logDistanceCm(firstPoint, hitPosition);
     } catch (error) {
-      console.error('Error performing hit test:', error);
+      console.error("Error performing hit test:", error);
     }
   };
 
@@ -178,14 +178,14 @@ export default function MeasureScene() {
     <ViroARScene ref={arSceneRef} onClick={handleSceneClick}>
       <ViroBox
         position={firstPoint ?? HIDDEN_POINT}
-        materials={['pointMarker']}
+        materials={["pointMarker"]}
         scale={[0.025, 0.025, 0.025]}
         visible={firstPoint !== null}
       />
 
       <ViroBox
         position={secondPoint ?? HIDDEN_POINT}
-        materials={['secondPointMarker']}
+        materials={["secondPointMarker"]}
         scale={[0.025, 0.025, 0.025]}
         visible={secondPoint !== null}
         dragType="FixedToWorld"
@@ -201,7 +201,7 @@ export default function MeasureScene() {
         }
         scale={[0.2, 0.2, 0.2]}
         style={styles.distanceLabel}
-        transformBehaviors={['billboard']}
+        transformBehaviors={["billboard"]}
         visible={secondPoint !== null}
       />
     </ViroARScene>

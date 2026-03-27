@@ -39,7 +39,6 @@
     "expo-linking": "~8.0.11",
     "expo-router": "~6.0.23",
     "expo-status-bar": "~3.0.9",
-    "interactionpane": "^1.0.3",
     "jpeg-js": "^0.4.4",
     "pngjs": "^7.0.0",
     "react": "19.1.0",

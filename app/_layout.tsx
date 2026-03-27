@@ -1,6 +1,6 @@
-import { Stack } from 'expo-router';
+import { Stack } from "expo-router";
 
-import { LoggerProvider } from '../context/LoggerContext';
+import { LoggerProvider } from "../context/LoggerContext";
 
 export default function RootLayout() {
   return (

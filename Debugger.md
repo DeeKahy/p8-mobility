@@ -15,8 +15,8 @@ try {
 ```javascript
 const user = {
   id: 123,
-  name: 'Anna',
-  role: 'admin',
+  name: "Anna",
+  role: "admin",
 };
 
 info(`User object:${user}`);
@@ -25,7 +25,7 @@ info(`User object:${user}`);
 ## Interested in seeing the proces of things happening?
 
 ```javascript
-info('Starting user creation');
+info("Starting user creation");
 const user = await createUser(userData);
 info(`User created successfully: ${user}`);
 ```
@@ -38,8 +38,8 @@ When using the custom logger, you can create youre own custom group, that will b
 <Button
   label="Upload new floor plan"
   onPress={() => {
-    console.log('Button pressed');
-    custom('Upload new floor plan button pressed', 'buttons group');
+    console.log("Button pressed");
+    custom("Upload new floor plan button pressed", "buttons group");
   }}
 />
 ```

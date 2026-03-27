@@ -1,4 +1,10 @@
-import { createContext, Dispatch, SetStateAction, useContext, useState } from "react";
+import {
+  createContext,
+  Dispatch,
+  SetStateAction,
+  useContext,
+  useState,
+} from "react";
 import { GestureResponderEvent } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { Marker, useMarkers } from "../hooks/useMarkers";
@@ -14,7 +20,7 @@ interface FloorplanContextReturn {
   editMarker: (id: string, editorFnc: (old: Marker) => Marker) => void;
   addPhotos: (id: string, photoURIs: string[]) => void;
   removePhoto: (id: string, photoURI: string) => void;
-  tryGetMarker: (x: number, y: number) => (Marker | null);
+  tryGetMarker: (x: number, y: number) => Marker | null;
   deleteMarker: (id: string) => void;
   selectedMarkerId: string | null;
   setSelectedMarkerId: Dispatch<SetStateAction<string | null>>;
@@ -32,9 +38,15 @@ interface TempMarker {
   y: number;
 }
 
-const FloorplanContext = createContext<FloorplanContextReturn | undefined>(undefined);
+const FloorplanContext = createContext<FloorplanContextReturn | undefined>(
+  undefined
+);
 
-export const FloorplanProvider = ({ children }: { children: React.ReactNode }) => {
+export const FloorplanProvider = ({
+  children,
+}: {
+  children: React.ReactNode;
+}) => {
   const [floorplan, setFloorplan] = useState<string | null>(null);
   const marker = useMarkers();
   const { debug } = useLogger();
@@ -81,22 +93,29 @@ export const FloorplanProvider = ({ children }: { children: React.ReactNode }) =
     }
   };
 
-  return <FloorplanContext.Provider
-    value={{
-      ...marker,
-      floorplan,
-      pickFloorplan,
-      handleCanvasPress,
-      selectedMarker: selectedMarkerId ? marker.markers.find((m) => m.id == selectedMarkerId) : undefined,
-      selectedMarkerId,
-      setSelectedMarkerId,
-      tempMarker,
-      setTempMarker,
-      showTempMarker,
-      setShowTempMarker,
-      showMarkerOptions,
-      setShowMarkerOptions,
-    }}>{children}</FloorplanContext.Provider>;
+  return (
+    <FloorplanContext.Provider
+      value={{
+        ...marker,
+        floorplan,
+        pickFloorplan,
+        handleCanvasPress,
+        selectedMarker: selectedMarkerId
+          ? marker.markers.find((m) => m.id == selectedMarkerId)
+          : undefined,
+        selectedMarkerId,
+        setSelectedMarkerId,
+        tempMarker,
+        setTempMarker,
+        showTempMarker,
+        setShowTempMarker,
+        showMarkerOptions,
+        setShowMarkerOptions,
+      }}
+    >
+      {children}
+    </FloorplanContext.Provider>
+  );
 };
 
 export const useFloorplan = () => {

@@ -19,38 +19,40 @@ export const NewMarkerOptionsModal = (props: NewMarkerOptionsModalProps) => {
     handleNewMarkerFromCameraRoll,
   } = props;
 
-  return <Modal visible={showModal} transparent animationType="fade">
-    <Pressable
-      style={styles.modalOverlay}
-      onPress={() => setShowNewMarkerOptions(false)}
-    >
+  return (
+    <Modal visible={showModal} transparent animationType="fade">
       <Pressable
-        style={styles.optionsModal}
-        onPress={(e) => e.stopPropagation()}
+        style={styles.modalOverlay}
+        onPress={() => setShowNewMarkerOptions(false)}
       >
-        <Text style={styles.optionsTitle}>Add Picture</Text>
-        <TouchableOpacity
-          style={styles.optionButton}
-          onPress={handleNewMarkerFromPicture}
+        <Pressable
+          style={styles.optionsModal}
+          onPress={(e) => e.stopPropagation()}
         >
-          <Text style={styles.optionText}>Take Photo</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.optionButton}
-          onPress={handleNewMarkerFromCameraRoll}
-        >
-          <Text style={styles.optionText}>Choose from Library</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.optionCancelButton}
-          onPress={() => {
-            setShowTempMarker(false);
-            setShowNewMarkerOptions(false);
-          }}
-        >
-          <Text style={styles.optionCancelText}>Cancel</Text>
-        </TouchableOpacity>
+          <Text style={styles.optionsTitle}>Add Picture</Text>
+          <TouchableOpacity
+            style={styles.optionButton}
+            onPress={handleNewMarkerFromPicture}
+          >
+            <Text style={styles.optionText}>Take Photo</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.optionButton}
+            onPress={handleNewMarkerFromCameraRoll}
+          >
+            <Text style={styles.optionText}>Choose from Library</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.optionCancelButton}
+            onPress={() => {
+              setShowTempMarker(false);
+              setShowNewMarkerOptions(false);
+            }}
+          >
+            <Text style={styles.optionCancelText}>Cancel</Text>
+          </TouchableOpacity>
+        </Pressable>
       </Pressable>
-    </Pressable>
-  </Modal>;
+    </Modal>
+  );
 };
