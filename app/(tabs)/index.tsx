@@ -15,6 +15,7 @@ import { useFloorplan } from '../../context/FloorplanContext';
 import { CameraUI } from '../../components/CameraUI';
 import * as ImagePicker from 'expo-image-picker';
 import { CameraView } from 'expo-camera';
+import { EditMarkerModal } from '../../components/index/EditMarkerModal';
 
 export default function HomeScreen() {
   const [newMarkerPosition, setNewMarkerPosition] = useState<{
@@ -31,7 +32,9 @@ export default function HomeScreen() {
     removePhoto,
     addMarker,
     tempMarker,
+    showTempMarker,
     setSelectedMarker,
+    setShowTempMarker,
   } = useFloorplan();
 
   const [showPhotos, setShowPhotos] = useState(false);
@@ -55,7 +58,7 @@ export default function HomeScreen() {
     addMarker(
       tempMarker.x,
       tempMarker.y,
-      result.map((p) => p.uri)
+      result.map((p) => p.uri),
     );
   };
 
@@ -76,7 +79,7 @@ export default function HomeScreen() {
 
     addPhotos(
       selectedMarker.id,
-      result.map((p) => p.uri)
+      result.map((p) => p.uri),
     );
   };
 
@@ -87,7 +90,7 @@ export default function HomeScreen() {
 
     addPhotos(
       selectedMarker.id,
-      result.map((p) => p.uri)
+      result.map((p) => p.uri),
     );
   };
 
@@ -120,7 +123,7 @@ export default function HomeScreen() {
     setSelectedMarker(null);
     setNewMarkerPosition(null);
     setShowMarkerOptions(false);
-    setShowNewMarkerOptions(false);
+    setShowTempMarker(false);
   };
 
   if (showCamera) {
@@ -177,31 +180,15 @@ export default function HomeScreen() {
         ))}
 
         {/* New marker popup */}
-        {newMarkerPosition && (
-          <View
-            style={[
-              styles.popup,
-              {
-                left: newMarkerPosition.x - 82,
-                top: newMarkerPosition.y - 120,
-              },
-            ]}
-          >
-            <TouchableOpacity
-              style={styles.popupButton}
-              onPress={() => setShowNewMarkerOptions(true)}
-            >
-              <Text style={styles.popupText}>Add picture for this space?</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.popupCancel}
-              onPress={() => setNewMarkerPosition(null)}
-            >
-              <Text style={styles.popupCancelText}>Cancel</Text>
-            </TouchableOpacity>
-            <View style={styles.popupArrow} />
-          </View>
-        )}
+        {showMarkerOptions && tempMarker && <EditMarkerModal
+          tempMarker={tempMarker}
+          onCancel={() => {
+            setShowMarkerOptions(false);
+            setShowTempMarker(false);
+          }}
+          onAddPicture={()=>{
+            
+          }} />}
       </Pressable>
 
       {/* New marker options modal */}
@@ -229,7 +216,7 @@ export default function HomeScreen() {
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.optionCancelButton}
-              onPress={() => setShowNewMarkerOptions(false)}
+              onPress={() => setShowTempMarker(false)}
             >
               <Text style={styles.optionCancelText}>Cancel</Text>
             </TouchableOpacity>
