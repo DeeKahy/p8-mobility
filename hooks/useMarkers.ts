@@ -80,7 +80,6 @@ export const useMarkers = () => {
         })
     }
 
-    // FIXME: (x,y) is the top-left corner of a marker. Change the way markers are drawn so (x,y) becomes the center.
     const tryGetMarker = (x: number, y: number) => {
         const TOLERANCE = 30;
         let nearMarkers = markers.filter(
