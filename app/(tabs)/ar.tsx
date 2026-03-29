@@ -6,6 +6,7 @@ import { TouchableOpacity, View, Text } from 'react-native';
 import MeasureScene from '../../components/MeasureScene';
 import { calculateTurf } from '../../utils/arMath';
 import { Point3D } from '../models/3Dpoints';
+import Floorplan from './floorplan';
 
 export default function ARView() {
   const isFocused = useIsFocused();
@@ -20,7 +21,7 @@ export default function ARView() {
   const handleStop = () => {
     setIsMeasuring(false);
     console.log('Final Points:', pointsRef.current);
-    const reuslt = calculateTurf(pointsRef.current);
+    //const reuslt = calculateTurf(pointsRef.current);
     console.log('Area:', pointsRef.current);
   };
 
@@ -56,6 +57,12 @@ const handlePointsUpdate = (newPoints: Point3D[]) => {
           </Text>
         </TouchableOpacity>
       </View>
+      {!isMeasuring && (
+        <Floorplan
+          pointList={pointsRef.current}
+          visible={!isMeasuring}
+        />
+      )}
     </View>
   );
 }

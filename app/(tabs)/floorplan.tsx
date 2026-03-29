@@ -1,3 +1,43 @@
+import Svg, { Polygon } from 'react-native-svg';
+import { Point3D } from '../models/3Dpoints';
+import { Modal, TouchableOpacity, View, Text } from 'react-native';
+
+type PointProps = {
+    pointList: Point3D[];
+    visible: boolean;
+}
+
+export default ({pointList, visible}: PointProps) => {
+    console.log("Test if i get data", pointList);
+
+    const turnListOfPointsToString = () => {
+        console.log("something")
+        let stringPoints = "";
+        for (const point of pointList) {
+            stringPoints += `${point[0]},${point[1]} `;
+        }
+        console.log(stringPoints)
+        return stringPoints;
+    }
+    return (
+        <View>
+            <Modal animationType="slide" transparent visible={visible}>
+                <Svg height="200" width="200">
+                <Polygon
+                    points={turnListOfPointsToString()}
+                    fill="blue"
+                    stroke="black"
+                />
+                </Svg>
+                <View>
+                    <TouchableOpacity onPress={() => turnListOfPointsToString()}>
+                        <Text>Cancel</Text>
+                    </TouchableOpacity>
+                </View>
+            </Modal>
+        </View>
+    )
+}
 // https://shopify.github.io/react-native-skia/docs/shapes/polygons
 // import { Canvas, Points, vec } from "@shopify/react-native-skia";
 
