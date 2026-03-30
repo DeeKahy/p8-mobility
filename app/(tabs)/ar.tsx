@@ -4,14 +4,12 @@ import React, { useRef, useState } from 'react';
 import { TouchableOpacity, View, Text } from 'react-native';
 
 import MeasureScene from '../../components/MeasureScene';
-import { calculateTurf } from '../../utils/arMath';
+import Floorplan from '../../components/floorplancreation';
 import { Point3D } from '../models/3Dpoints';
-import Floorplan from './floorplan';
 
 export default function ARView() {
   const isFocused = useIsFocused();
   const [isMeasuring, setIsMeasuring] = useState(true);
-  const [points, setPoints] = useState<Point3D[]>([]);
   const pointsRef = useRef<Point3D[]>([]);
 
   if (!isFocused) {
@@ -25,22 +23,23 @@ export default function ARView() {
     console.log('Area:', pointsRef.current);
   };
 
-const handlePointsUpdate = (newPoints: Point3D[]) => {
-  pointsRef.current = newPoints;
-  setPoints(newPoints);
-};
+  const handlePointsUpdate = (newPoints: Point3D[]) => {
+    pointsRef.current = newPoints;
+  };
 
   return (
     <View style={{ flex: 1 }}>
       <ViroARSceneNavigator
         autofocus
-        initialScene={{
-          scene: MeasureScene,
-          passProps: {
-            isMeasuring,
-            onPointAdded: handlePointsUpdate,
-          },
-        } as any}
+        initialScene={
+          {
+            scene: MeasureScene,
+            passProps: {
+              isMeasuring,
+              onPointAdded: handlePointsUpdate,
+            },
+          } as any
+        }
         hdrEnabled={false}
         pbrEnabled={false}
         bloomEnabled={false}
@@ -61,6 +60,9 @@ const handlePointsUpdate = (newPoints: Point3D[]) => {
         <Floorplan
           pointList={pointsRef.current}
           visible={!isMeasuring}
+          onClose={() => {
+            setIsMeasuring(true);
+          }}
         />
       )}
     </View>

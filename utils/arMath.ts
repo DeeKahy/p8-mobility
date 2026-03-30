@@ -1,4 +1,4 @@
-import {Point3D} from '../app/models/3Dpoints'
+import { Point3D } from '../app/models/3Dpoints';
 // Validates that a value is a proper 3D coordinate
 export function isValidPoint(position: unknown): position is Point3D {
   return (
@@ -19,9 +19,9 @@ export function calculateDistanceMeters(points: [Point3D, Point3D]) {
   return Math.sqrt(dx ** 2 + dy ** 2 + dz ** 2);
 }
 
-export function calculateTurf (points: Point3D[]) {
+export function calculateTurf(points: Point3D[]) {
   if (!points || points.length < 3) return 0;
-  let listOfPoints = [];
+  const listOfPoints = [];
   for (const point of points) {
     listOfPoints.push([point[0], point[1]]);
   }

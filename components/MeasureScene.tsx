@@ -4,12 +4,21 @@ import {
   ViroMaterials,
   ViroText,
 } from '@viro-community/react-viro';
-import { area } from "@turf/area";
 import React, { useMemo, useRef, useState } from 'react';
-import { ACCEPTED_HIT_TYPES } from '../app/models/ArCoreAcceptedTypes'
-import { Dimensions, NativeTouchEvent, PixelRatio, StyleSheet } from 'react-native';
-import { Point3D } from '../app/models/3Dpoints'
-import { isValidPoint, calculateDistanceMeters, formatDistanceCm } from '../utils/arMath'
+import {
+  Dimensions,
+  NativeTouchEvent,
+  PixelRatio,
+  StyleSheet,
+} from 'react-native';
+
+import { Point3D } from '../app/models/3Dpoints';
+import { ACCEPTED_HIT_TYPES } from '../app/models/ArCoreAcceptedTypes';
+import {
+  isValidPoint,
+  calculateDistanceMeters,
+  formatDistanceCm,
+} from '../utils/arMath';
 
 // Used to "hide" AR objects by moving them far below the scene instead of removing them.
 // This keeps components mounted, avoids null position issues, and prevents flickering.
@@ -86,7 +95,6 @@ export default function MeasureScene(props: any) {
   const { isMeasuring = true, onPointAdded } = props;
   const arSceneRef = useRef<ViroARScene | null>(null);
 
-
   const distanceLabel = useMemo(() => {
     if (points.length < 2) return '';
 
@@ -97,7 +105,7 @@ export default function MeasureScene(props: any) {
     return formatDistanceCm(distanceMeters);
   }, [points]);
 
-  const handleSceneClick = async (tapPosition: Point3D, e: NativeTouchEvent) => {
+  const handleSceneClick = async (tapPosition: Point3D) => {
     if (!isMeasuring) return;
     if (!arSceneRef.current) return;
 
@@ -108,9 +116,13 @@ export default function MeasureScene(props: any) {
 
       if (!hitPosition) {
         const centerX = (Dimensions.get('window').width * PixelRatio.get()) / 2;
-        const centerY = (Dimensions.get('window').height * PixelRatio.get()) / 2;
+        const centerY =
+          (Dimensions.get('window').height * PixelRatio.get()) / 2;
 
-        const result = await arSceneRef.current.performARHitTestWithPoint(centerX, centerY);
+        const result = await arSceneRef.current.performARHitTestWithPoint(
+          centerX,
+          centerY
+        );
         console.log('AR hit test results:', result); // <-- log everything
         hitPosition = extractHitPosition(result);
         if (!hitPosition) {
@@ -122,9 +134,9 @@ export default function MeasureScene(props: any) {
 
       setPoints((prev) => {
         const updatedPoints = [...prev, hitPosition];
-      setTimeout(() => {
-        onPointAdded?.(updatedPoints);
-      }, 0);
+        setTimeout(() => {
+          onPointAdded?.(updatedPoints);
+        }, 0);
         return updatedPoints;
       });
     } catch (error) {
@@ -134,19 +146,24 @@ export default function MeasureScene(props: any) {
 
   return (
     <ViroARScene ref={arSceneRef} onClick={handleSceneClick}>
-      {points.map((p, index) =>
+      {points.map((p, index) => (
         <ViroBox
           key={index}
           position={p}
           materials={['pointMarker']}
           scale={[0.025, 0.025, 0.025]}
         />
-      )}
+      ))}
 
       <ViroText
         text={distanceLabel}
         position={
-          points.length > 0 ? [points[points.length - 1][0], points[points.length - 1][1], points[points.length - 1][2]]
+          points.length > 0
+            ? [
+                points[points.length - 1][0],
+                points[points.length - 1][1],
+                points[points.length - 1][2],
+              ]
             : HIDDEN_POINT
         }
         scale={[0.2, 0.2, 0.2]}
