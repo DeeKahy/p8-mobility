@@ -4,7 +4,7 @@ import React, { useRef, useState } from 'react';
 import { TouchableOpacity, View, Text } from 'react-native';
 
 import MeasureScene from '../../components/MeasureScene';
-import Floorplan from '../../components/floorplancreation';
+import Floorplan from '../../components/FloorplanCreation';
 import { Point3D } from '../models/3Dpoints';
 
 export default function ARView() {
