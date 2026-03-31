@@ -7,7 +7,6 @@ import {
 import React, { useMemo, useRef, useState } from 'react';
 import {
   Dimensions,
-  NativeTouchEvent,
   PixelRatio,
   StyleSheet,
 } from 'react-native';
@@ -49,6 +48,15 @@ const styles = StyleSheet.create({
 
 type HitTransform = {
   position: Point3D;
+};
+
+type ARHitTestResult = {
+  type: string;
+  transform?: {
+    position?: Point3D;
+    rotation?: number[];
+    scale?: number[];
+  };
 };
 
 type HitResult = {
@@ -119,7 +127,7 @@ export default function MeasureScene(props: any) {
         const centerY =
           (Dimensions.get('window').height * PixelRatio.get()) / 2;
 
-        const result = await arSceneRef.current.performARHitTestWithPoint(
+        const result: ARHitTestResult = await arSceneRef.current.performARHitTestWithPoint(
           centerX,
           centerY
         );
@@ -160,10 +168,10 @@ export default function MeasureScene(props: any) {
         position={
           points.length > 0
             ? [
-                points[points.length - 1][0],
-                points[points.length - 1][1],
-                points[points.length - 1][2],
-              ]
+              points[points.length - 1][0],
+              points[points.length - 1][1],
+              points[points.length - 1][2],
+            ]
             : HIDDEN_POINT
         }
         scale={[0.2, 0.2, 0.2]}
