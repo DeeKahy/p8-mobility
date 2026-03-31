@@ -1,6 +1,6 @@
 import { Dimensions, StyleSheet } from "react-native";
 
-const { width } = Dimensions.get("window");
+const { height, width } = Dimensions.get("window");
 
 export const styles = StyleSheet.create({
   container: {
@@ -62,9 +62,8 @@ export const styles = StyleSheet.create({
     backgroundColor: "#e0e0e0",
   },
   floorPlanImage: {
-    width: "100%",
-    height: "100%",
-    position: "absolute",
+    width: height,
+    height: width,
   },
   marker: {
     position: "absolute",

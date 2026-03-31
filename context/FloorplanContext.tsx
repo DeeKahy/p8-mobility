@@ -6,10 +6,10 @@ import {
   useContext,
   useState,
 } from "react";
+import { TapGestureEvent } from "react-native-zoom-toolkit";
 
 import { useLogger } from "./LoggerContext";
 import { Marker, useMarkers } from "../hooks/useMarkers";
-import { TapGestureEvent } from "react-native-zoom-toolkit";
 
 interface FloorplanContextReturn {
   floorplan: string | null;
