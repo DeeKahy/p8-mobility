@@ -1,5 +1,5 @@
-import { FC } from "react";
-import { View, Text, TouchableOpacity } from "react-native";
+import { FC } from 'react';
+import { View, Text, TouchableOpacity } from 'react-native';
 
 type RotationControlsProps = {
   rotation: number;
@@ -15,9 +15,9 @@ export const RotationControls: FC<RotationControlsProps> = ({
   return (
     <View
       style={{
-        flexDirection: "row",
-        justifyContent: "center",
-        alignItems: "center",
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center',
         gap: 24,
         paddingVertical: 12,
       }}
@@ -32,9 +32,9 @@ export const RotationControls: FC<RotationControlsProps> = ({
       <Text
         style={{
           fontSize: 14,
-          color: "#666",
+          color: '#666',
           width: 60,
-          textAlign: "center",
+          textAlign: 'center',
         }}
       >
         {`${((rotation % 360) + 360) % 360}°`}

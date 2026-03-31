@@ -33,14 +33,18 @@ export function formatDistanceCm(distanceMeters: number) {
   return `${(distanceMeters * 100).toFixed(2)} cm`;
 }
 
-export function calculateMidPoint(pointA: Point3D, pointB: Point3D, offset: number) {
-    const midX = (pointA[0] + pointB[0]) / 2;
-    const midZ = (pointA[2] + pointB[2]) / 2;
-    const dx = pointB[0] - pointA[0];
-    const dz = pointB[2] - pointA[2];
-    const length = Math.sqrt(dx * dx + dz * dz);
-    return {
-      x: midX - (dz / length) * offset,
-      z: midZ + (dx / length) * offset,
-    };
-  }
+export function calculateMidPoint(
+  pointA: Point3D,
+  pointB: Point3D,
+  offset: number
+) {
+  const midX = (pointA[0] + pointB[0]) / 2;
+  const midZ = (pointA[2] + pointB[2]) / 2;
+  const dx = pointB[0] - pointA[0];
+  const dz = pointB[2] - pointA[2];
+  const length = Math.sqrt(dx * dx + dz * dz);
+  return {
+    x: midX - (dz / length) * offset,
+    z: midZ + (dx / length) * offset,
+  };
+}

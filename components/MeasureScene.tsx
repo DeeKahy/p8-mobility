@@ -4,12 +4,8 @@ import {
   ViroMaterials,
   ViroText,
 } from '@viro-community/react-viro';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import {
-  Dimensions,
-  PixelRatio,
-  StyleSheet,
-} from 'react-native';
+import React, { useMemo, useRef, useState } from 'react';
+import { Dimensions, PixelRatio, StyleSheet } from 'react-native';
 
 import { Point3D } from '../app/models/3Dpoints';
 import { ACCEPTED_HIT_TYPES } from '../app/models/ArCoreAcceptedTypes';
@@ -89,15 +85,6 @@ function extractHitPosition(results: unknown): Point3D | null {
   return null;
 }
 
-// function calulateTurf = (...arg: Point3D) => {
-//   const result = area(arg);
-// }
-
-function logDistanceCm(firstPoint: Point3D, secondPoint: Point3D) {
-  const distanceMeters = calculateDistanceMeters([firstPoint, secondPoint]);
-  console.log('Distance:', formatDistanceCm(distanceMeters));
-}
-
 export default function MeasureScene(props: any) {
   const [points, setPoints] = useState<Point3D[]>([]);
   const { isMeasuring = true, onPointAdded } = props;
@@ -127,10 +114,8 @@ export default function MeasureScene(props: any) {
         const centerY =
           (Dimensions.get('window').height * PixelRatio.get()) / 2;
 
-        const result: ARHitTestResult = await arSceneRef.current.performARHitTestWithPoint(
-          centerX,
-          centerY
-        );
+        const result: ARHitTestResult =
+          await arSceneRef.current.performARHitTestWithPoint(centerX, centerY);
         console.log('AR hit test results:', result); // <-- log everything
         hitPosition = extractHitPosition(result);
         if (!hitPosition) {
@@ -168,10 +153,10 @@ export default function MeasureScene(props: any) {
         position={
           points.length > 0
             ? [
-              points[points.length - 1][0],
-              points[points.length - 1][1],
-              points[points.length - 1][2],
-            ]
+                points[points.length - 1][0],
+                points[points.length - 1][1],
+                points[points.length - 1][2],
+              ]
             : HIDDEN_POINT
         }
         scale={[0.2, 0.2, 0.2]}
