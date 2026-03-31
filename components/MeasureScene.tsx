@@ -4,7 +4,7 @@ import {
   ViroMaterials,
   ViroText,
 } from '@viro-community/react-viro';
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Dimensions,
   PixelRatio,
