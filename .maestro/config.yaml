@@ -2,7 +2,7 @@
 # https://maestro.mobile.dev/
 
 # Default web app configuration
-appId: 'http://localhost:8081'
+appId: "http://localhost:8081"
 
 # Global test settings
 testTimeout: 60000

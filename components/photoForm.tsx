@@ -1,13 +1,13 @@
-import { yupResolver } from '@hookform/resolvers/yup';
-import { useState } from 'react';
-import { useForm, Controller } from 'react-hook-form';
+import { yupResolver } from "@hookform/resolvers/yup";
+import { useState } from "react";
+import { useForm, Controller } from "react-hook-form";
 //Expected photo data format to make it easier to pass over including only the most necessary. Also works in unison with yup validator.
-import { View, Image, TextInput, Button, Text, Modal } from 'react-native';
-import DropDownPicker from 'react-native-dropdown-picker';
-import * as yup from 'yup';
+import { View, Image, TextInput, Button, Text, Modal } from "react-native";
+import DropDownPicker from "react-native-dropdown-picker";
+import * as yup from "yup";
 
-import { styles } from '../css/photoForm';
-import { PhotoForm } from '../models/PhotoFormModel';
+import { styles } from "../css/photoForm";
+import { PhotoForm } from "../models/PhotoFormModel";
 //Photo form to take data from index.tsx and opening and closing modal
 type PhotoFormProps = {
   visible: boolean;
@@ -20,10 +20,10 @@ type PhotoFormProps = {
 //Form validator
 const schema = yup
   .object({
-    photoUri: yup.string().required('Photo is required'),
-    areaGroup: yup.string().required('Area group is required'),
-    pictureName: yup.string().required('Picture name is required'),
-    dateTaken: yup.string().required('Date is required'),
+    photoUri: yup.string().required("Photo is required"),
+    areaGroup: yup.string().required("Area group is required"),
+    pictureName: yup.string().required("Picture name is required"),
+    dateTaken: yup.string().required("Date is required"),
     description: yup.string().required(),
   })
   .required();
@@ -50,9 +50,9 @@ export default function PhotoFormModal({
     defaultValues: {
       photoUri,
       dateTaken: date,
-      pictureName: '',
-      areaGroup: '',
-      description: '',
+      pictureName: "",
+      areaGroup: "",
+      description: "",
     },
     resolver: yupResolver(schema),
   });
@@ -97,16 +97,16 @@ export default function PhotoFormModal({
                   open={open}
                   value={value}
                   items={[
-                    { label: 'Kitchen', value: 'Kitchen' },
-                    { label: 'Living Room', value: 'Living Room' },
-                    { label: 'Bathroom', value: 'Bathroom' },
-                    { label: 'Bedroom', value: 'Bedroom' },
-                    { label: 'Other', value: 'Other' },
+                    { label: "Kitchen", value: "Kitchen" },
+                    { label: "Living Room", value: "Living Room" },
+                    { label: "Bathroom", value: "Bathroom" },
+                    { label: "Bedroom", value: "Bedroom" },
+                    { label: "Other", value: "Other" },
                   ]}
                   setOpen={setOpen}
                   setValue={(currentValue) => {
                     const newValue = currentValue(value);
-                    setShowOtherInputForm(newValue === 'Other');
+                    setShowOtherInputForm(newValue === "Other");
                     onChange(newValue);
                   }}
                   placeholder="Select area group"
@@ -163,11 +163,11 @@ export default function PhotoFormModal({
             onPress={() => {
               handleSubmit(onSubmit)();
               reset({
-                photoUri: '',
-                dateTaken: '',
-                pictureName: '',
-                areaGroup: '',
-                description: '',
+                photoUri: "",
+                dateTaken: "",
+                pictureName: "",
+                areaGroup: "",
+                description: "",
               });
             }}
           />
@@ -176,11 +176,11 @@ export default function PhotoFormModal({
             onPress={() => {
               onClose();
               reset({
-                photoUri: '',
-                dateTaken: '',
-                pictureName: '',
-                areaGroup: '',
-                description: '',
+                photoUri: "",
+                dateTaken: "",
+                pictureName: "",
+                areaGroup: "",
+                description: "",
               });
             }}
           />

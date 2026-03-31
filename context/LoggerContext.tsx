@@ -1,6 +1,6 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState } from "react";
 
-export type LogLevel = 'info' | 'error' | 'debug';
+export type LogLevel = "info" | "error" | "debug";
 
 export interface LogEntry {
   id: string;
@@ -41,18 +41,18 @@ export function LoggerProvider({ children }: { children: React.ReactNode }) {
   };
   // Default loggers that will always be there. Very usefull
   const log = (message: string) => {
-    addLog(message, 'info', 'info');
+    addLog(message, "info", "info");
   };
 
   const error = (message: string) => {
-    addLog(message, 'error', 'error');
+    addLog(message, "error", "error");
   };
 
   const debug = (message: string) => {
-    addLog(message, 'debug', 'debug');
+    addLog(message, "debug", "debug");
   };
 
-  const custom = (message: string, group: string, level: LogLevel = 'info') => {
+  const custom = (message: string, group: string, level: LogLevel = "info") => {
     addLog(message, level, group);
   };
 
@@ -73,7 +73,7 @@ export function useLogger() {
   const context = useContext(LoggerContext);
 
   if (!context) {
-    throw new Error('useLogger must be used within a LoggerProvider');
+    throw new Error("useLogger must be used within a LoggerProvider");
   }
 
   return context;

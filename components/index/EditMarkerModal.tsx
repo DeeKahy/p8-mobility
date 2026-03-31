@@ -22,16 +22,10 @@ export const EditMarkerModal = (props: EditMarkerModalProps) => {
         },
       ]}
     >
-      <TouchableOpacity
-        style={styles.popupButton}
-        onPress={onAddPicture}
-      >
+      <TouchableOpacity style={styles.popupButton} onPress={onAddPicture}>
         <Text style={styles.popupText}>Add picture for this space?</Text>
       </TouchableOpacity>
-      <TouchableOpacity
-        style={styles.popupCancel}
-        onPress={onCancel}
-      >
+      <TouchableOpacity style={styles.popupCancel} onPress={onCancel}>
         <Text style={styles.popupCancelText}>Cancel</Text>
       </TouchableOpacity>
       <View style={styles.popupArrow} />

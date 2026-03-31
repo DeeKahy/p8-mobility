@@ -1,7 +1,14 @@
-import { createContext, Dispatch, SetStateAction, useContext, useState } from "react";
 import * as ImagePicker from "expo-image-picker";
+import {
+  createContext,
+  Dispatch,
+  SetStateAction,
+  useContext,
+  useState,
+} from "react";
+
+import { useLogger } from "./LoggerContext";
 import { Marker, useMarkers } from "../hooks/useMarkers";
-import { useLogger } from "../context/LoggerContext";
 import { TapGestureEvent } from "react-native-zoom-toolkit";
 
 interface FloorplanContextReturn {
@@ -14,14 +21,17 @@ interface FloorplanContextReturn {
   editMarker: (id: string, editorFnc: (old: Marker) => Marker) => void;
   addPhotos: (id: string, photoURIs: string[]) => void;
   removePhoto: (id: string, photoURI: string) => void;
-  tryGetMarker: (x: number, y: number) => (Marker | null);
+  tryGetMarker: (x: number, y: number) => Marker | null;
   deleteMarker: (id: string) => void;
-  selectedMarker: Marker | null;
-  setSelectedMarker: (marker: Marker | null) => void;
+  selectedMarkerId: string | null;
+  setSelectedMarkerId: Dispatch<SetStateAction<string | null>>;
   tempMarker: TempMarker | null;
   setTempMarker: Dispatch<SetStateAction<TempMarker>>;
   showTempMarker: boolean;
   setShowTempMarker: Dispatch<SetStateAction<boolean>>;
+  showMarkerOptions: boolean;
+  setShowMarkerOptions: Dispatch<SetStateAction<boolean>>;
+  selectedMarker: Marker | undefined;
 }
 
 interface TempMarker {
@@ -29,9 +39,15 @@ interface TempMarker {
   y: number;
 }
 
-const FloorplanContext = createContext<FloorplanContextReturn | undefined>(undefined);
+const FloorplanContext = createContext<FloorplanContextReturn | undefined>(
+  undefined
+);
 
-export const FloorplanProvider = ({ children }: { children: React.ReactNode }) => {
+export const FloorplanProvider = ({
+  children,
+}: {
+  children: React.ReactNode;
+}) => {
   const [floorplan, setFloorplan] = useState<string | null>(null);
   const marker = useMarkers();
   const { debug } = useLogger();
@@ -41,7 +57,7 @@ export const FloorplanProvider = ({ children }: { children: React.ReactNode }) =
   const [tempMarker, setTempMarker] = useState<TempMarker>({ x: 0, y: 0 });
   const [showTempMarker, setShowTempMarker] = useState(false);
 
-  const [selectedMarker, setSelectedMarker] = useState<Marker | null>(null);
+  const [selectedMarkerId, setSelectedMarkerId] = useState<string | null>(null);
 
   const handleCanvasPress = (event: TapGestureEvent) => {
     if (!floorplan) {
@@ -53,7 +69,7 @@ export const FloorplanProvider = ({ children }: { children: React.ReactNode }) =
     const existingMarker = marker.tryGetMarker(x, y);
 
     if (existingMarker) {
-      setSelectedMarker(existingMarker);
+      setSelectedMarkerId(existingMarker.id);
       setShowMarkerOptions(true);
       setShowTempMarker(false);
       debug(`Trying to select existing Marker near (${x},${y})`);
@@ -78,19 +94,29 @@ export const FloorplanProvider = ({ children }: { children: React.ReactNode }) =
     }
   };
 
-  return <FloorplanContext.Provider
-    value={{
-      ...marker,
-      floorplan,
-      pickFloorplan,
-      handleCanvasPress,
-      selectedMarker,
-      setSelectedMarker,
-      tempMarker,
-      setTempMarker,
-      showTempMarker,
-      setShowTempMarker,
-    }}>{children}</FloorplanContext.Provider>;
+  return (
+    <FloorplanContext.Provider
+      value={{
+        ...marker,
+        floorplan,
+        pickFloorplan,
+        handleCanvasPress,
+        selectedMarker: selectedMarkerId
+          ? marker.markers.find((m) => m.id === selectedMarkerId)
+          : undefined,
+        selectedMarkerId,
+        setSelectedMarkerId,
+        tempMarker,
+        setTempMarker,
+        showTempMarker,
+        setShowTempMarker,
+        showMarkerOptions,
+        setShowMarkerOptions,
+      }}
+    >
+      {children}
+    </FloorplanContext.Provider>
+  );
 };
 
 export const useFloorplan = () => {

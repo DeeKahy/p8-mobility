@@ -1,9 +1,9 @@
-import { useIsFocused } from '@react-navigation/native';
-import { ViroARSceneNavigator } from '@viro-community/react-viro';
-import React from 'react';
-import { View } from 'react-native';
+import { useIsFocused } from "@react-navigation/native";
+import { ViroARSceneNavigator } from "@viro-community/react-viro";
+import React from "react";
+import { View } from "react-native";
 
-import MeasureScene from '../../components/MeasureScene';
+import MeasureScene from "../../components/MeasureScene";
 
 export default function ARView() {
   const isFocused = useIsFocused();
