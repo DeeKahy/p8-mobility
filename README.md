@@ -16,6 +16,12 @@ npm install
 npm start
 ```
 
+Clear Metro Bundler cache as recommended when installing certain addons (e.g. react-native-reanimated):
+
+```cmd
+npm start -- --reset-cache
+```
+
 Run on specific platforms:
 
 ```cmd
