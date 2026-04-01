@@ -1,4 +1,4 @@
-import { shareAsync } from 'expo-sharing';
+import * as MediaLibrary from 'expo-media-library';
 import { useRef } from 'react';
 import { Modal, TouchableOpacity, View, Text } from 'react-native';
 import Svg, { Polygon, Text as SvgText, G } from 'react-native-svg';
@@ -50,8 +50,13 @@ export default function SvgComponent({
   //So we can save the file in our own filesystem.
   //captureRef simply take a screenshot of the view. Could not make it work with SVG
   async function savePng() {
-    const uri = await captureRef(viewShotRef, { format: 'png', quality: 1 });
-    await shareAsync(uri, { mimeType: 'image/png' });
+    try {
+      const uri = await captureRef(viewShotRef, { format: 'png', quality: 1 });
+      await MediaLibrary.saveToLibraryAsync(uri);
+    } catch {
+      throw new Error("Couldn't save picture");
+    }
+
   }
 
   const CreateSvg = ({ inputString }: CreateSvgProps) => (
@@ -86,7 +91,7 @@ export default function SvgComponent({
               key={index} //Unique length to render, so if we have 4 points we get 4 different lengths
               //Position of text
               x={mid.x}
-              y={mid.z / 1.3}
+              y={mid.z/ 1.3}
               fontSize={fontSize}
               fill="black"
               //Rotates the text to aline with the edge line instead of passing through the lines
