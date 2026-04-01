@@ -17,8 +17,8 @@ import {
 
 import PhotoFormModal from '../../components/photoForm';
 import PhotoList from '../../components/photos_list';
+import { useLogger } from '../../context/LoggerContext';
 import { PhotoForm } from '../models/PhotoFormModel';
-
 interface Marker {
   id: string;
   x: number;
@@ -46,27 +46,39 @@ export default function HomeScreen() {
   const cameraRef = useRef<CameraView>(null);
   const newMarkerPositionRef = useRef<{ x: number; y: number } | null>(null);
   const selectedMarkerRef = useRef<Marker | null>(null);
+  const { custom, error, log } = useLogger();
 
   //_________Updates when new meta data is introduced__________________
   useEffect(() => {
     if (!takenWithCamera) {
       if (!photoData) return;
+      // Follows the create data, then use it logic.
 
       const dateTime = photoData?.assets?.[0]?.exif?.DateTimeOriginal;
-      console.log(dateTime);
-      console.log(JSON.stringify(photoData?.assets?.[0]?.exif, null, 2));
+      log('Photo taken from camera roll, Datetime:' + dateTime);
+
+      const photoMetadata = JSON.stringify(
+        photoData?.assets?.[0]?.exif,
+        null,
+        2
+      );
+      log(
+        'Photo metadata (EXIF metadata) from the selected image: ' +
+          photoMetadata
+      );
       const photoUri = photoData?.assets?.[0]?.uri;
-      console.log(photoUri);
+      log('File path to the photo:' + photoUri);
     }
 
     if (takenWithCamera) {
       const dateTime = photoData?.exif?.DateTimeOriginal;
-      console.log(dateTime);
-      console.log(photoData);
+      log('Photo taken with camera, Datetime:' + dateTime);
+      log('Photo data:' + photoData);
+
       const photoUri = photoData?.uri;
-      console.log(photoUri);
+      log('File path to the captured photo:' + photoUri);
     }
-  }, [photoData]);
+  }, [photoData]); // Maybe i need to add the log here....
 
   //______________________________________________________
 
@@ -155,7 +167,8 @@ export default function HomeScreen() {
     const two_weeks_ago = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
     const date = result?.assets?.[0]?.exif?.DateTimeOriginal;
     const formatDate = date.replace(/(\d{4}):(\d{2}):(\d{2})/, '$1-$2-$3');
-    console.log(formatDate);
+    log('Formatted Data:' + formatDate);
+
     const dateTaken = new Date(formatDate);
 
     if (dateTaken < two_weeks_ago) {
@@ -463,12 +476,13 @@ export default function HomeScreen() {
           }
           onClose={() => setShowPhotoModule(false)}
           onSubmit={(data) => {
-            console.log('Form data: ' + JSON.stringify(data));
+            log('Form data:' + JSON.stringify(data));
+
             addPhotoToMarker(data.photoUri);
             setShowPhotoModule(false);
             if (data && !listOfPhotos.includes(data)) {
               setListOfPhotos((current) => [...current, data]);
-              console.log('Processing photo...' + JSON.stringify(data));
+              log('Processing photo...' + JSON.stringify(data));
             }
           }}
         />

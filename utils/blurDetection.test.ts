@@ -57,7 +57,6 @@ describe('blurDetection', () => {
 
   it('clasifies not_blured.png as not blurry with default threshold', async () => {
     const sharp = await loadPng('../assets/test-images/not_blured.png');
-    console.log('Trying to ge score for not blured:');
     expect(isDecodedImageBlurry(sharp.data, sharp.width, sharp.height)).toBe(
       false
     );
