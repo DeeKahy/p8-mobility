@@ -56,7 +56,6 @@ export default function SvgComponent({
     } catch {
       throw new Error("Couldn't save picture");
     }
-
   }
 
   const CreateSvg = ({ inputString }: CreateSvgProps) => (
@@ -91,7 +90,7 @@ export default function SvgComponent({
               key={index} //Unique length to render, so if we have 4 points we get 4 different lengths
               //Position of text
               x={mid.x}
-              y={mid.z/ 1.3}
+              y={mid.z / 1.3}
               fontSize={fontSize}
               fill="black"
               //Rotates the text to aline with the edge line instead of passing through the lines

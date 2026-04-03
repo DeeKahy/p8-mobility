@@ -3,8 +3,8 @@ import { ViroARSceneNavigator } from '@viro-community/react-viro';
 import React, { useRef, useState } from 'react';
 import { TouchableOpacity, View, Text } from 'react-native';
 
-import MeasureScene from '../../components/MeasureScene';
 import Floorplan from '../../components/FloorplanCreation';
+import MeasureScene from '../../components/MeasureScene';
 import { Point3D } from '../models/3Dpoints';
 
 export default function ARView() {
