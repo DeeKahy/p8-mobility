@@ -1,4 +1,4 @@
-import { Children, useRef, useState } from "react";
+import { Children, useEffect, useRef, useState } from "react";
 import { LayoutChangeEvent, StyleSheet, View } from "react-native";
 import {
   ResumableZoom,
@@ -15,6 +15,12 @@ export default function CenteredResumableZoom(props: ResumableZoomProps) {
   const zoomRef = useRef<ResumableZoomRefType>(null); // Typescript has to know what type this will be to avoid property-does-not-exist-on-type-never.
   const [padding, setPadding] = useState({ width: 0, height: 0 });
   const wrappedSize = { width: 0, height: 0 };
+
+  useEffect(() => {
+    setTimeout(() => {
+      updatePadding();
+    }, 200); // If timeout is not used, the wrapped component will not show up properly inside the wrapper View.
+  }, []); // One-time effect triggered to make the first padding update. Note that useLayoutEffect will be triggered too early to know containerSize.
 
   const updatePadding = () => {
     if (!zoomRef.current) return;
@@ -35,6 +41,7 @@ export default function CenteredResumableZoom(props: ResumableZoomProps) {
 
   return (
     <ResumableZoom
+      style={style ?? styles.flex} // Default to flex:1 since that makes things work correctly.
       ref={zoomRef}
       onTap={(event: TapGestureEvent) => {
         if (onTap) {
@@ -47,10 +54,9 @@ export default function CenteredResumableZoom(props: ResumableZoomProps) {
         }
       }}
       onGestureEnd={() => {
-        if (onGestureEnd) onGestureEnd(); // REVIEW: Callback first or padding update first?
+        if (onGestureEnd) onGestureEnd();
         updatePadding();
       }}
-      style={style ?? styles.flex} // Default to flex:1 since that makes things work correctly.
       {...otherProps}
     >
       <View // padding View. Adds the extra space needed to keep the screen centered on the child.
