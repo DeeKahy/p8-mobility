@@ -19,6 +19,7 @@ import PhotoFormModal from '../../components/photoForm';
 import PhotoList from '../../components/photos_list';
 import { useLogger } from '../../context/LoggerContext';
 import { PhotoForm } from '../models/PhotoFormModel';
+import { isImageBlurry } from '../../utils/blurDetection';
 interface Marker {
   id: string;
   x: number;
@@ -64,7 +65,7 @@ export default function HomeScreen() {
       );
       log(
         'Photo metadata (EXIF metadata) from the selected image: ' +
-          photoMetadata
+        photoMetadata
       );
       const photoUri = photoData?.assets?.[0]?.uri;
       log('File path to the photo:' + photoUri);
@@ -174,13 +175,23 @@ export default function HomeScreen() {
     if (dateTaken < two_weeks_ago) {
       Alert.alert(
         'Picture is older than 14 days: ' +
-          result?.assets?.[0]?.exif?.DateTimeOriginal
+        result?.assets?.[0]?.exif?.DateTimeOriginal
       );
       return;
     }
     //__________________________________________________________________________
 
     if (!result.canceled) {
+
+      const uri = result.assets[0].uri;
+
+      const isBlurry = await isImageBlurry(uri, log);
+
+      if (isBlurry) {
+        Alert.alert('Image is too blurry. Please choose another.');
+        return;
+      }
+
       setTakenWithCamera(false);
       setPhotoData(result);
 
@@ -243,6 +254,12 @@ export default function HomeScreen() {
       const photo = await cameraRef.current.takePictureAsync({ exif: true });
       //________________________________________________________________
       if (photo) {
+        const isBlurry = await isImageBlurry(photo.uri, log);
+
+        if (isBlurry) {
+          Alert.alert('Image is too blurry. Please take another.');
+          return;
+        }
         setPhotoData(photo);
         setTakenWithCamera(true);
         setShowCamera(false);
