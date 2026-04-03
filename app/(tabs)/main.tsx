@@ -30,12 +30,12 @@ export default function Main() {
           console.log('Button pressed');
         }}
       />
-      //Example of how to call
+      {/* Example of how to call */}
       <Button
         label="Maksim"
         onPress={() => {
           console.log('Button pressed');
-          showToast('HIIII', 'Success');
+          showToast("Image has been uploaded", 'Success');
         }}
       />
     </View>
