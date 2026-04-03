@@ -1,4 +1,5 @@
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
 
 interface EditMarkerModalProps {
   tempMarker: {
@@ -9,27 +10,33 @@ interface EditMarkerModalProps {
   onAddPicture: () => void;
 }
 
+const consumeTap = Gesture.Tap().onStart(() => {
+  /* Prevent single tap-gestures from propagating. */
+});
+
 export const EditMarkerModal = (props: EditMarkerModalProps) => {
   const { tempMarker, onCancel, onAddPicture } = props;
 
   return (
-    <View
-      style={[
-        styles.popup,
-        {
-          left: tempMarker.x - 82,
-          top: tempMarker.y - 120,
-        },
-      ]}
-    >
-      <TouchableOpacity style={styles.popupButton} onPress={onAddPicture}>
-        <Text style={styles.popupText}>Add picture for this space?</Text>
-      </TouchableOpacity>
-      <TouchableOpacity style={styles.popupCancel} onPress={onCancel}>
-        <Text style={styles.popupCancelText}>Cancel</Text>
-      </TouchableOpacity>
-      <View style={styles.popupArrow} />
-    </View>
+    <GestureDetector gesture={consumeTap}>
+      <View
+        style={[
+          styles.popup,
+          {
+            left: tempMarker.x - 82,
+            top: tempMarker.y - 120,
+          },
+        ]}
+      >
+        <TouchableOpacity style={styles.popupButton} onPress={onAddPicture}>
+          <Text style={styles.popupText}>Add picture for this space?</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.popupCancel} onPress={onCancel}>
+          <Text style={styles.popupCancelText}>Cancel</Text>
+        </TouchableOpacity>
+        <View style={styles.popupArrow} />
+      </View>
+    </GestureDetector>
   );
 };
 

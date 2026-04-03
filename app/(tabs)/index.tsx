@@ -4,9 +4,9 @@ import { StatusBar } from "expo-status-bar";
 import { useRef, useState } from "react";
 import { Image, Text, TouchableOpacity, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { ResumableZoom } from "react-native-zoom-toolkit";
 
 import { CameraUI } from "../../components/CameraUI";
+import CenteredResumableZoom from "../../components/index/CenteredResumableZoom";
 import { EditMarkerModal } from "../../components/index/EditMarkerModal";
 import { MarkerElement } from "../../components/index/MarkerElement";
 import { MarkerOptionsModal } from "../../components/index/MarkerOptionsModal";
@@ -158,8 +158,8 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Floor plan with markers. THIS IS WHERE PINCH-TO-ZOOM FUNCTIONALITY SHOULD GO */}
-        <ResumableZoom extendGestures onTap={handleCanvasPress}>
+        {/* Floor plan with markers. */}
+        <CenteredResumableZoom extendGestures onTap={handleCanvasPress}>
           <View style={styles.canvas}>
             <Image
               source={{ uri: floorplan }}
@@ -185,7 +185,7 @@ export default function HomeScreen() {
               />
             )}
           </View>
-        </ResumableZoom>
+        </CenteredResumableZoom>
 
         {/* New marker options modal */}
         <NewMarkerOptionsModal

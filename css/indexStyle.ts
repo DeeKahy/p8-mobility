@@ -58,7 +58,6 @@ export const styles = StyleSheet.create({
     fontWeight: "600",
   },
   canvas: {
-    flex: 1,
     backgroundColor: "#e0e0e0",
   },
   floorPlanImage: {
