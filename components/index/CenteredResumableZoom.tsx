@@ -28,22 +28,22 @@ export default function CenteredResumableZoom(props: ResumableZoomProps) {
   const isInsidePadding = (x: number, y: number) => {
     if (!zoomRef.current) return false;
     const { width, height } = zoomRef.current.getState().childSize;
-    return (
-      x >= padding.width &&
-      x < padding.width + width &&
-      y >= padding.height &&
-      y < padding.height + height
-    );
+    const wrappedWidth = width - padding.width;
+    const wrappedHeight = height - padding.height;
+    return x >= 0 && x < wrappedWidth && y >= 0 && y < wrappedHeight;
   };
 
   return (
     <ResumableZoom
       ref={zoomRef}
       onTap={(event: TapGestureEvent) => {
-        if (onTap /*&& isInsidePadding(event.x, event.y)*/) {
+        if (onTap) {
+          // TODO: This logic *could* be handled by the tap-callback instead if we expose the appropriate data.
           event.x -= padding.width / 2; // The tap event should be treated as if it occured on the wrapped component.
           event.y -= padding.height / 2; // This moves our tap into its coordinate space.
-          onTap(event);
+          if (isInsidePadding(event.x, event.y)) {
+            onTap(event);
+          }
         }
       }}
       onGestureEnd={() => {
@@ -62,15 +62,15 @@ export default function CenteredResumableZoom(props: ResumableZoomProps) {
           styles.center,
         ]}
       >
-        {/*<View // child View. This will take the exact shape of the child, which we can then measure.
+        <View // child View. This will take the exact shape of the child, which we can then measure.
           onLayout={(event: LayoutChangeEvent) => {
             wrappedSize.width = event.nativeEvent.layout.width;
             wrappedSize.height = event.nativeEvent.layout.height;
           }}
-        >*/}
-        {child}
+        >
+          {child}
+        </View>
       </View>
-      {/*</View>*/}
     </ResumableZoom>
   );
 }
