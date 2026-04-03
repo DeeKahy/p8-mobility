@@ -46,30 +46,38 @@ export const Toast = (props: ToastMessage) => {
     <SafeAreaProvider>
       <Animated.View
         style={[
-          styles.fadingContainer,
+          styles.container,
           {
             opacity: fadeAnim,
             backgroundColor: getTypeColor(props.type),
           },
         ]}
       >
-        <Text style={styles.fadingText}>{props.message}</Text>
+        <Text style={styles.typetext}>{props.type}</Text>
+        <Text style={styles.text}>{props.message}</Text>
       </Animated.View>
     </SafeAreaProvider>
   );
 };
 
 const styles = StyleSheet.create({
-  fadingContainer: {
-    padding: 20,
+  container: {
+    padding: 16,
     position: 'absolute',
-    top: 20,
-    left: 0,
-    width: '100%',
+    top: 50,
+    left: 16,
+    right: 16,
+    borderRadius: 10,
+    elevation: 5,
   },
-  fadingText: {
+  text: {
     fontSize: 20,
     color: 'white',
+    textAlign: 'center',
+  },
+  typetext: {
+    fontSize: 20,
+    color: 'black',
     textAlign: 'center',
   },
 });

@@ -30,7 +30,7 @@ export default function Main() {
           console.log('Button pressed');
         }}
       />
-
+      //Example of how to call
       <Button
         label="Maksim"
         onPress={() => {
