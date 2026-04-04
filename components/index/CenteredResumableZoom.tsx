@@ -97,25 +97,3 @@ const styles = StyleSheet.create({
     backgroundColor: "#00ff",
   },
 });
-
-// NEW IDEA:
-// Let padding be constant. Detect when a gesture ends with the "camera" too far away from the allowed area.
-// Use onGestureEnd and the scale, translateX and translateY values from the state.
-// Absolute values of tX and tY unscaled should never be larger than half the container size. Maybe.
-// Use setTransformState to animate back to an allowed position.
-// This will not be as precise, so rely on the marker placement setup to define valid placement areas.
-// That's fine. Our job is just to keep the floor plan on the screen now.
-// Maybe set decay:false on RZ to make the correction happen faster.
-
-// OR:
-// Discard the padding idea and instead let the wrapped element take up a percentage of the available space.
-// e.g. at 1 scale, the element takes up half of the width and height of the parent.
-// (Using style.width and style.height is probably easier, but one could figure something out with dual-axis flex?)
-// At larger scales, the wrapped element scales up faster than its wrapper, which avoids resizing said wrapper and dealing with most of ResumableZoom's jank.
-// The relationship between inner and outer scale could be something like: Di(s) = Do(s) - (1-r)*Do(1)
-// Read as "Inner dimension at scale s equals the outer dimension at scale s minus the initial outer dimension times 1 minues the initial ratio r of the dimensions."
-// Substitute D for width or height, or use D to scale directly which might be the best choice?.
-// With the initial inner element being 50% of the outer one, r=0. If it was 60%, then r=0.6, and so on.
-// onUpdate seems like the obvious choice to detect when a resizing might be needed. But only resize when scale changes!
-// Be careful with this solution if downscaling markers by the ResumableZoom's scale, since will still grow faster than that!
-// Expose the scale of the inner component as well, perhaps? That way a downscaler can use that number instead and everyone is happy.
