@@ -11,11 +11,6 @@ export default function Main() {
   const { log, error, debug } = useLogger();
   const { showToast } = useToast();
 
-  useEffect(() => {
-    debug('Loading Button component');
-    error('Returned status code 400');
-    log('Returned error at main');
-  }, []);
 
   return (
     <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>

@@ -14,7 +14,7 @@ import {
   Dimensions,
   Alert,
 } from 'react-native';
-
+import { useIsFocused } from '@react-navigation/native';
 import PhotoFormModal from '../../components/photoForm';
 import PhotoList from '../../components/photos_list';
 import { useLogger } from '../../context/LoggerContext';
@@ -48,7 +48,10 @@ export default function HomeScreen() {
   const newMarkerPositionRef = useRef<{ x: number; y: number } | null>(null);
   const selectedMarkerRef = useRef<Marker | null>(null);
   const { custom, error, log } = useLogger();
-
+  const isFocused = useIsFocused();
+  useEffect(() => {
+    custom(`showCamera changed to: ${showCamera}`, 'camera');
+  }, [showCamera]);
   //_________Updates when new meta data is introduced__________________
   useEffect(() => {
     if (!takenWithCamera) {
@@ -164,10 +167,25 @@ export default function HomeScreen() {
       //_______________________________________________
     });
 
+
     // Not allowing too old pictures to be uploaded
     const two_weeks_ago = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
-    const date = result?.assets?.[0]?.exif?.DateTimeOriginal;
-    const formatDate = date.replace(/(\d{4}):(\d{2}):(\d{2})/, '$1-$2-$3');
+
+    const asset = result.assets?.[0];
+    // Changed to exifDate, because its metadata Date.
+    const exifDate = asset?.exif?.DateTimeOriginal;
+    // Guard against undefined date in picture. (Crash happened when i tested on uploading my meme, that had no metadata date)
+    if (!exifDate || typeof exifDate !== 'string') {
+      log('No EXIF DateTimeOriginal found on selected image');
+
+      Alert.alert(
+        'Missing photo date',
+        'This image does not contain metadata, so we cannot verify its age.'
+      );
+
+      return;
+    }
+    const formatDate = exifDate.replace(/(\d{4}):(\d{2}):(\d{2})/, '$1-$2-$3');
     log('Formatted Data:' + formatDate);
 
     const dateTaken = new Date(formatDate);
@@ -313,25 +331,32 @@ export default function HomeScreen() {
     setShowNewMarkerOptions(false);
   };
   if (showCamera) {
+
     return (
       <View style={styles.cameraContainer}>
-        <CameraView style={styles.camera} ref={cameraRef}>
-          <View style={styles.cameraButtons}>
-            <TouchableOpacity
-              style={styles.cancelButton}
-              onPress={() => setShowCamera(false)}
-            >
-              <Text style={styles.buttonText}>Cancel</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.captureButton}
-              onPress={handleTakePhoto}
-            >
-              <View style={styles.captureButtonInner} />
-            </TouchableOpacity>
-            <View style={{ width: 70 }} />
-          </View>
-        </CameraView>
+        {isFocused && <CameraView
+          style={StyleSheet.absoluteFillObject}
+          ref={cameraRef}
+          onCameraReady={() => log('Camera ready')}
+        />}
+
+        <View style={styles.cameraButtonsOverlay} pointerEvents="box-none">
+          <TouchableOpacity
+            style={styles.cancelButton}
+            onPress={() => setShowCamera(false)}
+          >
+            <Text style={styles.buttonText}>Cancel</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.captureButton}
+            onPress={handleTakePhoto}
+          >
+            <View style={styles.captureButtonInner} />
+          </TouchableOpacity>
+
+          <View style={{ width: 70 }} />
+        </View>
       </View>
     );
   }
@@ -813,7 +838,16 @@ const styles = StyleSheet.create({
   },
   cameraContainer: {
     flex: 1,
+    backgroundColor: '#000',
   },
+  cameraButtonsOverlay: {
+  ...StyleSheet.absoluteFillObject,
+  flexDirection: 'row',
+  justifyContent: 'space-between',
+  alignItems: 'flex-end',
+  paddingHorizontal: 30,
+  paddingBottom: 40,
+},
   camera: {
     flex: 1,
     justifyContent: 'flex-end',
