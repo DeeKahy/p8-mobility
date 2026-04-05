@@ -10,6 +10,20 @@ Please have Node installed
 npm install
 ```
 
+### For patching libraries (with our own patches)
+
+Apply all patches we have made:
+
+```cmd
+npx patch-package --error-on-fail
+```
+
+Un-apply all patches (only works if patched files haven't changed since they were patched):
+
+```cmd
+npx patch-package --reverse
+```
+
 ### For starting app
 
 ```cmd

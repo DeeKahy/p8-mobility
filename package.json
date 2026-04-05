@@ -18,7 +18,8 @@
     "test:e2e:main": "maestro test .maestro/main-screen.yaml --platform=web",
     "test:e2e:nav": "maestro test .maestro/navigation-flow.yaml --platform=web",
     "test:e2e:smoke": "maestro test .maestro/smoke-test.yaml --platform=web",
-    "test:e2e:web": "npm run web & sleep 10 && maestro test .maestro/ --platform=web && pkill -f 'expo start'"
+    "test:e2e:web": "npm run web & sleep 10 && maestro test .maestro/ --platform=web && pkill -f 'expo start'",
+    "postinstall": "patch-package"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.1.1",
@@ -40,6 +41,7 @@
     "expo-router": "~6.0.23",
     "expo-status-bar": "~3.0.9",
     "jpeg-js": "^0.4.4",
+    "patch-package": "^8.0.1",
     "pngjs": "^7.0.0",
     "react": "19.1.0",
     "react-dom": "19.1.0",

@@ -3,10 +3,14 @@ import * as ImagePicker from "expo-image-picker";
 import { StatusBar } from "expo-status-bar";
 import { useRef, useState } from "react";
 import { Image, Text, TouchableOpacity, View } from "react-native";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
+import {
+  Gesture,
+  GestureDetector,
+  GestureHandlerRootView,
+} from "react-native-gesture-handler";
+import { ResumableZoom } from "react-native-zoom-toolkit";
 
 import { CameraUI } from "../../components/CameraUI";
-import CenteredResumableZoom from "../../components/index/CenteredResumableZoom";
 import { EditMarkerModal } from "../../components/index/EditMarkerModal";
 import { MarkerElement } from "../../components/index/MarkerElement";
 import { MarkerOptionsModal } from "../../components/index/MarkerOptionsModal";
@@ -159,33 +163,44 @@ export default function HomeScreen() {
         </View>
 
         {/* Floor plan with markers. */}
-        <CenteredResumableZoom extendGestures onTap={handleCanvasPress}>
-          <View style={styles.canvas}>
-            <Image
-              source={{ uri: floorplan }}
-              style={styles.floorPlanImage}
-              resizeMode="contain"
-            />
-
-            {/* Render markers */}
-            {markers.map((marker) => (
-              <MarkerElement marker={marker} key={marker.id} />
-            ))}
-
-            {/* New marker popup */}
-            {showTempMarker && tempMarker && (
-              <EditMarkerModal
-                tempMarker={tempMarker}
-                onCancel={() => {
-                  setShowTempMarker(false);
-                }}
-                onAddPicture={() => {
-                  setShowNewMarkerOptions(true);
-                }}
+        <ResumableZoom
+          extendGestures // This should be used with extendBorders or it might act weird.
+          extendBorders // extendBorders is our own addition. Don't forget to apply the patch!
+        >
+          <GestureDetector
+            gesture={Gesture.Tap() // Copying ResumableZoom's tap gesture parameters to have taps registered on the inside of it.
+              .maxDuration(250)
+              .numberOfTaps(1)
+              .runOnJS(true)
+              .onEnd(handleCanvasPress)}
+          >
+            <View style={styles.canvas}>
+              <Image
+                source={{ uri: floorplan }}
+                style={styles.floorPlanImage}
+                resizeMode="contain"
               />
-            )}
-          </View>
-        </CenteredResumableZoom>
+
+              {/* Render markers */}
+              {markers.map((marker) => (
+                <MarkerElement marker={marker} key={marker.id} />
+              ))}
+
+              {/* New marker popup */}
+              {showTempMarker && tempMarker && (
+                <EditMarkerModal
+                  tempMarker={tempMarker}
+                  onCancel={() => {
+                    setShowTempMarker(false);
+                  }}
+                  onAddPicture={() => {
+                    setShowNewMarkerOptions(true);
+                  }}
+                />
+              )}
+            </View>
+          </GestureDetector>
+        </ResumableZoom>
 
         {/* New marker options modal */}
         <NewMarkerOptionsModal
