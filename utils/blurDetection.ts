@@ -2,7 +2,6 @@ import { Buffer } from 'buffer';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import UPNG from 'upng-js';
 
-
 /**
  * Optional logger function type.
  */

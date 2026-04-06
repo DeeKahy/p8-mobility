@@ -159,7 +159,7 @@ export default function MeasureScene(props: any) {
         custom('No surface detected at this point.', 'Ar');
         return;
       }
-      custom("hitPosition:"+hitPosition, "Ar")
+      custom('hitPosition:' + hitPosition, 'Ar');
       // First tap = first point
       // Second tap = second point
       // Third tap resets measurement

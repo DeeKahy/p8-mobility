@@ -4,16 +4,16 @@ import React, { useRef, useState } from 'react';
 import { TouchableOpacity, View, Text } from 'react-native';
 
 import Floorplan from '../../components/FloorplanCreation';
+import { useEffect } from 'react';
 import MeasureScene from '../../components/MeasureScene';
 import { Point3D } from '../models/3Dpoints';
-import { useEffect } from 'react';
 import { useLogger } from '../../context/LoggerContext';
 export default function ARView() {
   const [isMeasuring, setIsMeasuring] = useState(true);
   const pointsRef = useRef<Point3D[]>([]);
   const isFocused = useIsFocused();
   const { custom } = useLogger();
-    useEffect(() => {
+  useEffect(() => {
     custom(`AR focus: ${isFocused}`, 'camera');
   }, [isFocused]);
   // Prevent AR renderer from running when the tab is not active

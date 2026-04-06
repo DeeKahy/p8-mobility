@@ -1,3 +1,4 @@
+import { useIsFocused } from '@react-navigation/native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
 import { StatusBar } from 'expo-status-bar';
@@ -14,12 +15,12 @@ import {
   Dimensions,
   Alert,
 } from 'react-native';
-import { useIsFocused } from '@react-navigation/native';
+
 import PhotoFormModal from '../../components/photoForm';
 import PhotoList from '../../components/photos_list';
 import { useLogger } from '../../context/LoggerContext';
-import { PhotoForm } from '../models/PhotoFormModel';
 import { isImageBlurry } from '../../utils/blurDetection';
+import { PhotoForm } from '../models/PhotoFormModel';
 interface Marker {
   id: string;
   x: number;
@@ -68,7 +69,7 @@ export default function HomeScreen() {
       );
       log(
         'Photo metadata (EXIF metadata) from the selected image: ' +
-        photoMetadata
+          photoMetadata
       );
       const photoUri = photoData?.assets?.[0]?.uri;
       log('File path to the photo:' + photoUri);
@@ -167,7 +168,6 @@ export default function HomeScreen() {
       //_______________________________________________
     });
 
-
     // Not allowing too old pictures to be uploaded
     const two_weeks_ago = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
 
@@ -193,14 +193,13 @@ export default function HomeScreen() {
     if (dateTaken < two_weeks_ago) {
       Alert.alert(
         'Picture is older than 14 days: ' +
-        result?.assets?.[0]?.exif?.DateTimeOriginal
+          result?.assets?.[0]?.exif?.DateTimeOriginal
       );
       return;
     }
     //__________________________________________________________________________
 
     if (!result.canceled) {
-
       const uri = result.assets[0].uri;
 
       const isBlurry = await isImageBlurry(uri, log);
@@ -271,14 +270,17 @@ export default function HomeScreen() {
       //__________Allowing meta data for taken photos________
       let photo;
       let start = performance.now();
-      custom("Cammera time taking picture:", "Index.tsx")
+      custom('Cammera time taking picture:', 'Index.tsx');
       try {
         photo = await cameraRef.current.takePictureAsync({ exif: true });
       } catch (e) {
-        error("Failed to take picture, Error:" + e)
+        error('Failed to take picture, Error:' + e);
       }
-      let delta = performance.now() - start;
-      custom("Time delta to take picture: " + (delta / 1000).toFixed(3) + " s", "Index.tsx");
+      const delta = performance.now() - start;
+      custom(
+        'Time delta to take picture: ' + (delta / 1000).toFixed(3) + ' s',
+        'Index.tsx'
+      );
       //________________________________________________________________
       if (photo) {
         let isBlurry;
@@ -286,10 +288,13 @@ export default function HomeScreen() {
         try {
           isBlurry = await isImageBlurry(photo.uri, log);
         } catch (e) {
-          error("Failed to check if Image is blurry, Error" + e)
+          error('Failed to check if Image is blurry, Error' + e);
         }
-        let delta = performance.now() - start;
-        custom("Time delta for isBlurry to run:" + (delta / 1000).toFixed(3) + " s", "Index.tsx")
+        const delta = performance.now() - start;
+        custom(
+          'Time delta for isBlurry to run:' + (delta / 1000).toFixed(3) + ' s',
+          'Index.tsx'
+        );
         if (isBlurry) {
           Alert.alert('Image is too blurry. Please take another.');
           return;
@@ -347,14 +352,15 @@ export default function HomeScreen() {
     setShowNewMarkerOptions(false);
   };
   if (showCamera) {
-
     return (
       <View style={styles.cameraContainer}>
-        {isFocused && <CameraView
-          style={StyleSheet.absoluteFillObject}
-          ref={cameraRef}
-          onCameraReady={() => log('Camera ready')}
-        />}
+        {isFocused && (
+          <CameraView
+            style={StyleSheet.absoluteFillObject}
+            ref={cameraRef}
+            onCameraReady={() => log('Camera ready')}
+          />
+        )}
 
         <View style={styles.cameraButtonsOverlay} pointerEvents="box-none">
           <TouchableOpacity
@@ -583,10 +589,7 @@ export default function HomeScreen() {
           setShowPhotoList((prev) => !prev);
         }}
       >
-        <Text>
-          {showPhotoList ? 'Back to Floorplan' : 'Show List'
-          }
-        </Text>
+        <Text>{showPhotoList ? 'Back to Floorplan' : 'Show List'}</Text>
       </TouchableOpacity>
       <Text style={styles.instructions}>
         Tap on the floor plan to place a marker
