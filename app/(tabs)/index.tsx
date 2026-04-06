@@ -16,6 +16,7 @@ import {
   Alert,
 } from 'react-native';
 
+import LoadingOverlay from '../../components/LoadingOverlay';
 import PhotoFormModal from '../../components/photoForm';
 import PhotoList from '../../components/photos_list';
 import { useLogger } from '../../context/LoggerContext';
@@ -28,6 +29,7 @@ interface Marker {
   photos: string[];
 }
 export default function HomeScreen() {
+  const [loading, setLoading] = useState(false);
   const [floorPlan, setFloorPlan] = useState<string | null>(null);
   const [markers, setMarkers] = useState<Marker[]>([]);
   const [selectedMarker, setSelectedMarker] = useState<Marker | null>(null);
@@ -269,6 +271,7 @@ export default function HomeScreen() {
     if (cameraRef.current) {
       //__________Allowing meta data for taken photos________
       let photo;
+
       let start = performance.now();
       custom('Cammera time taking picture:', 'Index.tsx');
       try {
@@ -276,6 +279,7 @@ export default function HomeScreen() {
       } catch (e) {
         error('Failed to take picture, Error:' + e);
       }
+
       const delta = performance.now() - start;
       custom(
         'Time delta to take picture: ' + (delta / 1000).toFixed(3) + ' s',
@@ -283,6 +287,7 @@ export default function HomeScreen() {
       );
       //________________________________________________________________
       if (photo) {
+        setLoading(true);
         let isBlurry;
         start = performance.now();
         try {
@@ -290,6 +295,7 @@ export default function HomeScreen() {
         } catch (e) {
           error('Failed to check if Image is blurry, Error' + e);
         }
+        setLoading(false);
         const delta = performance.now() - start;
         custom(
           'Time delta for isBlurry to run:' + (delta / 1000).toFixed(3) + ' s',
@@ -379,6 +385,7 @@ export default function HomeScreen() {
 
           <View style={{ width: 70 }} />
         </View>
+        {loading && <LoadingOverlay text="Checking photo for blur..." />}
       </View>
     );
   }
@@ -594,6 +601,7 @@ export default function HomeScreen() {
       <Text style={styles.instructions}>
         Tap on the floor plan to place a marker
       </Text>
+      {loading && <LoadingOverlay text="Checking photo for blur..." />}
     </View>
   );
 }
