@@ -4,7 +4,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useLogger } from '../../context/LoggerContext';
 export default function CameraScreen() {
   const [permission, requestPermission] = useCameraPermissions();
-  const { custom, error, log } = useLogger();
+  const { log } = useLogger();
   if (!permission) {
     return <View />;
   }

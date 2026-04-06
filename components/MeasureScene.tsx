@@ -112,7 +112,7 @@ export default function MeasureScene(props: any) {
   const [firstPoint, setFirstPoint] = useState<Point3D | null>(null);
   const [secondPoint, setSecondPoint] = useState<Point3D | null>(null);
   const arSceneRef = useRef<ViroARScene | null>(null);
-  const { custom, error, log } = useLogger();
+  const { custom } = useLogger();
   const distanceLabel = useMemo(() => {
     if (points.length < 2) return '';
 
