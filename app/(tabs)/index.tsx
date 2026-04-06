@@ -580,10 +580,13 @@ export default function HomeScreen() {
       <TouchableOpacity
         style={styles.showListButton}
         onPress={() => {
-          setShowPhotoList(!showPhotoList);
+          setShowPhotoList((prev) => !prev);
         }}
       >
-        <Text>Show List</Text>
+        <Text>
+          {showPhotoList ? 'Back to Floorplan' : 'Show List'
+          }
+        </Text>
       </TouchableOpacity>
       <Text style={styles.instructions}>
         Tap on the floor plan to place a marker
