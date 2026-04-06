@@ -73,6 +73,9 @@ async function decodeImageToRgba(
   uri: string
 ): Promise<{ data: Uint8Array; width: number; height: number }> {
   const context = ImageManipulator.manipulate(uri);
+
+  context.resize({ width: 256 });
+
   const imageRef = await context.renderAsync();
 
   const result = await imageRef.saveAsync({

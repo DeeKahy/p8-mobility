@@ -269,11 +269,27 @@ export default function HomeScreen() {
   const handleTakePhoto = async () => {
     if (cameraRef.current) {
       //__________Allowing meta data for taken photos________
-      const photo = await cameraRef.current.takePictureAsync({ exif: true });
+      let photo;
+      let start = performance.now();
+      custom("Cammera time taking picture:", "Index.tsx")
+      try {
+        photo = await cameraRef.current.takePictureAsync({ exif: true });
+      } catch (e) {
+        error("Failed to take picture, Error:" + e)
+      }
+      let delta = performance.now() - start;
+      custom("Time delta to take picture: " + (delta / 1000).toFixed(3) + " s", "Index.tsx");
       //________________________________________________________________
       if (photo) {
-        const isBlurry = await isImageBlurry(photo.uri, log);
-
+        let isBlurry;
+        start = performance.now();
+        try {
+          isBlurry = await isImageBlurry(photo.uri, log);
+        } catch (e) {
+          error("Failed to check if Image is blurry, Error" + e)
+        }
+        let delta = performance.now() - start;
+        custom("Time delta for isBlurry to run:" + (delta / 1000).toFixed(3) + " s", "Index.tsx")
         if (isBlurry) {
           Alert.alert('Image is too blurry. Please take another.');
           return;
@@ -841,13 +857,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#000',
   },
   cameraButtonsOverlay: {
-  ...StyleSheet.absoluteFillObject,
-  flexDirection: 'row',
-  justifyContent: 'space-between',
-  alignItems: 'flex-end',
-  paddingHorizontal: 30,
-  paddingBottom: 40,
-},
+    ...StyleSheet.absoluteFillObject,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    paddingHorizontal: 30,
+    paddingBottom: 40,
+  },
   camera: {
     flex: 1,
     justifyContent: 'flex-end',
