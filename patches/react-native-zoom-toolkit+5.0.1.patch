@@ -23,7 +23,7 @@ index 3ce458e..96b4a04 100644
      panEnabled: boolean;
      pinchEnabled: boolean;
 diff --git a/node_modules/react-native-zoom-toolkit/src/components/resumable/ResumableZoom.tsx b/node_modules/react-native-zoom-toolkit/src/components/resumable/ResumableZoom.tsx
-index 56007cf..9df6ebf 100644
+index 56007cf..1d9d9ce 100644
 --- a/node_modules/react-native-zoom-toolkit/src/components/resumable/ResumableZoom.tsx
 +++ b/node_modules/react-native-zoom-toolkit/src/components/resumable/ResumableZoom.tsx
 @@ -37,6 +37,7 @@ const ResumableZoom: React.FC<ResumableZoomPropsWithRef> = (props) => {
@@ -62,15 +62,6 @@ index 56007cf..9df6ebf 100644
      return { x: boundX, y: boundY };
    };
  
-@@ -336,7 +337,7 @@ const ResumableZoom: React.FC<ResumableZoomPropsWithRef> = (props) => {
-     <View style={[style ?? styles.flex, styles.center]} onLayout={measureRoot}>
-       <GestureDetector gesture={composedGesture}>
-         <Animated.View testID={'root'} style={[detectorStyle, styles.center]}>
--          <Animated.View testID={'child'} onLayout={measureChild}>
-+          <Animated.View testID={'child'} onLayout={measureChild} /*NOTE DIFF*/>
-             {children}
-           </Animated.View>
-         </Animated.View>
 diff --git a/node_modules/react-native-zoom-toolkit/src/components/resumable/types.ts b/node_modules/react-native-zoom-toolkit/src/components/resumable/types.ts
 index 63ba49a..dffe6ab 100644
 --- a/node_modules/react-native-zoom-toolkit/src/components/resumable/types.ts
