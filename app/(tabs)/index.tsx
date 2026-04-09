@@ -8,7 +8,10 @@ import {
   GestureDetector,
   GestureHandlerRootView,
 } from "react-native-gesture-handler";
-import { ResumableZoom } from "react-native-zoom-toolkit";
+import {
+  ResumableZoom,
+  useTransformationState,
+} from "react-native-zoom-toolkit";
 
 import { CameraUI } from "../../components/CameraUI";
 import { EditMarkerModal } from "../../components/index/EditMarkerModal";
@@ -37,6 +40,9 @@ export default function HomeScreen() {
     setShowMarkerOptions,
     selectedMarker, //Reference, use with caution
   } = useFloorplan();
+
+  const { onUpdate: onResumableUpdate, state: resumableState } =
+    useTransformationState("resumable");
 
   const [showPhotos, setShowPhotos] = useState(false);
   const [showCamera, setShowCamera] = useState(false);
@@ -166,6 +172,7 @@ export default function HomeScreen() {
         <ResumableZoom
           extendGestures // This should be used with extendBorders or it might act weird.
           extendBorders // extendBorders is our own addition. Don't forget to apply the patch!
+          onUpdate={onResumableUpdate}
         >
           <GestureDetector
             gesture={Gesture.Tap() // Copying ResumableZoom's tap gesture parameters to have taps registered on the inside of it.
@@ -183,7 +190,11 @@ export default function HomeScreen() {
 
               {/* Render markers */}
               {markers.map((marker) => (
-                <MarkerElement marker={marker} key={marker.id} />
+                <MarkerElement
+                  marker={marker}
+                  key={marker.id}
+                  scale={resumableState.scale}
+                />
               ))}
 
               {/* New marker popup */}
@@ -196,6 +207,7 @@ export default function HomeScreen() {
                   onAddPicture={() => {
                     setShowNewMarkerOptions(true);
                   }}
+                  scale={resumableState.scale}
                 />
               )}
             </View>

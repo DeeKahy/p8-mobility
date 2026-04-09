@@ -1,5 +1,5 @@
 // Courtesy of https://glazzes.github.io/react-native-zoom-toolkit/guides/downscale.html
-
+// This component is meant to be used alongside zoom-components to undo undesired scaling.
 import React from "react";
 import type { ViewStyle } from "react-native";
 import Animated, {

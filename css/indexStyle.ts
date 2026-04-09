@@ -58,8 +58,6 @@ export const styles = StyleSheet.create({
     fontWeight: "600",
   },
   canvas: {
-    flex: 1,
-    flexGrow: 0, // This or not using flex prevents canvas from breaking a ResumableZoom with extendBorders.
     backgroundColor: "#e0e0e0",
   },
   floorPlanImage: {
