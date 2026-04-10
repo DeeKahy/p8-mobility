@@ -7,7 +7,6 @@ import { useLogger } from '../../context/LoggerContext';
 import { useToast } from '../../context/ToastProvider';
 
 export default function Main() {
-  const { log, error, debug } = useLogger();
   const { showToast } = useToast();
 
   return (
