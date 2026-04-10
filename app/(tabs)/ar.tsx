@@ -1,13 +1,12 @@
 import { useIsFocused } from '@react-navigation/native';
 import { ViroARSceneNavigator } from '@viro-community/react-viro';
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { TouchableOpacity, View, Text } from 'react-native';
 
 import Floorplan from '../../components/FloorplanCreation';
-import { useEffect } from 'react';
 import MeasureScene from '../../components/MeasureScene';
-import { Point3D } from '../models/3Dpoints';
 import { useLogger } from '../../context/LoggerContext';
+import { Point3D } from '../models/3Dpoints';
 export default function ARView() {
   const [isMeasuring, setIsMeasuring] = useState(true);
   const pointsRef = useRef<Point3D[]>([]);

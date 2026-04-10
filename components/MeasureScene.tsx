@@ -9,12 +9,12 @@ import { Dimensions, PixelRatio, StyleSheet } from 'react-native';
 
 import { Point3D } from '../app/models/3Dpoints';
 import { ACCEPTED_HIT_TYPES } from '../app/models/ArCoreAcceptedTypes';
+import { useLogger } from '../context/LoggerContext';
 import {
   isValidPoint,
   calculateDistanceMeters,
   formatDistanceCm,
 } from '../utils/arMath';
-import { useLogger } from '../context/LoggerContext';
 //type Point3D = [number, number, number];
 
 // Used to "hide" AR objects by moving them far below the scene instead of removing them.
@@ -86,7 +86,6 @@ function extractHitPosition(results: unknown): Point3D | null {
 
   return null;
 }
-
 
 //Measuring distance formula (Euclidean distance)
 // function calculateDistanceMeters(points: [Point3D, Point3D]) {

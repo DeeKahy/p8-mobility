@@ -10,7 +10,6 @@ export default function Main() {
   const { log, error, debug } = useLogger();
   const { showToast } = useToast();
 
-
   return (
     <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
       <View style={{ marginBottom: 40 }} />
