@@ -3,6 +3,11 @@ import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import UPNG from 'upng-js';
 
 /**
+ * Optional logger function type.
+ */
+type BlurLogger = (message: string) => void;
+
+/**
  * Checks whether an image is blurry.
  *
  * This function loads the image from a URI, calculates a blur score
@@ -30,9 +35,20 @@ const IMAGE_BLUR_THRESHOLD = 100;
  * @param uri
  * @returns True if is blurry else false
  */
-export async function isImageBlurry(uri: string): Promise<boolean> {
+export async function isImageBlurry(
+  uri: string,
+  logger?: BlurLogger
+): Promise<boolean> {
   const score = await getBlurScore(uri);
-  return score < IMAGE_BLUR_THRESHOLD;
+  const isBlurry = score < IMAGE_BLUR_THRESHOLD;
+
+  if (logger) {
+    logger(
+      `Blur detection result | score: ${score} | threshold: ${IMAGE_BLUR_THRESHOLD} | blurry: ${isBlurry} | URI: ${uri}`
+    );
+  }
+
+  return isBlurry;
 }
 
 export async function getBlurScore(uri: string): Promise<number> {
@@ -56,6 +72,9 @@ async function decodeImageToRgba(
   uri: string
 ): Promise<{ data: Uint8Array; width: number; height: number }> {
   const context = ImageManipulator.manipulate(uri);
+
+  context.resize({ width: 256 });
+
   const imageRef = await context.renderAsync();
 
   const result = await imageRef.saveAsync({

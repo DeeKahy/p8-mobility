@@ -1,3 +1,4 @@
+import { useIsFocused } from '@react-navigation/native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
 import { StatusBar } from 'expo-status-bar';
@@ -15,10 +16,12 @@ import {
   Alert,
 } from 'react-native';
 
+import LoadingOverlay from '../../components/LoadingOverlay';
 import PhotoFormModal from '../../components/photoForm';
 import PhotoList from '../../components/photos_list';
+import { useLogger } from '../../context/LoggerContext';
+import { isImageBlurry } from '../../utils/blurDetection';
 import { PhotoForm } from '../models/PhotoFormModel';
-
 interface Marker {
   id: string;
   x: number;
@@ -26,6 +29,7 @@ interface Marker {
   photos: string[];
 }
 export default function HomeScreen() {
+  const [loading, setLoading] = useState(false);
   const [floorPlan, setFloorPlan] = useState<string | null>(null);
   const [markers, setMarkers] = useState<Marker[]>([]);
   const [selectedMarker, setSelectedMarker] = useState<Marker | null>(null);
@@ -46,27 +50,42 @@ export default function HomeScreen() {
   const cameraRef = useRef<CameraView>(null);
   const newMarkerPositionRef = useRef<{ x: number; y: number } | null>(null);
   const selectedMarkerRef = useRef<Marker | null>(null);
-
+  const { custom, error, log } = useLogger();
+  const isFocused = useIsFocused();
+  useEffect(() => {
+    custom(`showCamera changed to: ${showCamera}`, 'camera');
+  }, [showCamera]);
   //_________Updates when new meta data is introduced__________________
   useEffect(() => {
     if (!takenWithCamera) {
       if (!photoData) return;
+      // Follows the create data, then use it logic.
 
       const dateTime = photoData?.assets?.[0]?.exif?.DateTimeOriginal;
-      console.log(dateTime);
-      console.log(JSON.stringify(photoData?.assets?.[0]?.exif, null, 2));
+      log('Photo taken from camera roll, Datetime:' + dateTime);
+
+      const photoMetadata = JSON.stringify(
+        photoData?.assets?.[0]?.exif,
+        null,
+        2
+      );
+      log(
+        'Photo metadata (EXIF metadata) from the selected image: ' +
+          photoMetadata
+      );
       const photoUri = photoData?.assets?.[0]?.uri;
-      console.log(photoUri);
+      log('File path to the photo:' + photoUri);
     }
 
     if (takenWithCamera) {
       const dateTime = photoData?.exif?.DateTimeOriginal;
-      console.log(dateTime);
-      console.log(photoData);
+      log('Photo taken with camera, Datetime:' + dateTime);
+      log('Photo data:' + photoData);
+
       const photoUri = photoData?.uri;
-      console.log(photoUri);
+      log('File path to the captured photo:' + photoUri);
     }
-  }, [photoData]);
+  }, [photoData]); // Maybe i need to add the log here....
 
   //______________________________________________________
 
@@ -153,9 +172,24 @@ export default function HomeScreen() {
 
     // Not allowing too old pictures to be uploaded
     const two_weeks_ago = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
-    const date = result?.assets?.[0]?.exif?.DateTimeOriginal;
-    const formatDate = date.replace(/(\d{4}):(\d{2}):(\d{2})/, '$1-$2-$3');
-    console.log(formatDate);
+
+    const asset = result.assets?.[0];
+    // Changed to exifDate, because its metadata Date.
+    const exifDate = asset?.exif?.DateTimeOriginal;
+    // Guard against undefined date in picture. (Crash happened when i tested on uploading my meme, that had no metadata date)
+    if (!exifDate || typeof exifDate !== 'string') {
+      log('No EXIF DateTimeOriginal found on selected image');
+
+      Alert.alert(
+        'Missing photo date',
+        'This image does not contain metadata, so we cannot verify its age.'
+      );
+
+      return;
+    }
+    const formatDate = exifDate.replace(/(\d{4}):(\d{2}):(\d{2})/, '$1-$2-$3');
+    log('Formatted Data:' + formatDate);
+
     const dateTaken = new Date(formatDate);
 
     if (dateTaken < two_weeks_ago) {
@@ -168,6 +202,15 @@ export default function HomeScreen() {
     //__________________________________________________________________________
 
     if (!result.canceled) {
+      const uri = result.assets[0].uri;
+
+      const isBlurry = await isImageBlurry(uri, log);
+
+      if (isBlurry) {
+        Alert.alert('Image is too blurry. Please choose another.');
+        return;
+      }
+
       setTakenWithCamera(false);
       setPhotoData(result);
 
@@ -227,9 +270,41 @@ export default function HomeScreen() {
   const handleTakePhoto = async () => {
     if (cameraRef.current) {
       //__________Allowing meta data for taken photos________
-      const photo = await cameraRef.current.takePictureAsync({ exif: true });
+      let photo;
+
+      let start = performance.now();
+      custom('Cammera time taking picture:', 'Index.tsx');
+      try {
+        photo = await cameraRef.current.takePictureAsync({ exif: true });
+      } catch (e) {
+        error('Failed to take picture, Error:' + e);
+      }
+
+      const delta = performance.now() - start;
+      custom(
+        'Time delta to take picture: ' + (delta / 1000).toFixed(3) + ' s',
+        'Index.tsx'
+      );
       //________________________________________________________________
       if (photo) {
+        setLoading(true);
+        let isBlurry;
+        start = performance.now();
+        try {
+          isBlurry = await isImageBlurry(photo.uri, log);
+        } catch (e) {
+          error('Failed to check if Image is blurry, Error' + e);
+        }
+        setLoading(false);
+        const delta = performance.now() - start;
+        custom(
+          'Time delta for isBlurry to run:' + (delta / 1000).toFixed(3) + ' s',
+          'Index.tsx'
+        );
+        if (isBlurry) {
+          Alert.alert('Image is too blurry. Please take another.');
+          return;
+        }
         setPhotoData(photo);
         setTakenWithCamera(true);
         setShowCamera(false);
@@ -285,23 +360,32 @@ export default function HomeScreen() {
   if (showCamera) {
     return (
       <View style={styles.cameraContainer}>
-        <CameraView style={styles.camera} ref={cameraRef}>
-          <View style={styles.cameraButtons}>
-            <TouchableOpacity
-              style={styles.cancelButton}
-              onPress={() => setShowCamera(false)}
-            >
-              <Text style={styles.buttonText}>Cancel</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.captureButton}
-              onPress={handleTakePhoto}
-            >
-              <View style={styles.captureButtonInner} />
-            </TouchableOpacity>
-            <View style={{ width: 70 }} />
-          </View>
-        </CameraView>
+        {isFocused && (
+          <CameraView
+            style={StyleSheet.absoluteFillObject}
+            ref={cameraRef}
+            onCameraReady={() => log('Camera ready')}
+          />
+        )}
+
+        <View style={styles.cameraButtonsOverlay} pointerEvents="box-none">
+          <TouchableOpacity
+            style={styles.cancelButton}
+            onPress={() => setShowCamera(false)}
+          >
+            <Text style={styles.buttonText}>Cancel</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.captureButton}
+            onPress={handleTakePhoto}
+          >
+            <View style={styles.captureButtonInner} />
+          </TouchableOpacity>
+
+          <View style={{ width: 70 }} />
+        </View>
+        {loading && <LoadingOverlay text="Checking photo for blur..." />}
       </View>
     );
   }
@@ -463,12 +547,13 @@ export default function HomeScreen() {
           }
           onClose={() => setShowPhotoModule(false)}
           onSubmit={(data) => {
-            console.log('Form data: ' + JSON.stringify(data));
+            log('Form data:' + JSON.stringify(data));
+
             addPhotoToMarker(data.photoUri);
             setShowPhotoModule(false);
             if (data && !listOfPhotos.includes(data)) {
               setListOfPhotos((current) => [...current, data]);
-              console.log('Processing photo...' + JSON.stringify(data));
+              log('Processing photo...' + JSON.stringify(data));
             }
           }}
         />
@@ -508,14 +593,15 @@ export default function HomeScreen() {
       <TouchableOpacity
         style={styles.showListButton}
         onPress={() => {
-          setShowPhotoList(!showPhotoList);
+          setShowPhotoList((prev) => !prev);
         }}
       >
-        <Text>Show List</Text>
+        <Text>{showPhotoList ? 'Back to Floorplan' : 'Show List'}</Text>
       </TouchableOpacity>
       <Text style={styles.instructions}>
         Tap on the floor plan to place a marker
       </Text>
+      {loading && <LoadingOverlay text="Checking photo for blur..." />}
     </View>
   );
 }
@@ -782,6 +868,15 @@ const styles = StyleSheet.create({
   },
   cameraContainer: {
     flex: 1,
+    backgroundColor: '#000',
+  },
+  cameraButtonsOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    paddingHorizontal: 30,
+    paddingBottom: 40,
   },
   camera: {
     flex: 1,

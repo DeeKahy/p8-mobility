@@ -1,21 +1,12 @@
-import { useEffect } from 'react';
 import { View } from 'react-native';
 
 import Button from '../../components/Button';
 import Dropdown from '../../components/Dropdown';
 import HelloCard from '../../components/HelloCard';
-import { useLogger } from '../../context/LoggerContext';
 import { useToast } from '../../context/ToastProvider';
 
 export default function Main() {
-  const { log, error, debug } = useLogger();
   const { showToast } = useToast();
-
-  useEffect(() => {
-    debug('Loading Button component');
-    error('Returned status code 400');
-    log('Returned error at main');
-  }, []);
 
   return (
     <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>

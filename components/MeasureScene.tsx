@@ -9,11 +9,13 @@ import { Dimensions, PixelRatio, StyleSheet } from 'react-native';
 
 import { Point3D } from '../app/models/3Dpoints';
 import { ACCEPTED_HIT_TYPES } from '../app/models/ArCoreAcceptedTypes';
+import { useLogger } from '../context/LoggerContext';
 import {
   isValidPoint,
   calculateDistanceMeters,
   formatDistanceCm,
 } from '../utils/arMath';
+//type Point3D = [number, number, number];
 
 // Used to "hide" AR objects by moving them far below the scene instead of removing them.
 // This keeps components mounted, avoids null position issues, and prevents flickering.
@@ -85,11 +87,31 @@ function extractHitPosition(results: unknown): Point3D | null {
   return null;
 }
 
+//Measuring distance formula (Euclidean distance)
+// function calculateDistanceMeters(points: [Point3D, Point3D]) {
+//   const [p1, p2] = points;
+//   const dx = p2[0] - p1[0];
+//   const dy = p2[1] - p1[1];
+//   const dz = p2[2] - p1[2];
+//   return Math.sqrt(dx ** 2 + dy ** 2 + dz ** 2);
+// }
+
+// function formatDistanceCm(distanceMeters: number) {
+//   return `${(distanceMeters * 100).toFixed(2)} cm`;
+// }
+
+function logDistanceCm(firstPoint: Point3D, secondPoint: Point3D) {
+  const distanceMeters = calculateDistanceMeters([firstPoint, secondPoint]);
+  return distanceMeters;
+}
+
 export default function MeasureScene(props: any) {
   const [points, setPoints] = useState<Point3D[]>([]);
   const { isMeasuring = true, onPointAdded } = props;
+  const [firstPoint, setFirstPoint] = useState<Point3D | null>(null);
+  const [secondPoint, setSecondPoint] = useState<Point3D | null>(null);
   const arSceneRef = useRef<ViroARScene | null>(null);
-
+  const { custom } = useLogger();
   const distanceLabel = useMemo(() => {
     if (points.length < 2) return '';
 
@@ -132,8 +154,28 @@ export default function MeasureScene(props: any) {
         }, 0);
         return updatedPoints;
       });
+      if (!hitPosition) {
+        custom('No surface detected at this point.', 'Ar');
+        return;
+      }
+      custom('hitPosition:' + hitPosition, 'Ar');
+      // First tap = first point
+      // Second tap = second point
+      // Third tap resets measurement
+      if (!firstPoint || secondPoint) {
+        setFirstPoint(hitPosition);
+        setSecondPoint(null);
+        return;
+      }
+
+      setSecondPoint(hitPosition);
+
+      const distanceInCm = logDistanceCm(firstPoint, hitPosition);
+      const formated_distanceInCm = formatDistanceCm(distanceInCm);
+      custom('Distance drawed:' + formated_distanceInCm, 'Ar');
     } catch (error) {
-      console.error('Error performing hit test:', error);
+      // This should properly also be a toast:
+      custom('Error performing hit test:' + error, 'Ar');
     }
   };
 

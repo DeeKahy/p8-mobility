@@ -1,9 +1,10 @@
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 
+import { useLogger } from '../../context/LoggerContext';
 export default function CameraScreen() {
   const [permission, requestPermission] = useCameraPermissions();
-
+  const { log } = useLogger();
   if (!permission) {
     return <View />;
   }
@@ -20,7 +21,7 @@ export default function CameraScreen() {
   }
 
   return (
-    <CameraView style={{ flex: 1 }}>
+    <CameraView style={{ flex: 1 }} onCameraReady={() => log('Camera ready')}>
       <View style={styles.overlay}>
         <Text style={styles.overlayText}>Camera screen</Text>
       </View>

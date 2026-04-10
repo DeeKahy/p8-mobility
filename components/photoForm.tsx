@@ -160,16 +160,16 @@ export default function PhotoFormModal({
           <Button
             title="Done"
             disabled={isLoading}
-            onPress={() => {
-              handleSubmit(onSubmit)();
+            onPress={handleSubmit((data) => {
+              onSubmit(data);
               reset({
-                photoUri: '',
-                dateTaken: '',
+                photoUri,
+                dateTaken: date,
                 pictureName: '',
                 areaGroup: '',
                 description: '',
               });
-            }}
+            })}
           />
           <Button
             title="Cancel"

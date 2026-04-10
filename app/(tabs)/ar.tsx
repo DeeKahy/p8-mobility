@@ -1,17 +1,21 @@
 import { useIsFocused } from '@react-navigation/native';
 import { ViroARSceneNavigator } from '@viro-community/react-viro';
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { TouchableOpacity, View, Text } from 'react-native';
 
 import Floorplan from '../../components/FloorplanCreation';
 import MeasureScene from '../../components/MeasureScene';
+import { useLogger } from '../../context/LoggerContext';
 import { Point3D } from '../models/3Dpoints';
-
 export default function ARView() {
-  const isFocused = useIsFocused();
   const [isMeasuring, setIsMeasuring] = useState(true);
   const pointsRef = useRef<Point3D[]>([]);
-
+  const isFocused = useIsFocused();
+  const { custom } = useLogger();
+  useEffect(() => {
+    custom(`AR focus: ${isFocused}`, 'camera');
+  }, [isFocused]);
+  // Prevent AR renderer from running when the tab is not active
   if (!isFocused) {
     return null;
   }
