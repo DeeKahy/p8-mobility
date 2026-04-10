@@ -10,8 +10,10 @@ import { MarkerElement } from "../../components/index/MarkerElement";
 import { MarkerOptionsModal } from "../../components/index/MarkerOptionsModal";
 import { NewMarkerOptionsModal } from "../../components/index/NewMarkerOptionsModal";
 import { PhotoGalleryModal } from "../../components/index/PhotoGalleryModal";
+import { PhotoFormModal } from "../../components/photoForm";
 import { useFloorplan } from "../../context/FloorplanContext";
 import { styles } from "../../css/indexStyle";
+import { PhotoData } from "../../models/PhotoFormModel";
 
 export default function HomeScreen() {
   const {
@@ -35,31 +37,31 @@ export default function HomeScreen() {
   const [showPhotos, setShowPhotos] = useState(false);
   const [showCamera, setShowCamera] = useState(false);
   const [showNewMarkerOptions, setShowNewMarkerOptions] = useState(false);
+  const [pendingPhotos, setPendingPhotos] = useState<string[]>([]);
 
+  const describedPhotos = useRef<PhotoData[]>([]);
   const cameraAction = useRef<((uri: string) => void) | undefined>(undefined);
   const cameraRef = useRef<CameraView>(null);
 
   const handleNewMarkerFromCameraRoll = async () => {
+    console.info("handleNewMarkerFromCameraRoll");
     setShowNewMarkerOptions(false);
     const result = await pickPhotoFromLibrary(0);
     if (!result || !tempMarker) return;
 
-    addMarker(
-      tempMarker.x,
-      tempMarker.y,
-      result.map((p) => p.uri)
-    );
     setShowNewMarkerOptions(false);
     setShowTempMarker(false);
+    setPendingPhotos(result.map((p) => p.uri));
   };
 
   const handleNewMarkerFromPicture = async () => {
+    console.info("handleNewMarkerFromPicture");
     setShowNewMarkerOptions(false);
     setShowCamera(true);
     if (!tempMarker) return;
 
     cameraAction.current = (img) => {
-      addMarker(tempMarker.x, tempMarker.y, [img]);
+      setPendingPhotos([img]);
       setShowCamera(false);
     };
     setShowNewMarkerOptions(false);
@@ -70,11 +72,7 @@ export default function HomeScreen() {
     setShowNewMarkerOptions(false);
     const result = await pickPhotoFromLibrary(0);
     if (!result || !selectedMarkerId) return;
-
-    addPhotos(
-      selectedMarkerId,
-      result.map((p) => p.uri)
-    );
+    setPendingPhotos(result.map((p) => p.uri));
   };
 
   const handleAddFromPictureToMarker = async () => {
@@ -83,14 +81,14 @@ export default function HomeScreen() {
     setShowCamera(true);
 
     cameraAction.current = (img) => {
-      addPhotos(selectedMarkerId, [img]);
+      setPendingPhotos([img]);
       setShowCamera(false);
     };
   };
 
-  const handleDeletePhoto = (photoURI: string) => {
+  const handleDeletePhoto = (photo: PhotoData) => {
     if (!selectedMarkerId) return;
-    removePhoto(selectedMarkerId, photoURI);
+    removePhoto(selectedMarkerId, photo);
   };
 
   const pickPhotoFromLibrary = async (selectionLimit = 1) => {
@@ -116,6 +114,31 @@ export default function HomeScreen() {
     setShowMarkerOptions(false);
     setShowTempMarker(false);
   };
+
+  const uri = pendingPhotos.pop();
+  if (uri) {
+    return (
+      <PhotoFormModal
+        visible
+        onSkip={() => setPendingPhotos(pendingPhotos)} // Skip one URI on close.
+        photoUri={uri}
+        date="2026-01-01"
+        onSubmit={(photoData) => {
+          // Store data on submit of photo data.
+          describedPhotos.current.push(photoData);
+          setPendingPhotos(pendingPhotos);
+        }}
+      />
+    );
+  } else if (tempMarker && describedPhotos.current.length > 0) {
+    // If we've gotten submissions for something and nothing is pending, create or update a marker.
+    if (selectedMarkerId) {
+      addPhotos(selectedMarkerId, describedPhotos.current);
+    } else {
+      addMarker(tempMarker.x, tempMarker.y, describedPhotos.current);
+    }
+    describedPhotos.current = []; // Prep for next marker creation.
+  }
 
   if (showCamera) {
     return (
@@ -206,6 +229,10 @@ export default function HomeScreen() {
         handleDeletePhoto={handleDeletePhoto}
         closeAllModals={closeAllModals}
       />
+
+      {/* <PhotoList
+
+      /> */}
 
       <Text style={styles.instructions}>
         Tap on the floor plan to place a marker

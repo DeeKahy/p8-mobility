@@ -1,12 +1,13 @@
 import { useState } from "react";
 
 import { useLogger } from "../context/LoggerContext";
+import { PhotoData } from "../models/PhotoFormModel";
 
 export interface Marker {
   id: string;
   x: number;
   y: number;
-  photos: string[];
+  photos: PhotoData[];
 }
 
 // Throw this error when you want the affected marker to be deleted by editMarker instead of edited.
@@ -25,10 +26,10 @@ export const useMarkers = () => {
     setMarkers([]);
   };
 
-  const addMarker = (x: number, y: number, photoURIs: string[]) => {
+  const addMarker = (x: number, y: number, photos: PhotoData[]) => {
     const newMarker: Marker = {
       id: Date.now().toString(),
-      photos: photoURIs,
+      photos,
       x,
       y,
     };
@@ -63,27 +64,30 @@ export const useMarkers = () => {
     });
   };
 
-  const addPhotos = (id: string, photoURIs: string[]) => {
+  const addPhotos = (id: string, photos: PhotoData[]) => {
     editMarker(id, (old) => {
-      const old_len = photoURIs.length;
-      photoURIs = photoURIs.filter(
-        // We only want to add photos we can't find in the list already.
-        (x) => old.photos.indexOf(x) === -1
+      const old_len = photos.length;
+      photos = photos.filter(
+        // We only want to add photos with URIs we can't find in the list already.
+        (x) =>
+          old.photos.findIndex((y) => {
+            return x.photoUri === y.photoUri;
+          }) === -1
       );
-      const new_len = photoURIs.length; // REVIEW: Prevent selection of already present photos or just report an error here?
+      const new_len = photos.length; // REVIEW: Prevent selection of already present photos or just report an error here?
       debug(
-        `Adding ${photoURIs.length} photos to marker. ${old_len - new_len} photos were already present.`
+        `Adding ${photos.length} photos to marker. ${old_len - new_len} photos were already present.`
       );
-      return { ...old, photos: old.photos.concat(photoURIs) }; // Deconstruct old marker and override photos with concatenated field
+      return { ...old, photos: old.photos.concat(photos) }; // Deconstruct old marker and override photos with concatenated field
     });
   };
 
-  const removePhoto = (id: string, photoURI: string) => {
+  const removePhoto = (id: string, photo: PhotoData) => {
     editMarker(id, (old) => {
-      const index = old.photos.indexOf(photoURI);
+      const index = old.photos.indexOf(photo);
       if (index === -1) {
         throw new RangeError(
-          `${photoURI} not found in photos list of marker ${id} when deletion was attempted.`
+          `${photo} not found in photos list of marker ${id} when deletion was attempted.`
         );
       } else if (old.photos.length < 2) {
         throw new MarkerDeletionException("Last photo deleted.");

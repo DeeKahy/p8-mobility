@@ -9,11 +9,12 @@ import {
 
 import { styles } from "../../css/indexStyle";
 import { Marker } from "../../hooks/useMarkers";
+import { PhotoData } from "../../models/PhotoFormModel";
 
 interface PhotoGalleryModalProps {
   showModal: boolean;
   marker: Marker | undefined;
-  handleDeletePhoto: (photoURI: string) => void;
+  handleDeletePhoto: (photo: PhotoData) => void;
   closeAllModals: () => void;
 }
 
@@ -34,7 +35,10 @@ export const PhotoGalleryModal = (props: PhotoGalleryModalProps) => {
         <ScrollView contentContainerStyle={styles.photosGrid}>
           {marker?.photos.map((photo, index) => (
             <View key={index} style={styles.photoContainer}>
-              <Image source={{ uri: photo }} style={styles.photoThumbnail} />
+              <Image
+                source={{ uri: photo.photoUri }}
+                style={styles.photoThumbnail}
+              />
               <TouchableOpacity
                 style={styles.deleteButton}
                 onPress={() => handleDeletePhoto(photo)}
