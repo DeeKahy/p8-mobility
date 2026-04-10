@@ -15,7 +15,7 @@ import {
   formatDistanceCm,
 } from '../utils/arMath';
 import { useLogger } from '../context/LoggerContext';
-type Point3D = [number, number, number];
+//type Point3D = [number, number, number];
 
 // Used to "hide" AR objects by moving them far below the scene instead of removing them.
 // This keeps components mounted, avoids null position issues, and prevents flickering.
@@ -89,17 +89,17 @@ function extractHitPosition(results: unknown): Point3D | null {
 
 
 //Measuring distance formula (Euclidean distance)
-function calculateDistanceMeters(points: [Point3D, Point3D]) {
-  const [p1, p2] = points;
-  const dx = p2[0] - p1[0];
-  const dy = p2[1] - p1[1];
-  const dz = p2[2] - p1[2];
-  return Math.sqrt(dx ** 2 + dy ** 2 + dz ** 2);
-}
+// function calculateDistanceMeters(points: [Point3D, Point3D]) {
+//   const [p1, p2] = points;
+//   const dx = p2[0] - p1[0];
+//   const dy = p2[1] - p1[1];
+//   const dz = p2[2] - p1[2];
+//   return Math.sqrt(dx ** 2 + dy ** 2 + dz ** 2);
+// }
 
-function formatDistanceCm(distanceMeters: number) {
-  return `${(distanceMeters * 100).toFixed(2)} cm`;
-}
+// function formatDistanceCm(distanceMeters: number) {
+//   return `${(distanceMeters * 100).toFixed(2)} cm`;
+// }
 
 function logDistanceCm(firstPoint: Point3D, secondPoint: Point3D) {
   const distanceMeters = calculateDistanceMeters([firstPoint, secondPoint]);
