@@ -3,7 +3,6 @@ import { View } from 'react-native';
 import Button from '../../components/Button';
 import Dropdown from '../../components/Dropdown';
 import HelloCard from '../../components/HelloCard';
-import { useLogger } from '../../context/LoggerContext';
 import { useToast } from '../../context/ToastProvider';
 
 export default function Main() {
