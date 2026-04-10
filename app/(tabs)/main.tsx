@@ -35,7 +35,7 @@ export default function Main() {
         label="Maksim"
         onPress={() => {
           console.log('Button pressed');
-          showToast("Image has been uploaded", 'Success');
+          showToast('Image has been uploaded', 'Success');
         }}
       />
     </View>
