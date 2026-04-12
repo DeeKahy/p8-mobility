@@ -14,6 +14,7 @@ import { PhotoFormModal } from "../../components/photoForm";
 import { useFloorplan } from "../../context/FloorplanContext";
 import { styles } from "../../css/indexStyle";
 import { PhotoData } from "../../models/PhotoFormModel";
+import { PhotoList } from "../../components/photos_list";
 
 export default function HomeScreen() {
   const {
@@ -38,10 +39,13 @@ export default function HomeScreen() {
   const [showCamera, setShowCamera] = useState(false);
   const [showNewMarkerOptions, setShowNewMarkerOptions] = useState(false);
   const [pendingPhotos, setPendingPhotos] = useState<string[]>([]);
+  const [showPhotoListView, setShowPhotoListView] = useState<boolean>(false);
 
   const describedPhotos = useRef<PhotoData[]>([]);
   const cameraAction = useRef<((uri: string) => void) | undefined>(undefined);
   const cameraRef = useRef<CameraView>(null);
+  const savedPhotos = useRef<PhotoData[]>([]);
+  let currentUri = pendingPhotos[0];
 
   const handleNewMarkerFromCameraRoll = async () => {
     console.info("handleNewMarkerFromCameraRoll");
@@ -115,30 +119,6 @@ export default function HomeScreen() {
     setShowTempMarker(false);
   };
 
-  const uri = pendingPhotos.pop();
-  if (uri) {
-    return (
-      <PhotoFormModal
-        visible
-        onSkip={() => setPendingPhotos(pendingPhotos)} // Skip one URI on close.
-        photoUri={uri}
-        date="2026-01-01"
-        onSubmit={(photoData) => {
-          // Store data on submit of photo data.
-          describedPhotos.current.push(photoData);
-          setPendingPhotos(pendingPhotos);
-        }}
-      />
-    );
-  } else if (tempMarker && describedPhotos.current.length > 0) {
-    // If we've gotten submissions for something and nothing is pending, create or update a marker.
-    if (selectedMarkerId) {
-      addPhotos(selectedMarkerId, describedPhotos.current);
-    } else {
-      addMarker(tempMarker.x, tempMarker.y, describedPhotos.current);
-    }
-    describedPhotos.current = []; // Prep for next marker creation.
-  }
 
   if (showCamera) {
     return (
@@ -166,9 +146,49 @@ export default function HomeScreen() {
     );
   }
 
+
   return (
     <View style={styles.container}>
       <StatusBar style="auto" />
+
+      {currentUri && <PhotoFormModal
+        visible
+        onSkip={() => {
+          pendingPhotos.pop();
+          setPendingPhotos(pendingPhotos)
+          if (tempMarker && describedPhotos.current.length > 0) {
+            // If we've gotten submissions for something and nothing is pending, create or update a marker.
+            if (selectedMarkerId) {
+              addPhotos(selectedMarkerId, describedPhotos.current);
+            } else {
+              addMarker(tempMarker.x, tempMarker.y, describedPhotos.current);
+            }
+            describedPhotos.current = []; // Prep for next marker creation.
+          }
+          currentUri = pendingPhotos[0];
+        }} // Skip one URI on close.
+        photoUri={currentUri}
+        date="2026-01-01"
+        onSubmit={(photoData) => {
+          pendingPhotos.pop();
+          // Store data on submit of photo data.
+          describedPhotos.current.push(photoData);
+          savedPhotos.current.push(photoData);
+          console.info(savedPhotos);
+          setPendingPhotos(pendingPhotos);
+          if (tempMarker && describedPhotos.current.length > 0) {
+            // If we've gotten submissions for something and nothing is pending, create or update a marker.
+            if (selectedMarkerId) {
+              addPhotos(selectedMarkerId, describedPhotos.current);
+            } else {
+              addMarker(tempMarker.x, tempMarker.y, describedPhotos.current);
+            }
+            describedPhotos.current = []; // Prep for next marker creation.
+          }
+          currentUri = pendingPhotos[0];
+        }}
+      />
+      }
 
       {/* Header with change floor plan option */}
       <View style={styles.header}>
@@ -230,9 +250,19 @@ export default function HomeScreen() {
         closeAllModals={closeAllModals}
       />
 
-      {/* <PhotoList
-
-      /> */}
+      {showPhotoListView && <View style={styles.fullscreenOverlay}>
+        <PhotoList
+          photoList={savedPhotos.current}
+        />
+      </View>}
+      <View>
+        <TouchableOpacity
+          style={styles.showListButton}
+          onPress={() => setShowPhotoListView(!showPhotoListView)}
+        >
+          <Text>{showPhotoListView ? 'Hide photos' : 'Show photos'}</Text>
+        </TouchableOpacity>
+      </View>
 
       <Text style={styles.instructions}>
         Tap on the floor plan to place a marker
