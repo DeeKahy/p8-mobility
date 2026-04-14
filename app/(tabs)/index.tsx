@@ -1,347 +1,155 @@
-import { useIsFocused } from '@react-navigation/native';
-import { CameraView, useCameraPermissions } from 'expo-camera';
-import * as ImagePicker from 'expo-image-picker';
-import { StatusBar } from 'expo-status-bar';
-import { useState, useRef, useEffect } from 'react';
+import { CameraView } from "expo-camera";
+import * as ImagePicker from "expo-image-picker";
+import { StatusBar } from "expo-status-bar";
+import { useRef, useState } from "react";
 import {
-  StyleSheet,
-  Text,
-  View,
-  TouchableOpacity,
-  Modal,
-  Image,
-  ScrollView,
-  Pressable,
-  Dimensions,
   Alert,
-} from 'react-native';
+  Image,
+  Pressable,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
-import LoadingOverlay from '../../components/LoadingOverlay';
-import PhotoFormModal from '../../components/photoForm';
-import PhotoList from '../../components/photos_list';
-import { useLogger } from '../../context/LoggerContext';
-import { isImageBlurry } from '../../utils/blurDetection';
-import { PhotoForm } from '../models/PhotoFormModel';
-interface Marker {
-  id: string;
-  x: number;
-  y: number;
-  photos: string[];
-}
+import { CameraUI } from "../../components/CameraUI";
+import { EditMarkerModal } from "../../components/index/EditMarkerModal";
+import { MarkerElement } from "../../components/index/MarkerElement";
+import { MarkerOptionsModal } from "../../components/index/MarkerOptionsModal";
+import { NewMarkerOptionsModal } from "../../components/index/NewMarkerOptionsModal";
+import { PhotoGalleryModal } from "../../components/index/PhotoGalleryModal";
+import { PhotoFormModal } from "../../components/photoForm";
+import { PhotoList } from "../../components/photos_list";
+import { useFloorplan } from "../../context/FloorplanContext";
+import { useLogger } from "../../context/LoggerContext";
+import { styles } from "../../css/indexStyle";
+import { PhotoData } from "../../models/PhotoFormModel";
+import { isImageBlurry } from "../../utils/blurDetection";
+
 export default function HomeScreen() {
-  const [loading, setLoading] = useState(false);
-  const [floorPlan, setFloorPlan] = useState<string | null>(null);
-  const [markers, setMarkers] = useState<Marker[]>([]);
-  const [selectedMarker, setSelectedMarker] = useState<Marker | null>(null);
-  const [newMarkerPosition, setNewMarkerPosition] = useState<{
-    x: number;
-    y: number;
-  } | null>(null);
-  const [showCamera, setShowCamera] = useState(false);
+  const {
+    markers,
+    floorplan,
+    selectedMarkerId,
+    pickFloorplan,
+    handleCanvasPress,
+    addPhotos,
+    removePhoto,
+    addMarker,
+    tempMarker,
+    showTempMarker,
+    setSelectedMarkerId,
+    setShowTempMarker,
+    showMarkerOptions,
+    setShowMarkerOptions,
+    selectedMarker, //Reference, use with caution
+  } = useFloorplan();
+
+  const { log } = useLogger();
+
   const [showPhotos, setShowPhotos] = useState(false);
-  const [photoData, setPhotoData] = useState<any>();
-  const [listOfPhotos, setListOfPhotos] = useState<PhotoForm[]>([]);
-  const [showPhotoModule, setShowPhotoModule] = useState<boolean>(false);
-  const [showPhotoList, setShowPhotoList] = useState<boolean>(false);
-  const [takenWithCamera, setTakenWithCamera] = useState<boolean>(false);
-  const [showMarkerOptions, setShowMarkerOptions] = useState(false);
+  const [showCamera, setShowCamera] = useState(false);
   const [showNewMarkerOptions, setShowNewMarkerOptions] = useState(false);
-  const [permission, requestPermission] = useCameraPermissions();
+  const [pendingPhotos, setPendingPhotos] = useState<string[]>([]);
+  const [showPhotoListView, setShowPhotoListView] = useState<boolean>(false);
+
+  const describedPhotos = useRef<PhotoData[]>([]);
+  const cameraAction = useRef<((uri: string) => void) | undefined>(undefined);
   const cameraRef = useRef<CameraView>(null);
-  const newMarkerPositionRef = useRef<{ x: number; y: number } | null>(null);
-  const selectedMarkerRef = useRef<Marker | null>(null);
-  const { custom, error, log } = useLogger();
-  const isFocused = useIsFocused();
-  useEffect(() => {
-    custom(`showCamera changed to: ${showCamera}`, 'camera');
-  }, [showCamera]);
-  //_________Updates when new meta data is introduced__________________
-  useEffect(() => {
-    if (!takenWithCamera) {
-      if (!photoData) return;
-      // Follows the create data, then use it logic.
+  const savedPhotos = useRef<PhotoData[]>([]);
+  let currentUri = pendingPhotos[0];
 
-      const dateTime = photoData?.assets?.[0]?.exif?.DateTimeOriginal;
-      log('Photo taken from camera roll, Datetime:' + dateTime);
+  async function getValidImages(images: ImagePicker.ImagePickerAsset[]) {
+    const twoWeeksAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
+    const validImages: ImagePicker.ImagePickerAsset[] = [];
 
-      const photoMetadata = JSON.stringify(
-        photoData?.assets?.[0]?.exif,
-        null,
-        2
-      );
-      log(
-        'Photo metadata (EXIF metadata) from the selected image: ' +
-          photoMetadata
-      );
-      const photoUri = photoData?.assets?.[0]?.uri;
-      log('File path to the photo:' + photoUri);
-    }
+    for (const image of images) {
+      const exifDate = image?.exif?.DateTimeOriginal;
+      if (!exifDate || typeof exifDate !== "string") {
+        log("No EXIF DateTimeOriginal found on selected image");
 
-    if (takenWithCamera) {
-      const dateTime = photoData?.exif?.DateTimeOriginal;
-      log('Photo taken with camera, Datetime:' + dateTime);
-      log('Photo data:' + photoData);
+        Alert.alert(
+          "Missing photo date",
+          "This image does not contain metadata, so we cannot verify its age."
+        );
+        continue;
+      }
 
-      const photoUri = photoData?.uri;
-      log('File path to the captured photo:' + photoUri);
-    }
-  }, [photoData]); // Maybe i need to add the log here....
+      const dateTaken = exifDate.replace(/(\d{4}):(\d{2}):(\d{2})/, "$1-$2-$3");
+      log("Formatted Data:" + dateTaken);
 
-  //______________________________________________________
+      if (new Date(dateTaken) < twoWeeksAgo) {
+        Alert.alert("Picture is older than 14 days: " + dateTaken);
+        continue;
+      }
 
-  // Keep refs in sync with state
-  newMarkerPositionRef.current = newMarkerPosition;
-  selectedMarkerRef.current = selectedMarker;
-
-  const pickFloorPlan = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsEditing: false,
-      quality: 1,
-    });
-
-    if (!result.canceled) {
-      setFloorPlan(result.assets[0].uri);
-      setMarkers([]); // Clear markers when new floor plan is selected
-    }
-  };
-
-  const handleCanvasPress = (event: any) => {
-    if (!floorPlan) return;
-
-    const { locationX, locationY } = event.nativeEvent;
-
-    // Check if tapped on existing marker (within 30px radius)
-    const existingMarker = markers.find(
-      (m) => Math.abs(m.x - locationX) < 30 && Math.abs(m.y - locationY) < 30
-    );
-
-    if (existingMarker) {
-      setSelectedMarker(existingMarker);
-      setShowMarkerOptions(true);
-    } else {
-      // Create new marker position
-      setNewMarkerPosition({ x: locationX, y: locationY });
-    }
-  };
-
-  const handleTakePictureForNewMarker = async () => {
-    setShowNewMarkerOptions(false);
-    if (!permission?.granted) {
-      await requestPermission();
-      return;
-    }
-    setShowCamera(true);
-  };
-
-  const addPhotoToMarker = (photoUri: string) => {
-    const position = newMarkerPositionRef.current;
-    const marker = selectedMarkerRef.current;
-
-    if (position) {
-      // Creating new marker with first photo
-      const newMarker: Marker = {
-        id: Date.now().toString(),
-        x: position.x,
-        y: position.y,
-        photos: [photoUri],
-      };
-      setMarkers((prev) => [...prev, newMarker]);
-      setNewMarkerPosition(null);
-    } else if (marker) {
-      // Adding photo to existing marker
-      setMarkers((prev) =>
-        prev.map((m) =>
-          m.id === marker.id ? { ...m, photos: [...m.photos, photoUri] } : m
-        )
-      );
-      setSelectedMarker({ ...marker, photos: [...marker.photos, photoUri] });
-    }
-  };
-
-  const handlePickFromLibraryForNewMarker = async () => {
-    setShowNewMarkerOptions(false);
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsEditing: false,
-      quality: 1,
-      //__________Allowing meta data________
-      exif: true,
-      //_______________________________________________
-    });
-
-    // Not allowing too old pictures to be uploaded
-    const two_weeks_ago = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
-
-    const asset = result.assets?.[0];
-    // Changed to exifDate, because its metadata Date.
-    const exifDate = asset?.exif?.DateTimeOriginal;
-    // Guard against undefined date in picture. (Crash happened when i tested on uploading my meme, that had no metadata date)
-    if (!exifDate || typeof exifDate !== 'string') {
-      log('No EXIF DateTimeOriginal found on selected image');
-
-      Alert.alert(
-        'Missing photo date',
-        'This image does not contain metadata, so we cannot verify its age.'
-      );
-
-      return;
-    }
-    const formatDate = exifDate.replace(/(\d{4}):(\d{2}):(\d{2})/, '$1-$2-$3');
-    log('Formatted Data:' + formatDate);
-
-    const dateTaken = new Date(formatDate);
-
-    if (dateTaken < two_weeks_ago) {
-      Alert.alert(
-        'Picture is older than 14 days: ' +
-          result?.assets?.[0]?.exif?.DateTimeOriginal
-      );
-      return;
-    }
-    //__________________________________________________________________________
-
-    if (!result.canceled) {
-      const uri = result.assets[0].uri;
-
-      const isBlurry = await isImageBlurry(uri, log);
-
+      const isBlurry = await isImageBlurry(image.uri, log);
       if (isBlurry) {
-        Alert.alert('Image is too blurry. Please choose another.');
-        return;
+        Alert.alert("Image is too blurry. Please choose another.");
+        continue;
       }
-
-      setTakenWithCamera(false);
-      setPhotoData(result);
-
-      //Example usage of inserting into metadata. A better option could be to add more fields to the photo form.
-      insertDataIntoImage('String', 'String');
-
-      setShowPhotoModule(true);
+      validImages.push(image);
     }
+    return validImages;
+  }
+
+  const handleNewMarkerFromCameraRoll = async () => {
+    console.info("handleNewMarkerFromCameraRoll");
+    setShowNewMarkerOptions(false);
+    const result = await pickPhotoFromLibrary(0);
+    if (!result || !tempMarker) return;
+
+    setShowNewMarkerOptions(false);
+    setShowTempMarker(false);
+    setPendingPhotos((await getValidImages(result)).map((p) => p.uri));
   };
 
-  /**
-   * Inserts data into an image object. It is dependent on if the photo is taken with camera or from library.
-   * The reason for this is due to the fact that the object exif (meta data) is further indented when taking from library and we need to acess further in.
-   *
-   * @param {any} data - The data to insert
-   * @param {string} objectName - The name of the image object
-   */
-  const insertDataIntoImage = async (data: any, objectName: string) => {
-    if (!takenWithCamera) {
-      setPhotoData((prev: any) => ({
-        ...prev,
-        assets: [
-          {
-            ...prev.assets[0],
-            exif: {
-              ...(prev.assets[0].exif ?? {}),
-              [objectName]: data,
-            },
-          },
-        ],
-      }));
-    } else if (takenWithCamera) {
-      setPhotoData((prev: any) => ({
-        ...prev,
-        exif: {
-          ...(prev.exif ?? {}),
-          objectName: data,
-        },
-      }));
-    }
-  };
-  //____________________________________________________________
+  const handleNewMarkerFromPicture = async () => {
+    setShowNewMarkerOptions(false);
+    setShowCamera(true);
+    if (!tempMarker) return;
 
-  const handlePickFromLibraryForExistingMarker = async () => {
-    setShowMarkerOptions(false);
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
+    cameraAction.current = (img) => {
+      setPendingPhotos([img]);
+      setShowCamera(false);
+    };
+    setShowNewMarkerOptions(false);
+    setShowTempMarker(false);
+  };
+
+  const handleAddFromCameraRollToMarker = async () => {
+    setShowNewMarkerOptions(false);
+    const result = await pickPhotoFromLibrary(0);
+    if (!result || !selectedMarkerId) return;
+
+    setPendingPhotos((await getValidImages(result)).map((p) => p.uri));
+  };
+
+  const handleAddFromPictureToMarker = async () => {
+    if (!selectedMarkerId) return;
+    setShowNewMarkerOptions(false);
+    setShowCamera(true);
+
+    cameraAction.current = (img) => {
+      setPendingPhotos([img]);
+      setShowCamera(false);
+    };
+  };
+
+  const handleDeletePhoto = (photo: PhotoData) => {
+    if (!selectedMarkerId) return;
+    removePhoto(selectedMarkerId, photo);
+  };
+
+  const pickPhotoFromLibrary = async (selectionLimit = 1) => {
+    const res = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      selectionLimit,
       allowsEditing: false,
       quality: 1,
+      exif: true,
     });
-
-    if (!result.canceled) {
-      addPhotoToMarker(result.assets[0].uri);
-    }
-  };
-
-  const handleTakePhoto = async () => {
-    if (cameraRef.current) {
-      //__________Allowing meta data for taken photos________
-      let photo;
-
-      let start = performance.now();
-      custom('Cammera time taking picture:', 'Index.tsx');
-      try {
-        photo = await cameraRef.current.takePictureAsync({ exif: true });
-      } catch (e) {
-        error('Failed to take picture, Error:' + e);
-      }
-
-      const delta = performance.now() - start;
-      custom(
-        'Time delta to take picture: ' + (delta / 1000).toFixed(3) + ' s',
-        'Index.tsx'
-      );
-      //________________________________________________________________
-      if (photo) {
-        setLoading(true);
-        let isBlurry;
-        start = performance.now();
-        try {
-          isBlurry = await isImageBlurry(photo.uri, log);
-        } catch (e) {
-          error('Failed to check if Image is blurry, Error' + e);
-        }
-        setLoading(false);
-        const delta = performance.now() - start;
-        custom(
-          'Time delta for isBlurry to run:' + (delta / 1000).toFixed(3) + ' s',
-          'Index.tsx'
-        );
-        if (isBlurry) {
-          Alert.alert('Image is too blurry. Please take another.');
-          return;
-        }
-        setPhotoData(photo);
-        setTakenWithCamera(true);
-        setShowCamera(false);
-
-        setShowPhotoModule(true);
-      }
-    }
-  };
-
-  const handleDeletePhoto = (photoIndex: number) => {
-    if (selectedMarker) {
-      const updatedPhotos = selectedMarker.photos.filter(
-        (_, i) => i !== photoIndex
-      );
-      if (updatedPhotos.length === 0) {
-        // Remove marker if no photos left
-        setMarkers(markers.filter((m) => m.id !== selectedMarker.id));
-        setSelectedMarker(null);
-        setShowPhotos(false);
-      } else {
-        setMarkers(
-          markers.map((m) =>
-            m.id === selectedMarker.id ? { ...m, photos: updatedPhotos } : m
-          )
-        );
-        setSelectedMarker({ ...selectedMarker, photos: updatedPhotos });
-      }
-    }
-  };
-
-  const handleTakeAnotherPicture = async () => {
-    setShowMarkerOptions(false);
-    if (!permission?.granted) {
-      await requestPermission();
-      return;
-    }
-    setShowCamera(true);
+    if (res.canceled) return null;
+    return res.assets;
   };
 
   const handleShowPhotos = () => {
@@ -350,48 +158,25 @@ export default function HomeScreen() {
   };
 
   const closeAllModals = () => {
-    setNewMarkerPosition(null);
-    setSelectedMarker(null);
     setShowCamera(false);
     setShowPhotos(false);
+    setSelectedMarkerId(null);
     setShowMarkerOptions(false);
-    setShowNewMarkerOptions(false);
+    setShowTempMarker(false);
   };
+
   if (showCamera) {
     return (
-      <View style={styles.cameraContainer}>
-        {isFocused && (
-          <CameraView
-            style={StyleSheet.absoluteFillObject}
-            ref={cameraRef}
-            onCameraReady={() => log('Camera ready')}
-          />
-        )}
-
-        <View style={styles.cameraButtonsOverlay} pointerEvents="box-none">
-          <TouchableOpacity
-            style={styles.cancelButton}
-            onPress={() => setShowCamera(false)}
-          >
-            <Text style={styles.buttonText}>Cancel</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.captureButton}
-            onPress={handleTakePhoto}
-          >
-            <View style={styles.captureButtonInner} />
-          </TouchableOpacity>
-
-          <View style={{ width: 70 }} />
-        </View>
-        {loading && <LoadingOverlay text="Checking photo for blur..." />}
-      </View>
+      <CameraUI
+        onPictureTaken={cameraAction.current}
+        cameraRef={cameraRef}
+        onCancel={() => setShowCamera(false)}
+      />
     );
   }
 
   // Show floor plan picker if no floor plan selected
-  if (!floorPlan) {
+  if (!floorplan) {
     return (
       <View style={styles.pickerContainer}>
         <StatusBar style="auto" />
@@ -399,7 +184,7 @@ export default function HomeScreen() {
         <Text style={styles.subtitle}>
           Select a floor plan image to get started
         </Text>
-        <TouchableOpacity style={styles.pickButton} onPress={pickFloorPlan}>
+        <TouchableOpacity style={styles.pickButton} onPress={pickFloorplan}>
           <Text style={styles.pickButtonText}>Select Floor Plan</Text>
         </TouchableOpacity>
       </View>
@@ -410,516 +195,123 @@ export default function HomeScreen() {
     <View style={styles.container}>
       <StatusBar style="auto" />
 
+      {currentUri && (
+        <PhotoFormModal
+          visible
+          onSkip={() => {
+            pendingPhotos.pop();
+            setPendingPhotos(pendingPhotos);
+            if (tempMarker && describedPhotos.current.length > 0) {
+              // If we've gotten submissions for something and nothing is pending, create or update a marker.
+              if (selectedMarkerId) {
+                addPhotos(selectedMarkerId, describedPhotos.current);
+              } else {
+                addMarker(tempMarker.x, tempMarker.y, describedPhotos.current);
+              }
+              describedPhotos.current = []; // Prep for next marker creation.
+            }
+            currentUri = pendingPhotos[0];
+          }} // Skip one URI on close.
+          photoUri={currentUri}
+          date="2026-01-01"
+          onSubmit={(photoData) => {
+            pendingPhotos.pop();
+            // Store data on submit of photo data.
+            describedPhotos.current.push(photoData);
+            savedPhotos.current.push(photoData);
+            console.info(savedPhotos);
+            setPendingPhotos(pendingPhotos);
+            if (tempMarker && describedPhotos.current.length > 0) {
+              // If we've gotten submissions for something and nothing is pending, create or update a marker.
+              if (selectedMarkerId) {
+                addPhotos(selectedMarkerId, describedPhotos.current);
+              } else {
+                addMarker(tempMarker.x, tempMarker.y, describedPhotos.current);
+              }
+              describedPhotos.current = []; // Prep for next marker creation.
+            }
+            currentUri = pendingPhotos[0];
+          }}
+        />
+      )}
+
       {/* Header with change floor plan option */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Floor Plan</Text>
-        <TouchableOpacity onPress={pickFloorPlan}>
+        <TouchableOpacity onPress={pickFloorplan}>
           <Text style={styles.headerButton}>Change</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Floor plan with markers */}
+      {/* Floor plan with markers. THIS IS WHERE PINCH-TO-ZOOM FUNCTIONALITY SHOULD GO */}
       <Pressable style={styles.canvas} onPress={handleCanvasPress}>
         <Image
-          source={{ uri: floorPlan }}
+          source={{ uri: floorplan }}
           style={styles.floorPlanImage}
           resizeMode="contain"
         />
 
         {/* Render markers */}
         {markers.map((marker) => (
-          <View
-            key={marker.id}
-            style={[styles.marker, { left: marker.x, top: marker.y }]}
-          >
-            <View style={styles.markerDot} />
-            <Text style={styles.markerCount}>{marker.photos.length}</Text>
-          </View>
+          <MarkerElement marker={marker} key={marker.id} />
         ))}
 
         {/* New marker popup */}
-        {newMarkerPosition && (
-          <View
-            style={[
-              styles.popup,
-              {
-                left: newMarkerPosition.x - 82,
-                top: newMarkerPosition.y - 120,
-              },
-            ]}
-          >
-            <TouchableOpacity
-              style={styles.popupButton}
-              onPress={() => setShowNewMarkerOptions(true)}
-            >
-              <Text style={styles.popupText}>Add picture for this space?</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.popupCancel}
-              onPress={() => setNewMarkerPosition(null)}
-            >
-              <Text style={styles.popupCancelText}>Cancel</Text>
-            </TouchableOpacity>
-            <View style={styles.popupArrow} />
-          </View>
+        {showTempMarker && tempMarker && (
+          <EditMarkerModal
+            tempMarker={tempMarker}
+            onCancel={() => {
+              setShowTempMarker(false);
+            }}
+            onAddPicture={() => {
+              setShowNewMarkerOptions(true);
+            }}
+          />
         )}
       </Pressable>
+
       {/* New marker options modal */}
-      <Modal visible={showNewMarkerOptions} transparent animationType="fade">
-        <Pressable
-          style={styles.modalOverlay}
-          onPress={() => setShowNewMarkerOptions(false)}
-        >
-          <Pressable
-            style={styles.optionsModal}
-            onPress={(e) => e.stopPropagation()}
-          >
-            <Text style={styles.optionsTitle}>Add Picture</Text>
-            <TouchableOpacity
-              style={styles.optionButton}
-              onPress={handleTakePictureForNewMarker}
-            >
-              <Text style={styles.optionText}>Take Photo</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.optionButton}
-              onPress={handlePickFromLibraryForNewMarker}
-            >
-              <Text style={styles.optionText}>Choose from Library</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.optionCancelButton}
-              onPress={() => setShowNewMarkerOptions(false)}
-            >
-              <Text style={styles.optionCancelText}>Cancel</Text>
-            </TouchableOpacity>
-          </Pressable>
-        </Pressable>
-      </Modal>
+      <NewMarkerOptionsModal
+        handleNewMarkerFromCameraRoll={handleNewMarkerFromCameraRoll}
+        showModal={showNewMarkerOptions}
+        handleNewMarkerFromPicture={handleNewMarkerFromPicture}
+        setShowNewMarkerOptions={setShowNewMarkerOptions}
+        setShowTempMarker={setShowTempMarker}
+      />
 
-      {/* Marker options modal */}
-      <Modal visible={showMarkerOptions} transparent animationType="fade">
-        <Pressable style={styles.modalOverlay} onPress={closeAllModals}>
-          <Pressable
-            style={styles.optionsModal}
-            onPress={(e) => e.stopPropagation()}
-          >
-            <Text style={styles.optionsTitle}>Marker Options</Text>
-            <TouchableOpacity
-              style={styles.optionButton}
-              onPress={handleShowPhotos}
-            >
-              <Text style={styles.optionText}>
-                Show Pictures ({selectedMarker?.photos.length})
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.optionButton}
-              onPress={handleTakeAnotherPicture}
-            >
-              <Text style={styles.optionText}>Take Photo</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.optionButton}
-              onPress={handlePickFromLibraryForExistingMarker}
-            >
-              <Text style={styles.optionText}>Choose from Library</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.optionCancelButton}
-              onPress={closeAllModals}
-            >
-              <Text style={styles.optionCancelText}>Cancel</Text>
-            </TouchableOpacity>
-          </Pressable>
-        </Pressable>
-      </Modal>
-      {showPhotoModule && (
-        <PhotoFormModal
-          visible={showPhotoModule}
-          photoUri={
-            takenWithCamera ? photoData?.uri : photoData?.assets?.[0]?.uri
-          }
-          date={
-            takenWithCamera
-              ? photoData?.exif?.DateTimeOriginal
-              : photoData?.assets?.[0]?.exif?.DateTimeOriginal
-          }
-          onClose={() => setShowPhotoModule(false)}
-          onSubmit={(data) => {
-            log('Form data:' + JSON.stringify(data));
+      <MarkerOptionsModal
+        showModal={showMarkerOptions}
+        marker={selectedMarker}
+        handleShowPhotos={handleShowPhotos}
+        closeAllModals={closeAllModals}
+        handleAddFromPictureToMarker={handleAddFromPictureToMarker}
+        handleAddFromCameraRollToMarker={handleAddFromCameraRollToMarker}
+      />
 
-            addPhotoToMarker(data.photoUri);
-            setShowPhotoModule(false);
-            if (data && !listOfPhotos.includes(data)) {
-              setListOfPhotos((current) => [...current, data]);
-              log('Processing photo...' + JSON.stringify(data));
-            }
-          }}
-        />
-      )}
+      <PhotoGalleryModal
+        showModal={showPhotos}
+        marker={selectedMarker}
+        handleDeletePhoto={handleDeletePhoto}
+        closeAllModals={closeAllModals}
+      />
 
-      {/* Photos gallery modal */}
-      <Modal visible={showPhotos} transparent animationType="slide">
-        <View style={styles.photosModal}>
-          <View style={styles.photosHeader}>
-            <Text style={styles.photosTitle}>
-              Photos ({selectedMarker?.photos.length})
-            </Text>
-            <TouchableOpacity onPress={closeAllModals}>
-              <Text style={styles.closeButton}>Close</Text>
-            </TouchableOpacity>
-          </View>
-          <ScrollView contentContainerStyle={styles.photosGrid}>
-            {selectedMarker?.photos.map((photo, index) => (
-              <View key={index} style={styles.photoContainer}>
-                <Image source={{ uri: photo }} style={styles.photoThumbnail} />
-                <TouchableOpacity
-                  style={styles.deleteButton}
-                  onPress={() => handleDeletePhoto(index)}
-                >
-                  <Text style={styles.deleteButtonText}>✕</Text>
-                </TouchableOpacity>
-              </View>
-            ))}
-          </ScrollView>
-        </View>
-      </Modal>
-      {showPhotoList && (
+      {showPhotoListView && (
         <View style={styles.fullscreenOverlay}>
-          <PhotoList photoList={listOfPhotos} />
+          <PhotoList photoList={savedPhotos.current} />
         </View>
       )}
-      <TouchableOpacity
-        style={styles.showListButton}
-        onPress={() => {
-          setShowPhotoList((prev) => !prev);
-        }}
-      >
-        <Text>{showPhotoList ? 'Back to Floorplan' : 'Show List'}</Text>
-      </TouchableOpacity>
+      <View>
+        <TouchableOpacity
+          style={styles.showListButton}
+          onPress={() => setShowPhotoListView(!showPhotoListView)}
+        >
+          <Text>{showPhotoListView ? "Hide photos" : "Show photos"}</Text>
+        </TouchableOpacity>
+      </View>
+
       <Text style={styles.instructions}>
         Tap on the floor plan to place a marker
       </Text>
-      {loading && <LoadingOverlay text="Checking photo for blur..." />}
     </View>
   );
 }
-
-const { width } = Dimensions.get('window');
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-  },
-  pickerContainer: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 20,
-  },
-
-  fullscreenOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: '#fff',
-    zIndex: 5,
-  },
-
-  showListButton: {
-    position: 'absolute',
-    bottom: 40,
-    right: 20,
-    backgroundColor: '#2196F3',
-    padding: 12,
-    borderRadius: 10,
-    zIndex: 10,
-    elevation: 10,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    marginBottom: 10,
-    color: '#333',
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#666',
-    marginBottom: 30,
-    textAlign: 'center',
-  },
-  pickButton: {
-    backgroundColor: '#2196F3',
-    paddingHorizontal: 40,
-    paddingVertical: 15,
-    borderRadius: 10,
-  },
-  pickButtonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 50,
-    paddingBottom: 10,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  headerButton: {
-    color: '#2196F3',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  canvas: {
-    flex: 1,
-    backgroundColor: '#e0e0e0',
-  },
-  floorPlanImage: {
-    width: '100%',
-    height: '100%',
-    position: 'absolute',
-  },
-  marker: {
-    position: 'absolute',
-    width: 30,
-    height: 30,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  markerDot: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: '#FF5722',
-    borderWidth: 3,
-    borderColor: '#fff',
-    transform: [{ translateX: -10 }, { translateY: -10 }],
-    pointerEvents: 'none',
-  },
-  markerCount: {
-    position: 'absolute',
-    top: -8,
-    right: -8,
-    backgroundColor: '#2196F3',
-    color: '#fff',
-    fontSize: 10,
-    fontWeight: 'bold',
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    textAlign: 'center',
-    lineHeight: 18,
-    overflow: 'hidden',
-  },
-  popup: {
-    position: 'absolute',
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    padding: 10,
-    width: 180,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
-    zIndex: 100,
-  },
-  popupButton: {
-    padding: 10,
-    backgroundColor: '#4CAF50',
-    borderRadius: 8,
-    marginBottom: 8,
-  },
-  popupText: {
-    color: '#fff',
-    textAlign: 'center',
-    fontWeight: '600',
-    fontSize: 13,
-  },
-  popupCancel: {
-    padding: 8,
-  },
-  popupCancelText: {
-    color: '#666',
-    textAlign: 'center',
-    fontSize: 12,
-  },
-  popupArrow: {
-    position: 'absolute',
-    bottom: -10,
-    left: '50%',
-    marginLeft: -10,
-    width: 0,
-    height: 0,
-    borderLeftWidth: 10,
-    borderRightWidth: 10,
-    borderTopWidth: 10,
-    borderLeftColor: 'transparent',
-    borderRightColor: 'transparent',
-    borderTopColor: '#fff',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  optionsModal: {
-    backgroundColor: '#fff',
-    borderRadius: 15,
-    padding: 20,
-    width: 280,
-  },
-  optionsTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 15,
-  },
-  optionButton: {
-    backgroundColor: '#2196F3',
-    padding: 15,
-    borderRadius: 10,
-    marginBottom: 10,
-  },
-  optionText: {
-    color: '#fff',
-    textAlign: 'center',
-    fontWeight: '600',
-    fontSize: 15,
-  },
-  optionCancelButton: {
-    padding: 15,
-  },
-  optionCancelText: {
-    color: '#666',
-    textAlign: 'center',
-    fontSize: 15,
-  },
-  photosModal: {
-    flex: 1,
-    backgroundColor: '#fff',
-    marginTop: 50,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-  },
-  photosHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-  },
-  photosTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  closeButton: {
-    color: '#2196F3',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  photosGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    padding: 10,
-  },
-  photoContainer: {
-    width: (width - 40) / 3,
-    height: (width - 40) / 3,
-    margin: 5,
-    position: 'relative',
-  },
-  photoThumbnail: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 10,
-  },
-  deleteButton: {
-    position: 'absolute',
-    top: 5,
-    right: 5,
-    backgroundColor: 'rgba(255,0,0,0.8)',
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  deleteButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 12,
-  },
-  cameraContainer: {
-    flex: 1,
-    backgroundColor: '#000',
-  },
-  cameraButtonsOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-    paddingHorizontal: 30,
-    paddingBottom: 40,
-  },
-  camera: {
-    flex: 1,
-    justifyContent: 'flex-end',
-  },
-  cameraButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 30,
-    paddingBottom: 40,
-  },
-  cancelButton: {
-    padding: 15,
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  captureButton: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    backgroundColor: 'rgba(255,255,255,0.3)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  captureButtonInner: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#fff',
-  },
-  instructions: {
-    position: 'absolute',
-    bottom: 30,
-    left: 0,
-    right: 0,
-    textAlign: 'center',
-    color: '#666',
-    fontSize: 14,
-    backgroundColor: 'rgba(255,255,255,0.8)',
-    paddingVertical: 8,
-  },
-});

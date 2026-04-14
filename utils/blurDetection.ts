@@ -1,6 +1,6 @@
-import { Buffer } from 'buffer';
-import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
-import UPNG from 'upng-js';
+import { Buffer } from "buffer";
+import { ImageManipulator, SaveFormat } from "expo-image-manipulator";
+import UPNG from "upng-js";
 
 /**
  * Optional logger function type.
@@ -87,7 +87,7 @@ async function decodeImageToRgba(
     throw new Error(`Could not decode image: ${uri}`);
   }
 
-  const pngBytes = Buffer.from(result.base64, 'base64');
+  const pngBytes = Buffer.from(result.base64, "base64");
 
   const arrayBuffer = pngBytes.buffer.slice(
     pngBytes.byteOffset,

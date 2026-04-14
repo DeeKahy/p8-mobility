@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from "react-native";
 
 interface HelloCardProps {
   title: string;
@@ -19,16 +19,16 @@ const styles = StyleSheet.create({
   card: {
     padding: 20,
     borderRadius: 12,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     elevation: 3,
   },
   title: {
     fontSize: 20,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   subtitle: {
     marginTop: 8,
     fontSize: 14,
-    color: '#666',
+    color: "#666",
   },
 });

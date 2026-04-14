@@ -1,39 +1,39 @@
-appId: 'com.anonymous.p8mobility'
+appId: "com.anonymous.p8mobility"
 ---
 - launchApp:
-    appId: 'com.anonymous.p8mobility'
+    appId: "com.anonymous.p8mobility"
 - assertVisible:
-    text: 'Camera'
+    text: "Camera"
     index: 0
 - assertVisible:
-    text: 'Floorplan'
+    text: "Floorplan"
 - assertVisible:
-    text: 'Main page'
+    text: "Main page"
 - assertVisible:
-    text: 'debug'
+    text: "debug"
 
 # Test navigation to Main page
-- tapOn: 'Main page'
-- assertVisible: 'Welcome to our very Hygge App'
+- tapOn: "Main page"
+- assertVisible: "Welcome to our very Hygge App"
 
 # Test navigation to Camera
-- tapOn: 'Camera'
+- tapOn: "Camera"
 - assertVisible:
-    id: 'camera-view'
+    id: "camera-view"
     optional: true
 
 # Test navigation to Floorplan
-- tapOn: 'Floorplan'
+- tapOn: "Floorplan"
 - assertVisible:
-    text: 'Upload Image'
+    text: "Upload Image"
     optional: true
 
 # Test navigation to Debug
-- tapOn: 'debug'
+- tapOn: "debug"
 - assertVisible:
-    text: 'Debug'
+    text: "Debug"
     optional: true
 
 # Return to main page
-- tapOn: 'Main page'
-- assertVisible: 'Welcome to our very Hygge App'
+- tapOn: "Main page"
+- assertVisible: "Welcome to our very Hygge App"

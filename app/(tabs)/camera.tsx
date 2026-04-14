@@ -1,7 +1,8 @@
-import { CameraView, useCameraPermissions } from 'expo-camera';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { CameraView, useCameraPermissions } from "expo-camera";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
-import { useLogger } from '../../context/LoggerContext';
+import { useLogger } from "../../context/LoggerContext";
+
 export default function CameraScreen() {
   const [permission, requestPermission] = useCameraPermissions();
   const { log } = useLogger();
@@ -21,7 +22,7 @@ export default function CameraScreen() {
   }
 
   return (
-    <CameraView style={{ flex: 1 }} onCameraReady={() => log('Camera ready')}>
+    <CameraView style={{ flex: 1 }} onCameraReady={() => log("Camera ready")}>
       <View style={styles.overlay}>
         <Text style={styles.overlayText}>Camera screen</Text>
       </View>
@@ -32,8 +33,8 @@ export default function CameraScreen() {
 const styles = StyleSheet.create({
   center: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     padding: 20,
   },
   text: {
@@ -41,22 +42,22 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   button: {
-    backgroundColor: '#2196F3',
+    backgroundColor: "#2196F3",
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 8,
   },
   buttonText: {
-    color: '#fff',
-    fontWeight: '600',
+    color: "#fff",
+    fontWeight: "600",
   },
   overlay: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 40,
-    alignSelf: 'center',
+    alignSelf: "center",
   },
   overlayText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 16,
   },
 });

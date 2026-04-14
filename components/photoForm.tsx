@@ -1,40 +1,40 @@
-import { yupResolver } from '@hookform/resolvers/yup';
-import { useState } from 'react';
-import { useForm, Controller } from 'react-hook-form';
+import { yupResolver } from "@hookform/resolvers/yup";
+import { useState } from "react";
+import { useForm, Controller } from "react-hook-form";
 //Expected photo data format to make it easier to pass over including only the most necessary. Also works in unison with yup validator.
-import { View, Image, TextInput, Button, Text, Modal } from 'react-native';
-import DropDownPicker from 'react-native-dropdown-picker';
-import * as yup from 'yup';
+import { View, Image, TextInput, Button, Text, Modal } from "react-native";
+import DropDownPicker from "react-native-dropdown-picker";
+import * as yup from "yup";
 
-import { styles } from '../app/css/photoForm';
-import { PhotoForm } from '../app/models/PhotoFormModel';
+import { styles } from "../css/photoForm";
+import { PhotoData } from "../models/PhotoFormModel";
 //Photo form to take data from index.tsx and opening and closing modal
 type PhotoFormProps = {
   visible: boolean;
-  onClose: () => void;
+  onSkip: () => void;
   photoUri: string;
   date: string;
-  onSubmit: (data: PhotoForm) => void;
+  onSubmit: (data: PhotoData) => void;
 };
 
 //Form validator
 const schema = yup
   .object({
-    photoUri: yup.string().required('Photo is required'),
-    areaGroup: yup.string().required('Area group is required'),
-    pictureName: yup.string().required('Picture name is required'),
-    dateTaken: yup.string().required('Date is required'),
+    photoUri: yup.string().required("Photo is required"),
+    areaGroup: yup.string().required("Area group is required"),
+    pictureName: yup.string().required("Picture name is required"),
+    dateTaken: yup.string().required("Date is required"),
     description: yup.string().required(),
   })
   .required();
 
-export default function PhotoFormModal({
+export const PhotoFormModal = ({
   visible,
-  onClose,
+  onSkip,
   photoUri,
   date,
   onSubmit,
-}: PhotoFormProps) {
+}: PhotoFormProps) => {
   const [open, setOpen] = useState(false);
   const [showOtherInputForm, setShowOtherInputForm] = useState(false);
 
@@ -45,21 +45,21 @@ export default function PhotoFormModal({
     handleSubmit,
     reset,
     formState: { errors, isLoading },
-  } = useForm<PhotoForm>({
+  } = useForm<PhotoData>({
     // Specififying what our form is gonna look like
     defaultValues: {
       photoUri,
-      dateTaken: date,
-      pictureName: '',
-      areaGroup: '',
-      description: '',
+      dateTaken: "2026-01-01",
+      pictureName: "",
+      areaGroup: "",
+      description: "",
     },
     resolver: yupResolver(schema),
   });
 
   return (
     <Modal animationType="slide" transparent visible={visible}>
-      <View style={styles.container}>
+      <View style={[styles.container, styles.fullscreenOverlay]}>
         <View style={styles.formCard}>
           <Text>Picture:</Text>
           <View style={styles.imageContainer}>
@@ -97,16 +97,16 @@ export default function PhotoFormModal({
                   open={open}
                   value={value}
                   items={[
-                    { label: 'Kitchen', value: 'Kitchen' },
-                    { label: 'Living Room', value: 'Living Room' },
-                    { label: 'Bathroom', value: 'Bathroom' },
-                    { label: 'Bedroom', value: 'Bedroom' },
-                    { label: 'Other', value: 'Other' },
+                    { label: "Kitchen", value: "Kitchen" },
+                    { label: "Living Room", value: "Living Room" },
+                    { label: "Bathroom", value: "Bathroom" },
+                    { label: "Bedroom", value: "Bedroom" },
+                    { label: "Other", value: "Other" },
                   ]}
                   setOpen={setOpen}
                   setValue={(currentValue) => {
                     const newValue = currentValue(value);
-                    setShowOtherInputForm(newValue === 'Other');
+                    setShowOtherInputForm(newValue === "Other");
                     onChange(newValue);
                   }}
                   placeholder="Select area group"
@@ -145,7 +145,7 @@ export default function PhotoFormModal({
             render={({ field: { value } }) => (
               <TextInput
                 style={styles.dateInput}
-                value={value}
+                value={date}
                 placeholder="YYYY-MM-DD"
                 editable={false}
               />
@@ -165,22 +165,22 @@ export default function PhotoFormModal({
               reset({
                 photoUri,
                 dateTaken: date,
-                pictureName: '',
-                areaGroup: '',
-                description: '',
+                pictureName: "",
+                areaGroup: "",
+                description: "",
               });
             })}
           />
           <Button
             title="Cancel"
             onPress={() => {
-              onClose();
+              onSkip();
               reset({
-                photoUri: '',
-                dateTaken: '',
-                pictureName: '',
-                areaGroup: '',
-                description: '',
+                photoUri: "",
+                dateTaken: "",
+                pictureName: "",
+                areaGroup: "",
+                description: "",
               });
             }}
           />
@@ -188,4 +188,4 @@ export default function PhotoFormModal({
       </View>
     </Modal>
   );
-}
+};

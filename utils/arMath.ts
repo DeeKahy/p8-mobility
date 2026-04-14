@@ -1,11 +1,11 @@
-import { Point3D } from '../app/models/3Dpoints';
+import { Point3D } from "../app/models/3Dpoints";
 // Validates that a value is a proper 3D coordinate
 export function isValidPoint(position: unknown): position is Point3D {
   return (
     Array.isArray(position) &&
     position.length === 3 &&
     position.every(
-      (value) => typeof value === 'number' && Number.isFinite(value)
+      (value) => typeof value === "number" && Number.isFinite(value)
     )
   );
 }

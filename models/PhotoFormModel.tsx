@@ -1,4 +1,4 @@
-export type PhotoForm = {
+export type PhotoData = {
   photoUri: string;
   dateTaken: string;
   pictureName: string;

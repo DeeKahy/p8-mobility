@@ -1,10 +1,10 @@
-import { StyleSheet } from 'react-native';
+import { StyleSheet } from "react-native";
 
 export const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)', // overlay effect
-    justifyContent: 'space-between',
+    backgroundColor: "rgba(0,0,0,0.4)", // overlay effect
+    justifyContent: "space-between",
     paddingVertical: 40,
   },
 
@@ -13,8 +13,8 @@ export const styles = StyleSheet.create({
   },
 
   buttonRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
+    flexDirection: "row",
+    justifyContent: "space-around",
     paddingHorizontal: 20,
     paddingBottom: 30,
   },
@@ -27,7 +27,7 @@ export const styles = StyleSheet.create({
 
   buttonText: {
     fontSize: 16,
-    color: 'black',
-    fontWeight: '600',
+    color: "black",
+    fontWeight: "600",
   },
 });
