@@ -2,15 +2,15 @@ import { useMemo, useState } from "react";
 import { FlatList, View, Text, Image, TouchableOpacity } from "react-native";
 
 import { styles } from "../css/photo_list";
-import { PhotoForm } from "../models/PhotoFormModel";
+import { PhotoData } from "../models/PhotoFormModel";
 type PhotoFormProps = {
-  photoList: PhotoForm[];
+  photoList: PhotoData[];
 };
 
-export default ({ photoList }: PhotoFormProps) => {
+export const PhotoList = ({ photoList }: PhotoFormProps) => {
   const [showPhoto, setShowPhoto] = useState<string | null>(null);
   // Without useMemo, this runs on every keystroke and any state change. Sorts based on area group
-  const processedPhotos = useMemo<PhotoForm[]>(() => {
+  const processedPhotos = useMemo<PhotoData[]>(() => {
     return photoList.sort((a, b) => {
       return a.areaGroup.localeCompare(b.areaGroup);
     });
@@ -20,7 +20,7 @@ export default ({ photoList }: PhotoFormProps) => {
     setShowPhoto(showPhoto === photoToShow ? null : photoToShow);
   };
 
-  const Item = ({ pictureName, dateTaken, photoUri, areaGroup }: PhotoForm) => (
+  const Item = ({ pictureName, dateTaken, photoUri, areaGroup }: PhotoData) => (
     <View style={styles.card}>
       <View style={styles.textContainer}>
         <Text style={styles.subtitle}>{areaGroup}</Text>

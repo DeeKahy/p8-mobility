@@ -10,17 +10,18 @@ import { TapGestureEvent } from "react-native-zoom-toolkit";
 
 import { useLogger } from "./LoggerContext";
 import { Marker, useMarkers } from "../hooks/useMarkers";
+import { PhotoData } from "../models/PhotoFormModel";
 
 interface FloorplanContextReturn {
   floorplan: string | null;
   pickFloorplan: () => Promise<void>;
   handleCanvasPress: (event: TapGestureEvent) => void;
   markers: Marker[];
-  addMarker: (x: number, y: number, photoURIs: string[]) => void;
+  addMarker: (x: number, y: number, photos: PhotoData[]) => void;
   clearMarkers: () => void;
   editMarker: (id: string, editorFnc: (old: Marker) => Marker) => void;
-  addPhotos: (id: string, photoURIs: string[]) => void;
-  removePhoto: (id: string, photoURI: string) => void;
+  addPhotos: (id: string, photos: PhotoData[]) => void;
+  removePhoto: (id: string, photo: PhotoData) => void;
   tryGetMarker: (x: number, y: number) => Marker | null;
   deleteMarker: (id: string) => void;
   selectedMarkerId: string | null;

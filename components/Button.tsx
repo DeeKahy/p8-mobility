@@ -1,12 +1,12 @@
 import { Pressable, Text, StyleSheet } from "react-native";
 
 interface ButtonProps {
-  label: string;
+  text: string;
   onPress: () => void;
   disabled?: boolean;
 }
 
-export default function Button({ label, onPress, disabled }: ButtonProps) {
+export default function Button({ text, onPress, disabled }: ButtonProps) {
   return (
     <Pressable
       onPress={onPress}
@@ -17,7 +17,7 @@ export default function Button({ label, onPress, disabled }: ButtonProps) {
         disabled && styles.disabled,
       ]}
     >
-      <Text style={styles.text}>{label}</Text>
+      <Text style={styles.text}>{text}</Text>
     </Pressable>
   );
 }

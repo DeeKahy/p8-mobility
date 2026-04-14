@@ -248,4 +248,25 @@ export const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.8)",
     paddingVertical: 8,
   },
+
+  fullscreenOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "#fff",
+    zIndex: 5,
+  },
+
+  showListButton: {
+    position: "absolute",
+    bottom: 40,
+    right: 20,
+    backgroundColor: "#2196F3",
+    padding: 12,
+    borderRadius: 10,
+    zIndex: 10,
+    elevation: 10,
+  },
 });
