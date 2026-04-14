@@ -6,8 +6,8 @@ import ViewShot, { captureRef } from "react-native-view-shot";
 
 import { RotationControls } from "./RotationControls";
 import { useRotation } from "../app/hooks/useRotation";
-import { calculateDistanceMeters, calculateMidPoint } from "../utils/arMath";
 import { PointProps } from "../models/PointProps";
+import { calculateDistanceMeters, calculateMidPoint } from "../utils/arMath";
 
 // Type to ensure that component CreateSvg only takes type of string
 type CreateSvgProps = {

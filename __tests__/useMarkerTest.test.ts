@@ -1,4 +1,5 @@
 import { act, renderHook } from "@testing-library/react-native";
+
 import { useMarkers } from "../hooks/useMarkers";
 
 jest.mock("../context/LoggerContext", () => ({
@@ -31,7 +32,8 @@ describe("useMarkers", () => {
     expect(result.current.markers.length).toBe(0);
   });
 
-  test("adds photos without duplicates", () => { // THIS TEST FAILS, MIGHT BE TIED TO NEW STUFF 
+  test("adds photos without duplicates", () => {
+    // THIS TEST FAILS, MIGHT BE TIED TO NEW STUFF
     const { result } = renderHook(() => useMarkers());
 
     act(() => {

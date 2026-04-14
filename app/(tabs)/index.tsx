@@ -2,14 +2,16 @@ import { CameraView } from "expo-camera";
 import * as ImagePicker from "expo-image-picker";
 import { StatusBar } from "expo-status-bar";
 import { useRef, useState } from "react";
+import { Alert, Image, Text, TouchableOpacity, View } from "react-native";
 import {
-  Alert,
-  Image,
-  Pressable,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+  Gesture,
+  GestureDetector,
+  GestureHandlerRootView,
+} from "react-native-gesture-handler";
+import {
+  ResumableZoom,
+  useTransformationState,
+} from "react-native-zoom-toolkit";
 
 import { CameraUI } from "../../components/CameraUI";
 import { EditMarkerModal } from "../../components/index/EditMarkerModal";
@@ -43,6 +45,9 @@ export default function HomeScreen() {
     setShowMarkerOptions,
     selectedMarker, //Reference, use with caution
   } = useFloorplan();
+
+  const { onUpdate: onResumableUpdate, state: resumableState } =
+    useTransformationState("resumable");
 
   const { log } = useLogger();
 
@@ -192,126 +197,154 @@ export default function HomeScreen() {
   }
 
   return (
-    <View style={styles.container}>
-      <StatusBar style="auto" />
+    <GestureHandlerRootView>
+      <View style={styles.container}>
+        <StatusBar style="auto" />
 
-      {currentUri && (
-        <PhotoFormModal
-          visible
-          onSkip={() => {
-            pendingPhotos.pop();
-            setPendingPhotos(pendingPhotos);
-            if (tempMarker && describedPhotos.current.length > 0) {
-              // If we've gotten submissions for something and nothing is pending, create or update a marker.
-              if (selectedMarkerId) {
-                addPhotos(selectedMarkerId, describedPhotos.current);
-              } else {
-                addMarker(tempMarker.x, tempMarker.y, describedPhotos.current);
+        {currentUri && (
+          <PhotoFormModal
+            visible
+            onSkip={() => {
+              pendingPhotos.pop();
+              setPendingPhotos(pendingPhotos);
+              if (tempMarker && describedPhotos.current.length > 0) {
+                // If we've gotten submissions for something and nothing is pending, create or update a marker.
+                if (selectedMarkerId) {
+                  addPhotos(selectedMarkerId, describedPhotos.current);
+                } else {
+                  addMarker(
+                    tempMarker.x,
+                    tempMarker.y,
+                    describedPhotos.current
+                  );
+                }
+                describedPhotos.current = []; // Prep for next marker creation.
               }
-              describedPhotos.current = []; // Prep for next marker creation.
-            }
-            currentUri = pendingPhotos[0];
-          }} // Skip one URI on close.
-          photoUri={currentUri}
-          date="2026-01-01"
-          onSubmit={(photoData) => {
-            pendingPhotos.pop();
-            // Store data on submit of photo data.
-            describedPhotos.current.push(photoData);
-            savedPhotos.current.push(photoData);
-            console.info(savedPhotos);
-            setPendingPhotos(pendingPhotos);
-            if (tempMarker && describedPhotos.current.length > 0) {
-              // If we've gotten submissions for something and nothing is pending, create or update a marker.
-              if (selectedMarkerId) {
-                addPhotos(selectedMarkerId, describedPhotos.current);
-              } else {
-                addMarker(tempMarker.x, tempMarker.y, describedPhotos.current);
+              currentUri = pendingPhotos[0];
+            }} // Skip one URI on close.
+            photoUri={currentUri}
+            date="2026-01-01"
+            onSubmit={(photoData) => {
+              pendingPhotos.pop();
+              // Store data on submit of photo data.
+              describedPhotos.current.push(photoData);
+              savedPhotos.current.push(photoData);
+              console.info(savedPhotos);
+              setPendingPhotos(pendingPhotos);
+              if (tempMarker && describedPhotos.current.length > 0) {
+                // If we've gotten submissions for something and nothing is pending, create or update a marker.
+                if (selectedMarkerId) {
+                  addPhotos(selectedMarkerId, describedPhotos.current);
+                } else {
+                  addMarker(
+                    tempMarker.x,
+                    tempMarker.y,
+                    describedPhotos.current
+                  );
+                }
+                describedPhotos.current = []; // Prep for next marker creation.
               }
-              describedPhotos.current = []; // Prep for next marker creation.
-            }
-            currentUri = pendingPhotos[0];
-          }}
-        />
-      )}
-
-      {/* Header with change floor plan option */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Floor Plan</Text>
-        <TouchableOpacity onPress={pickFloorplan}>
-          <Text style={styles.headerButton}>Change</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Floor plan with markers. THIS IS WHERE PINCH-TO-ZOOM FUNCTIONALITY SHOULD GO */}
-      <Pressable style={styles.canvas} onPress={handleCanvasPress}>
-        <Image
-          source={{ uri: floorplan }}
-          style={styles.floorPlanImage}
-          resizeMode="contain"
-        />
-
-        {/* Render markers */}
-        {markers.map((marker) => (
-          <MarkerElement marker={marker} key={marker.id} />
-        ))}
-
-        {/* New marker popup */}
-        {showTempMarker && tempMarker && (
-          <EditMarkerModal
-            tempMarker={tempMarker}
-            onCancel={() => {
-              setShowTempMarker(false);
-            }}
-            onAddPicture={() => {
-              setShowNewMarkerOptions(true);
+              currentUri = pendingPhotos[0];
             }}
           />
         )}
-      </Pressable>
 
-      {/* New marker options modal */}
-      <NewMarkerOptionsModal
-        handleNewMarkerFromCameraRoll={handleNewMarkerFromCameraRoll}
-        showModal={showNewMarkerOptions}
-        handleNewMarkerFromPicture={handleNewMarkerFromPicture}
-        setShowNewMarkerOptions={setShowNewMarkerOptions}
-        setShowTempMarker={setShowTempMarker}
-      />
-
-      <MarkerOptionsModal
-        showModal={showMarkerOptions}
-        marker={selectedMarker}
-        handleShowPhotos={handleShowPhotos}
-        closeAllModals={closeAllModals}
-        handleAddFromPictureToMarker={handleAddFromPictureToMarker}
-        handleAddFromCameraRollToMarker={handleAddFromCameraRollToMarker}
-      />
-
-      <PhotoGalleryModal
-        showModal={showPhotos}
-        marker={selectedMarker}
-        handleDeletePhoto={handleDeletePhoto}
-        closeAllModals={closeAllModals}
-      />
-
-      {showPhotoListView && (
-        <View style={styles.fullscreenOverlay}>
-          <PhotoList photoList={savedPhotos.current} />
+        {/* Header with change floor plan option */}
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>Floor Plan</Text>
+          <TouchableOpacity onPress={pickFloorplan}>
+            <Text style={styles.headerButton}>Change</Text>
+          </TouchableOpacity>
         </View>
-      )}
-      <View>
-        <TouchableOpacity
-          style={styles.showListButton}
-          onPress={() => setShowPhotoListView(!showPhotoListView)}
-        >
-          <Text>{showPhotoListView ? "Hide photos" : "Show photos"}</Text>
-        </TouchableOpacity>
-      </View>
 
-      <Text style={styles.instructions}>
-        Tap on the floor plan to place a marker
-      </Text>
-    </View>
+        {/* Floor plan with markers. */}
+        <ResumableZoom
+          extendGestures // This should be used with extendBorders or it might act weird.
+          extendBorders // extendBorders is our own addition. Don't forget to apply the patch!
+          onUpdate={onResumableUpdate}
+        >
+          <GestureDetector
+            gesture={Gesture.Tap() // Copying ResumableZoom's tap gesture parameters to have taps registered on the inside of it.
+              .maxDuration(250)
+              .numberOfTaps(1)
+              .runOnJS(true)
+              .onEnd(handleCanvasPress)}
+          >
+            <View style={styles.canvas}>
+              <Image
+                source={{ uri: floorplan }}
+                style={styles.floorPlanImage}
+                resizeMode="contain"
+              />
+
+              {/* Render markers */}
+              {markers.map((marker) => (
+                <MarkerElement
+                  marker={marker}
+                  key={marker.id}
+                  scale={resumableState.scale}
+                />
+              ))}
+
+              {/* New marker popup */}
+              {showTempMarker && tempMarker && (
+                <EditMarkerModal
+                  tempMarker={tempMarker}
+                  onCancel={() => {
+                    setShowTempMarker(false);
+                  }}
+                  onAddPicture={() => {
+                    setShowNewMarkerOptions(true);
+                  }}
+                  scale={resumableState.scale}
+                />
+              )}
+            </View>
+          </GestureDetector>
+        </ResumableZoom>
+        {/* New marker options modal */}
+        <NewMarkerOptionsModal
+          handleNewMarkerFromCameraRoll={handleNewMarkerFromCameraRoll}
+          showModal={showNewMarkerOptions}
+          handleNewMarkerFromPicture={handleNewMarkerFromPicture}
+          setShowNewMarkerOptions={setShowNewMarkerOptions}
+          setShowTempMarker={setShowTempMarker}
+        />
+
+        <MarkerOptionsModal
+          showModal={showMarkerOptions}
+          marker={selectedMarker}
+          handleShowPhotos={handleShowPhotos}
+          closeAllModals={closeAllModals}
+          handleAddFromPictureToMarker={handleAddFromPictureToMarker}
+          handleAddFromCameraRollToMarker={handleAddFromCameraRollToMarker}
+        />
+
+        <PhotoGalleryModal
+          showModal={showPhotos}
+          marker={selectedMarker}
+          handleDeletePhoto={handleDeletePhoto}
+          closeAllModals={closeAllModals}
+        />
+
+        {showPhotoListView && (
+          <View style={styles.fullscreenOverlay}>
+            <PhotoList photoList={savedPhotos.current} />
+          </View>
+        )}
+        <View>
+          <TouchableOpacity
+            style={styles.showListButton}
+            onPress={() => setShowPhotoListView(!showPhotoListView)}
+          >
+            <Text>{showPhotoListView ? "Hide photos" : "Show photos"}</Text>
+          </TouchableOpacity>
+        </View>
+
+        <Text style={styles.instructions}>
+          Tap on the floor plan to place a marker
+        </Text>
+      </View>
+    </GestureHandlerRootView>
   );
 }

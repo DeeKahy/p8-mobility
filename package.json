@@ -18,7 +18,8 @@
     "test:e2e:main": "maestro test .maestro/main-screen.yaml --platform=web",
     "test:e2e:nav": "maestro test .maestro/navigation-flow.yaml --platform=web",
     "test:e2e:smoke": "maestro test .maestro/smoke-test.yaml --platform=web",
-    "test:e2e:web": "npm run web & sleep 10 && maestro test .maestro/ --platform=web && pkill -f 'expo start'"
+    "test:e2e:web": "npm run web & sleep 10 && maestro test .maestro/ --platform=web && pkill -f 'expo start'",
+    "postinstall": "patch-package"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.1.1",
@@ -43,6 +44,7 @@
     "expo-status-bar": "~3.0.9",
     "expo-system-ui": "^55.0.15",
     "jpeg-js": "^0.4.4",
+    "patch-package": "^8.0.1",
     "pngjs": "^7.0.0",
     "react": "19.1.0",
     "react-dom": "19.1.0",
@@ -50,11 +52,14 @@
     "react-native": "0.81.5",
     "react-native-dropdown-picker": "^5.4.6",
     "react-native-gesture-handler": "~2.28.0",
+    "react-native-reanimated": "^4.3.0",
     "react-native-safe-area-context": "~5.6.0",
     "react-native-screens": "~4.16.0",
     "react-native-svg": "15.12.1",
     "react-native-view-shot": "4.0.3",
     "react-native-web": "^0.21.0",
+    "react-native-worklets": "^0.8.1",
+    "react-native-zoom-toolkit": "^5.0.1",
     "upng-js": "^2.1.0",
     "yup": "^1.7.1"
   },

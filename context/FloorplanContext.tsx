@@ -6,7 +6,7 @@ import {
   useContext,
   useState,
 } from "react";
-import { GestureResponderEvent } from "react-native";
+import { TapGestureEvent } from "react-native-zoom-toolkit";
 
 import { useLogger } from "./LoggerContext";
 import { Marker, useMarkers } from "../hooks/useMarkers";
@@ -15,7 +15,7 @@ import { PhotoData } from "../models/PhotoFormModel";
 interface FloorplanContextReturn {
   floorplan: string | null;
   pickFloorplan: () => Promise<void>;
-  handleCanvasPress: (event: GestureResponderEvent) => void;
+  handleCanvasPress: (event: TapGestureEvent) => void;
   markers: Marker[];
   addMarker: (x: number, y: number, photos: PhotoData[]) => void;
   clearMarkers: () => void;
@@ -60,26 +60,25 @@ export const FloorplanProvider = ({
 
   const [selectedMarkerId, setSelectedMarkerId] = useState<string | null>(null);
 
-  const handleCanvasPress = (event: GestureResponderEvent) => {
+  const handleCanvasPress = (event: TapGestureEvent) => {
     if (!floorplan) {
       debug("No Floorplan");
       return;
     }
 
-    const { locationX, locationY } = event.nativeEvent;
-    const existingMarker = marker.tryGetMarker(locationX, locationY);
+    const { x, y } = event;
+    const existingMarker = marker.tryGetMarker(x, y);
 
     if (existingMarker) {
       setSelectedMarkerId(existingMarker.id);
       setShowMarkerOptions(true);
       setShowTempMarker(false);
-      debug("Trying to select existing Marker");
+      debug(`Trying to select existing Marker near (${x},${y})`);
     } else {
       // Create new marker position
-      setSelectedMarkerId(null);
-      setTempMarker({ x: locationX, y: locationY });
+      setTempMarker({ x, y });
       setShowTempMarker(true);
-      debug("Trying to set temp Marker");
+      debug(`Trying to set temp Marker at (${x},${y})`);
     }
   };
 

@@ -1,0 +1,76 @@
+diff --git a/node_modules/react-native-zoom-toolkit/lib/typescript/src/components/resumable/ResumableZoom.d.ts b/node_modules/react-native-zoom-toolkit/lib/typescript/src/components/resumable/ResumableZoom.d.ts
+index 4743ac0..3edde02 100644
+--- a/node_modules/react-native-zoom-toolkit/lib/typescript/src/components/resumable/ResumableZoom.d.ts
++++ b/node_modules/react-native-zoom-toolkit/lib/typescript/src/components/resumable/ResumableZoom.d.ts
+@@ -5,6 +5,7 @@ declare const _default: React.ForwardRefExoticComponent<Partial<{
+     style: import("react-native").ViewStyle;
+     decay: boolean;
+     extendGestures: boolean;
++    extendBorders: boolean; // NOTE NEW
+     tapsEnabled: boolean;
+     panEnabled: boolean;
+     pinchEnabled: boolean;
+diff --git a/node_modules/react-native-zoom-toolkit/lib/typescript/src/components/resumable/types.d.ts b/node_modules/react-native-zoom-toolkit/lib/typescript/src/components/resumable/types.d.ts
+index 3ce458e..96b4a04 100644
+--- a/node_modules/react-native-zoom-toolkit/lib/typescript/src/components/resumable/types.d.ts
++++ b/node_modules/react-native-zoom-toolkit/lib/typescript/src/components/resumable/types.d.ts
+@@ -5,6 +5,7 @@ export type ResumableZoomProps = Partial<{
+     style: ViewStyle;
+     decay: boolean;
+     extendGestures: boolean;
++    extendBorders: boolean; // NOTE NEW
+     tapsEnabled: boolean;
+     panEnabled: boolean;
+     pinchEnabled: boolean;
+diff --git a/node_modules/react-native-zoom-toolkit/src/components/resumable/ResumableZoom.tsx b/node_modules/react-native-zoom-toolkit/src/components/resumable/ResumableZoom.tsx
+index 56007cf..1d9d9ce 100644
+--- a/node_modules/react-native-zoom-toolkit/src/components/resumable/ResumableZoom.tsx
++++ b/node_modules/react-native-zoom-toolkit/src/components/resumable/ResumableZoom.tsx
+@@ -37,6 +37,7 @@ const ResumableZoom: React.FC<ResumableZoomPropsWithRef> = (props) => {
+     children,
+     style,
+     extendGestures = false,
++    extendBorders = false, // NOTE NEW
+     decay = true,
+     tapsEnabled = true,
+     panEnabled = true,
+@@ -82,13 +83,13 @@ const ResumableZoom: React.FC<ResumableZoomPropsWithRef> = (props) => {
+ 
+   useDerivedValue(() => {
+     extendedSize.width.value = extendGestures
+-      ? Math.max(rootSize.width.value, childSize.width.value)
++      ? Math.max(rootSize.width.value, childSize.width.value) + (extendBorders ? rootSize.width.value : 0) // NOTE DIFF
+       : childSize.width.value;
+ 
+     extendedSize.height.value = extendGestures
+-      ? Math.max(rootSize.height.value, childSize.height.value)
++      ? Math.max(rootSize.height.value, childSize.height.value) + (extendBorders ? rootSize.height.value : 0) //
+       : childSize.height.value;
+-  }, [extendGestures, rootSize, childSize]);
++  }, [extendGestures, extendBorders, rootSize, childSize]); //
+ 
+   const boundsFn: BoundsFuction = (optionalScale) => {
+     'worklet';
+@@ -96,8 +97,8 @@ const ResumableZoom: React.FC<ResumableZoomPropsWithRef> = (props) => {
+     const { width: cWidth, height: cHeight } = childSize;
+     const { width: rWidth, height: rHeight } = rootSize;
+ 
+-    const boundX = Math.max(0, cWidth.value * actualScale - rWidth.value) / 2;
+-    const boundY = Math.max(0, cHeight.value * actualScale - rHeight.value) / 2;
++    const boundX = Math.max(0, cWidth.value * actualScale - (extendBorders ? 0 : rWidth.value)) / 2; // NOTE DIFF
++    const boundY = Math.max(0, cHeight.value * actualScale - (extendBorders ? 0 : rHeight.value)) / 2; //
+     return { x: boundX, y: boundY };
+   };
+ 
+diff --git a/node_modules/react-native-zoom-toolkit/src/components/resumable/types.ts b/node_modules/react-native-zoom-toolkit/src/components/resumable/types.ts
+index 63ba49a..dffe6ab 100644
+--- a/node_modules/react-native-zoom-toolkit/src/components/resumable/types.ts
++++ b/node_modules/react-native-zoom-toolkit/src/components/resumable/types.ts
+@@ -20,6 +20,7 @@ export type ResumableZoomProps = Partial<{
+   style: ViewStyle;
+   decay: boolean;
+   extendGestures: boolean;
++  extendBorders: boolean; // NOTE NEW
+   tapsEnabled: boolean;
+   panEnabled: boolean;
+   pinchEnabled: boolean;
