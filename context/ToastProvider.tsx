@@ -5,19 +5,19 @@ import {
   useCallback,
   useContext,
   useState,
-} from 'react';
-import { View } from 'react-native';
+} from "react";
+import { View } from "react-native";
 
-import { Toast } from '../components/Toast';
+import { Toast } from "../components/Toast";
 
 type ToastMessage = {
   id: number;
   message: string;
-  type: 'Success' | 'Error' | 'Info';
+  type: "Success" | "Error" | "Info";
 };
 
 type ToastContextProps = {
-  showToast: (message: string, type: 'Success' | 'Error' | 'Info') => void;
+  showToast: (message: string, type: "Success" | "Error" | "Info") => void;
 };
 
 const ToastContext = createContext<ToastContextProps | null>(null);
@@ -34,7 +34,7 @@ export const ToastProvider: FC<ToastProviderprops> = ({
   const [toast, setToast] = useState<ToastMessage[]>([]);
 
   const showToast = useCallback(
-    (message: string, type: 'Success' | 'Error' | 'Info') => {
+    (message: string, type: "Success" | "Error" | "Info") => {
       const id = Date.now();
       setToast((prev) => [...prev, { id, message, type }]);
     },
@@ -51,7 +51,7 @@ export const ToastProvider: FC<ToastProviderprops> = ({
       <View
         style={{
           zIndex: 9999,
-          position: 'absolute',
+          position: "absolute",
           elevation: 9999,
           top: 0,
           left: 0,
@@ -74,7 +74,7 @@ export const ToastProvider: FC<ToastProviderprops> = ({
 export const useToast = () => {
   const context = useContext(ToastContext);
   if (!context) {
-    throw new Error('useToast must be used within a ToastProvider');
+    throw new Error("useToast must be used within a ToastProvider");
   }
   return context;
 };

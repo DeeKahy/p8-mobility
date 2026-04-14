@@ -31,7 +31,7 @@ describe("useMarkers", () => {
     expect(result.current.markers.length).toBe(0);
   });
 
-  test("adds photos without duplicates", () => {
+  test("adds photos without duplicates", () => { // THIS TEST FAILS, MIGHT BE TIED TO NEW STUFF 
     const { result } = renderHook(() => useMarkers());
 
     act(() => {
@@ -41,6 +41,7 @@ describe("useMarkers", () => {
 
     act(() => {
       result.current.addPhotos(id!, ["a", "b"]);
+      console.log(result.current.markers);
     });
 
     expect(result.current.markers[0].photos).toEqual(["a", "b"]);

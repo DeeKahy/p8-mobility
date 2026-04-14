@@ -1,15 +1,15 @@
-import { View } from 'react-native';
+import { View } from "react-native";
 
-import Button from '../../components/Button';
-import Dropdown from '../../components/Dropdown';
-import HelloCard from '../../components/HelloCard';
-import { useToast } from '../../context/ToastProvider';
+import Button from "../../components/Button";
+import Dropdown from "../../components/Dropdown";
+import HelloCard from "../../components/HelloCard";
+import { useToast } from "../../context/ToastProvider";
 
 export default function Main() {
   const { showToast } = useToast();
 
   return (
-    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+    <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
       <View style={{ marginBottom: 40 }} />
       <HelloCard title="Welcome to our very Hygge App" subtitle="" />
       <View style={{ marginBottom: 200 }} />
@@ -23,8 +23,8 @@ export default function Main() {
       <Button
         text="Show Toast"
         onPress={() => {
-          console.log('Button pressed');
-          showToast('Image has been uploaded', 'Success');
+          console.log("Button pressed");
+          showToast("Image has been uploaded", "Success");
         }}
       />
     </View>

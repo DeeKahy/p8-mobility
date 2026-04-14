@@ -1,9 +1,9 @@
-import React, { useEffect } from 'react';
-import { Animated, Text, StyleSheet, useAnimatedValue } from 'react-native';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import React, { useEffect } from "react";
+import { Animated, Text, StyleSheet, useAnimatedValue } from "react-native";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 
 type ToastMessage = {
-  type: 'Success' | 'Error' | 'Info';
+  type: "Success" | "Error" | "Info";
   message: string;
   onRemove: () => void;
 };
@@ -29,12 +29,12 @@ export const Toast = (props: ToastMessage) => {
 
   const getTypeColor = (type: string) => {
     switch (type) {
-      case 'Success':
-        return '#5DB996';
-      case 'Error':
-        return '#FF748B';
-      case 'Info':
-        return '#074799';
+      case "Success":
+        return "#5DB996";
+      case "Error":
+        return "#FF748B";
+      case "Info":
+        return "#074799";
     }
   };
 
@@ -63,7 +63,7 @@ export const Toast = (props: ToastMessage) => {
 const styles = StyleSheet.create({
   container: {
     padding: 16,
-    position: 'absolute',
+    position: "absolute",
     top: 50,
     left: 16,
     right: 16,
@@ -72,12 +72,12 @@ const styles = StyleSheet.create({
   },
   text: {
     fontSize: 20,
-    color: 'white',
-    textAlign: 'center',
+    color: "white",
+    textAlign: "center",
   },
   typetext: {
     fontSize: 20,
-    color: 'black',
-    textAlign: 'center',
+    color: "black",
+    textAlign: "center",
   },
 });

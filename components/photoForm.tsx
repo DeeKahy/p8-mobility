@@ -165,9 +165,9 @@ export const PhotoFormModal = ({
               reset({
                 photoUri,
                 dateTaken: date,
-                pictureName: '',
-                areaGroup: '',
-                description: '',
+                pictureName: "",
+                areaGroup: "",
+                description: "",
               });
             })}
           />

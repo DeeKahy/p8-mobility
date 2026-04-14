@@ -1,4 +1,4 @@
-import { Point3D } from './3Dpoints';
+import { Point3D } from "./3Dpoints";
 
 export type PointProps = {
   pointList: Point3D[];
