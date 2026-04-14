@@ -2,7 +2,14 @@ import { CameraView } from "expo-camera";
 import * as ImagePicker from "expo-image-picker";
 import { StatusBar } from "expo-status-bar";
 import { useRef, useState } from "react";
-import { Image, Pressable, Text, TouchableOpacity, View } from "react-native";
+import {
+  Alert,
+  Image,
+  Pressable,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 import { CameraUI } from "../../components/CameraUI";
 import { EditMarkerModal } from "../../components/index/EditMarkerModal";
@@ -11,10 +18,12 @@ import { MarkerOptionsModal } from "../../components/index/MarkerOptionsModal";
 import { NewMarkerOptionsModal } from "../../components/index/NewMarkerOptionsModal";
 import { PhotoGalleryModal } from "../../components/index/PhotoGalleryModal";
 import { PhotoFormModal } from "../../components/photoForm";
+import { PhotoList } from "../../components/photos_list";
 import { useFloorplan } from "../../context/FloorplanContext";
+import { useLogger } from "../../context/LoggerContext";
 import { styles } from "../../css/indexStyle";
 import { PhotoData } from "../../models/PhotoFormModel";
-import { PhotoList } from "../../components/photos_list";
+import { isImageBlurry } from "../../utils/blurDetection";
 
 export default function HomeScreen() {
   const {
@@ -35,6 +44,8 @@ export default function HomeScreen() {
     selectedMarker, //Reference, use with caution
   } = useFloorplan();
 
+  const { log } = useLogger();
+
   const [showPhotos, setShowPhotos] = useState(false);
   const [showCamera, setShowCamera] = useState(false);
   const [showNewMarkerOptions, setShowNewMarkerOptions] = useState(false);
@@ -47,6 +58,40 @@ export default function HomeScreen() {
   const savedPhotos = useRef<PhotoData[]>([]);
   let currentUri = pendingPhotos[0];
 
+  async function getValidImages(images: ImagePicker.ImagePickerAsset[]) {
+    const twoWeeksAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
+    const validImages: ImagePicker.ImagePickerAsset[] = [];
+
+    for (const image of images) {
+      const exifDate = image?.exif?.DateTimeOriginal;
+      if (!exifDate || typeof exifDate !== "string") {
+        log("No EXIF DateTimeOriginal found on selected image");
+
+        Alert.alert(
+          "Missing photo date",
+          "This image does not contain metadata, so we cannot verify its age."
+        );
+        continue;
+      }
+
+      const dateTaken = exifDate.replace(/(\d{4}):(\d{2}):(\d{2})/, "$1-$2-$3");
+      log("Formatted Data:" + dateTaken);
+
+      if (new Date(dateTaken) < twoWeeksAgo) {
+        Alert.alert("Picture is older than 14 days: " + dateTaken);
+        continue;
+      }
+
+      const isBlurry = await isImageBlurry(image.uri, log);
+      if (isBlurry) {
+        Alert.alert("Image is too blurry. Please choose another.");
+        continue;
+      }
+      validImages.push(image);
+    }
+    return validImages;
+  }
+
   const handleNewMarkerFromCameraRoll = async () => {
     console.info("handleNewMarkerFromCameraRoll");
     setShowNewMarkerOptions(false);
@@ -55,11 +100,10 @@ export default function HomeScreen() {
 
     setShowNewMarkerOptions(false);
     setShowTempMarker(false);
-    setPendingPhotos(result.map((p) => p.uri));
+    setPendingPhotos((await getValidImages(result)).map((p) => p.uri));
   };
 
   const handleNewMarkerFromPicture = async () => {
-    console.info("handleNewMarkerFromPicture");
     setShowNewMarkerOptions(false);
     setShowCamera(true);
     if (!tempMarker) return;
@@ -76,7 +120,8 @@ export default function HomeScreen() {
     setShowNewMarkerOptions(false);
     const result = await pickPhotoFromLibrary(0);
     if (!result || !selectedMarkerId) return;
-    setPendingPhotos(result.map((p) => p.uri));
+
+    setPendingPhotos((await getValidImages(result)).map((p) => p.uri));
   };
 
   const handleAddFromPictureToMarker = async () => {
@@ -101,6 +146,7 @@ export default function HomeScreen() {
       selectionLimit,
       allowsEditing: false,
       quality: 1,
+      exif: true,
     });
     if (res.canceled) return null;
     return res.assets;
@@ -118,7 +164,6 @@ export default function HomeScreen() {
     setShowMarkerOptions(false);
     setShowTempMarker(false);
   };
-
 
   if (showCamera) {
     return (
@@ -146,49 +191,49 @@ export default function HomeScreen() {
     );
   }
 
-
   return (
     <View style={styles.container}>
       <StatusBar style="auto" />
 
-      {currentUri && <PhotoFormModal
-        visible
-        onSkip={() => {
-          pendingPhotos.pop();
-          setPendingPhotos(pendingPhotos)
-          if (tempMarker && describedPhotos.current.length > 0) {
-            // If we've gotten submissions for something and nothing is pending, create or update a marker.
-            if (selectedMarkerId) {
-              addPhotos(selectedMarkerId, describedPhotos.current);
-            } else {
-              addMarker(tempMarker.x, tempMarker.y, describedPhotos.current);
+      {currentUri && (
+        <PhotoFormModal
+          visible
+          onSkip={() => {
+            pendingPhotos.pop();
+            setPendingPhotos(pendingPhotos);
+            if (tempMarker && describedPhotos.current.length > 0) {
+              // If we've gotten submissions for something and nothing is pending, create or update a marker.
+              if (selectedMarkerId) {
+                addPhotos(selectedMarkerId, describedPhotos.current);
+              } else {
+                addMarker(tempMarker.x, tempMarker.y, describedPhotos.current);
+              }
+              describedPhotos.current = []; // Prep for next marker creation.
             }
-            describedPhotos.current = []; // Prep for next marker creation.
-          }
-          currentUri = pendingPhotos[0];
-        }} // Skip one URI on close.
-        photoUri={currentUri}
-        date="2026-01-01"
-        onSubmit={(photoData) => {
-          pendingPhotos.pop();
-          // Store data on submit of photo data.
-          describedPhotos.current.push(photoData);
-          savedPhotos.current.push(photoData);
-          console.info(savedPhotos);
-          setPendingPhotos(pendingPhotos);
-          if (tempMarker && describedPhotos.current.length > 0) {
-            // If we've gotten submissions for something and nothing is pending, create or update a marker.
-            if (selectedMarkerId) {
-              addPhotos(selectedMarkerId, describedPhotos.current);
-            } else {
-              addMarker(tempMarker.x, tempMarker.y, describedPhotos.current);
+            currentUri = pendingPhotos[0];
+          }} // Skip one URI on close.
+          photoUri={currentUri}
+          date="2026-01-01"
+          onSubmit={(photoData) => {
+            pendingPhotos.pop();
+            // Store data on submit of photo data.
+            describedPhotos.current.push(photoData);
+            savedPhotos.current.push(photoData);
+            console.info(savedPhotos);
+            setPendingPhotos(pendingPhotos);
+            if (tempMarker && describedPhotos.current.length > 0) {
+              // If we've gotten submissions for something and nothing is pending, create or update a marker.
+              if (selectedMarkerId) {
+                addPhotos(selectedMarkerId, describedPhotos.current);
+              } else {
+                addMarker(tempMarker.x, tempMarker.y, describedPhotos.current);
+              }
+              describedPhotos.current = []; // Prep for next marker creation.
             }
-            describedPhotos.current = []; // Prep for next marker creation.
-          }
-          currentUri = pendingPhotos[0];
-        }}
-      />
-      }
+            currentUri = pendingPhotos[0];
+          }}
+        />
+      )}
 
       {/* Header with change floor plan option */}
       <View style={styles.header}>
@@ -250,17 +295,17 @@ export default function HomeScreen() {
         closeAllModals={closeAllModals}
       />
 
-      {showPhotoListView && <View style={styles.fullscreenOverlay}>
-        <PhotoList
-          photoList={savedPhotos.current}
-        />
-      </View>}
+      {showPhotoListView && (
+        <View style={styles.fullscreenOverlay}>
+          <PhotoList photoList={savedPhotos.current} />
+        </View>
+      )}
       <View>
         <TouchableOpacity
           style={styles.showListButton}
           onPress={() => setShowPhotoListView(!showPhotoListView)}
         >
-          <Text>{showPhotoListView ? 'Hide photos' : 'Show photos'}</Text>
+          <Text>{showPhotoListView ? "Hide photos" : "Show photos"}</Text>
         </TouchableOpacity>
       </View>
 

@@ -1,13 +1,13 @@
-import * as MediaLibrary from 'expo-media-library';
-import { useRef } from 'react';
-import { Modal, TouchableOpacity, View, Text } from 'react-native';
-import Svg, { Polygon, Text as SvgText, G } from 'react-native-svg';
-import ViewShot, { captureRef } from 'react-native-view-shot';
+import * as MediaLibrary from "expo-media-library";
+import { useRef } from "react";
+import { Modal, Text, TouchableOpacity, View } from "react-native";
+import Svg, { G, Polygon, Text as SvgText } from "react-native-svg";
+import ViewShot, { captureRef } from "react-native-view-shot";
 
-import { RotationControls } from './RotationControls';
-import { useRotation } from '../app/hooks/useRotation';
-import { PointProps } from '../app/models/PointProps';
-import { calculateDistanceMeters, calculateMidPoint } from '../utils/arMath';
+import { RotationControls } from "./RotationControls";
+import { useRotation } from "../app/hooks/useRotation";
+import { calculateDistanceMeters, calculateMidPoint } from "../utils/arMath";
+import { PointProps } from "../models/PointProps";
 
 // Type to ensure that component CreateSvg only takes type of string
 type CreateSvgProps = {
@@ -40,7 +40,7 @@ export default function SvgComponent({
 
   //Take the captured points and turn them into string format of "x1,y1 x2,y2 ...xn,yn", because Polygon points={} needs points string in that format.
   function turnPointsToString(): string {
-    let output = '';
+    let output = "";
     for (const point of pointList) {
       output += `${point[0]},${point[2]} `;
     }
@@ -51,7 +51,7 @@ export default function SvgComponent({
   //captureRef simply take a screenshot of the view. Could not make it work with SVG
   async function savePng() {
     try {
-      const uri = await captureRef(viewShotRef, { format: 'png', quality: 1 });
+      const uri = await captureRef(viewShotRef, { format: "png", quality: 1 });
       await MediaLibrary.saveToLibraryAsync(uri);
     } catch {
       throw new Error("Couldn't save picture");
@@ -106,12 +106,12 @@ export default function SvgComponent({
 
   return (
     <Modal visible={visible}>
-      <View style={{ flex: 1, backgroundColor: '#f5f5f5', padding: 16 }}>
+      <View style={{ flex: 1, backgroundColor: "#f5f5f5", padding: 16 }}>
         {/* This is the what the generated of the floor plan is*/}
         <ViewShot
           ref={viewShotRef}
           style={{ flex: 1 }}
-          options={{ format: 'png', quality: 1 }}
+          options={{ format: "png", quality: 1 }}
         >
           <CreateSvg inputString={turnPointsToString()} />
         </ViewShot>
@@ -125,8 +125,8 @@ export default function SvgComponent({
 
         <View
           style={{
-            flexDirection: 'row',
-            justifyContent: 'space-around',
+            flexDirection: "row",
+            justifyContent: "space-around",
             paddingVertical: 20,
             marginBottom: 30,
           }}

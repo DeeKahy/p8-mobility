@@ -1,5 +1,4 @@
 import { act, renderHook } from "@testing-library/react-native";
-
 import { useMarkers } from "../hooks/useMarkers";
 
 jest.mock("../context/LoggerContext", () => ({

@@ -8,11 +8,6 @@ import UPNG from "upng-js";
 type BlurLogger = (message: string) => void;
 
 /**
- * Optional logger function type.
- */
-type BlurLogger = (message: string) => void;
-
-/**
  * Checks whether an image is blurry.
  *
  * This function loads the image from a URI, calculates a blur score

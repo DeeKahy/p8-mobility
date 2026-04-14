@@ -7,14 +7,14 @@ import {
 import React, { useMemo, useRef, useState } from "react";
 import { Dimensions, PixelRatio, StyleSheet } from "react-native";
 
-import { Point3D } from '../app/models/3Dpoints';
-import { ACCEPTED_HIT_TYPES } from '../app/models/ArCoreAcceptedTypes';
-import { useLogger } from '../context/LoggerContext';
+import { useLogger } from "../context/LoggerContext";
+import { Point3D } from "../models/3Dpoints";
+import { ACCEPTED_HIT_TYPES } from "../models/ArCoreAcceptedTypes";
 import {
-  isValidPoint,
   calculateDistanceMeters,
   formatDistanceCm,
-} from '../utils/arMath';
+  isValidPoint,
+} from "../utils/arMath";
 //type Point3D = [number, number, number];
 
 // Used to "hide" AR objects by moving them far below the scene instead of removing them.
@@ -80,7 +80,7 @@ function extractHitPosition(results: unknown): Point3D | null {
 
     const position = result.transform?.position;
     if (isValidPoint(position)) {
-      return position;
+      return position ?? null;
     }
   }
 
@@ -113,7 +113,7 @@ export default function MeasureScene(props: any) {
   const arSceneRef = useRef<ViroARScene | null>(null);
   const { custom } = useLogger();
   const distanceLabel = useMemo(() => {
-    if (points.length < 2) return '';
+    if (points.length < 2) return "";
 
     const last = points[points.length - 1];
     const prev = points[points.length - 2];
@@ -138,10 +138,10 @@ export default function MeasureScene(props: any) {
 
         const result: ARHitTestResult =
           await arSceneRef.current.performARHitTestWithPoint(centerX, centerY);
-        console.log('AR hit test results:', result); // <-- log everything
+        console.log("AR hit test results:", result); // <-- log everything
         hitPosition = extractHitPosition(result);
         if (!hitPosition) {
-          console.log('No valid surface detected at tap.');
+          console.log("No valid surface detected at tap.");
         }
       }
 
@@ -155,10 +155,10 @@ export default function MeasureScene(props: any) {
         return updatedPoints;
       });
       if (!hitPosition) {
-        custom('No surface detected at this point.', 'Ar');
+        custom("No surface detected at this point.", "Ar");
         return;
       }
-      custom('hitPosition:' + hitPosition, 'Ar');
+      custom("hitPosition:" + hitPosition, "Ar");
       // First tap = first point
       // Second tap = second point
       // Third tap resets measurement
@@ -172,10 +172,10 @@ export default function MeasureScene(props: any) {
 
       const distanceInCm = logDistanceCm(firstPoint, hitPosition);
       const formated_distanceInCm = formatDistanceCm(distanceInCm);
-      custom('Distance drawed:' + formated_distanceInCm, 'Ar');
+      custom("Distance drawed:" + formated_distanceInCm, "Ar");
     } catch (error) {
       // This should properly also be a toast:
-      custom('Error performing hit test:' + error, 'Ar');
+      custom("Error performing hit test:" + error, "Ar");
     }
   };
 
@@ -185,7 +185,7 @@ export default function MeasureScene(props: any) {
         <ViroBox
           key={index}
           position={p}
-          materials={['pointMarker']}
+          materials={["pointMarker"]}
           scale={[0.025, 0.025, 0.025]}
         />
       ))}
@@ -203,7 +203,7 @@ export default function MeasureScene(props: any) {
         }
         scale={[0.2, 0.2, 0.2]}
         style={styles.distanceLabel}
-        transformBehaviors={['billboard']}
+        transformBehaviors={["billboard"]}
         visible={points.length >= 2}
       />
     </ViroARScene>

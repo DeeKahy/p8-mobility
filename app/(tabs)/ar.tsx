@@ -1,11 +1,12 @@
 import { useIsFocused } from "@react-navigation/native";
 import { ViroARSceneNavigator } from "@viro-community/react-viro";
-import React, { useRef, useState, useEffect } from 'react';
-import { TouchableOpacity, View, Text } from 'react-native';
-import Floorplan from '../../components/FloorplanCreation';
-import MeasureScene from '../../components/MeasureScene';
-import { useLogger } from '../../context/LoggerContext';
-import { Point3D } from '../models/3Dpoints';
+import React, { useEffect, useRef, useState } from "react";
+import { Text, TouchableOpacity, View } from "react-native";
+
+import Floorplan from "../../components/FloorplanCreation";
+import MeasureScene from "../../components/MeasureScene";
+import { useLogger } from "../../context/LoggerContext";
+import { Point3D } from "../../models/3Dpoints";
 
 export default function ARView() {
   const [isMeasuring, setIsMeasuring] = useState(true);
@@ -13,7 +14,7 @@ export default function ARView() {
   const isFocused = useIsFocused();
   const { custom } = useLogger();
   useEffect(() => {
-    custom(`AR focus: ${isFocused}`, 'camera');
+    custom(`AR focus: ${isFocused}`, "camera");
   }, [isFocused]);
   // Prevent AR renderer from running when the tab is not active
   if (!isFocused) {
@@ -22,8 +23,8 @@ export default function ARView() {
 
   const handleStop = () => {
     setIsMeasuring(false);
-    console.log('Final Points:', pointsRef.current);
-    console.log('Area:', pointsRef.current);
+    console.log("Final Points:", pointsRef.current);
+    console.log("Area:", pointsRef.current);
   };
 
   const handlePointsUpdate = (newPoints: Point3D[]) => {
@@ -54,8 +55,8 @@ export default function ARView() {
 
       <View>
         <TouchableOpacity onPress={handleStop}>
-          <Text style={{ color: 'black', fontSize: 18 }}>
-            {isMeasuring ? 'Stop Measuring' : 'Resume Measuring'}
+          <Text style={{ color: "black", fontSize: 18 }}>
+            {isMeasuring ? "Stop Measuring" : "Resume Measuring"}
           </Text>
         </TouchableOpacity>
       </View>
