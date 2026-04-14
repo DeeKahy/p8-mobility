@@ -110,7 +110,7 @@ export const useMarkers = () => {
     if (nearMarkers.length === 1) return nearMarkers[0];
     nearMarkers = nearMarkers.sort((a, b) =>
       Math.abs(a.x - x) + Math.abs(a.y - y) <
-        Math.abs(b.x - x) + Math.abs(b.y - y)
+      Math.abs(b.x - x) + Math.abs(b.y - y)
         ? -1
         : 1
     );

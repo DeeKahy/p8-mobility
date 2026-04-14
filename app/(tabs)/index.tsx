@@ -212,7 +212,11 @@ export default function HomeScreen() {
                 if (selectedMarkerId) {
                   addPhotos(selectedMarkerId, describedPhotos.current);
                 } else {
-                  addMarker(tempMarker.x, tempMarker.y, describedPhotos.current);
+                  addMarker(
+                    tempMarker.x,
+                    tempMarker.y,
+                    describedPhotos.current
+                  );
                 }
                 describedPhotos.current = []; // Prep for next marker creation.
               }
@@ -232,7 +236,11 @@ export default function HomeScreen() {
                 if (selectedMarkerId) {
                   addPhotos(selectedMarkerId, describedPhotos.current);
                 } else {
-                  addMarker(tempMarker.x, tempMarker.y, describedPhotos.current);
+                  addMarker(
+                    tempMarker.x,
+                    tempMarker.y,
+                    describedPhotos.current
+                  );
                 }
                 describedPhotos.current = []; // Prep for next marker creation.
               }
@@ -337,6 +345,6 @@ export default function HomeScreen() {
           Tap on the floor plan to place a marker
         </Text>
       </View>
-    </GestureHandlerRootView >
+    </GestureHandlerRootView>
   );
 }

@@ -195,10 +195,10 @@ export default function MeasureScene(props: any) {
         position={
           points.length > 0
             ? [
-              points[points.length - 1][0],
-              points[points.length - 1][1],
-              points[points.length - 1][2],
-            ]
+                points[points.length - 1][0],
+                points[points.length - 1][1],
+                points[points.length - 1][2],
+              ]
             : HIDDEN_POINT
         }
         scale={[0.2, 0.2, 0.2]}
