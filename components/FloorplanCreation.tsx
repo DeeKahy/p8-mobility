@@ -6,8 +6,10 @@ import ViewShot, { captureRef } from "react-native-view-shot";
 
 import { RotationControls } from "./RotationControls";
 import { useRotation } from "../app/hooks/useRotation";
+import { useRouter } from "expo-router";
 import { PointProps } from "../models/PointProps";
 import { calculateDistanceMeters, calculateMidPoint } from "../utils/arMath";
+
 
 // Type to ensure that component CreateSvg only takes type of string
 type CreateSvgProps = {
@@ -22,6 +24,8 @@ export default function SvgComponent({
 }: PointProps) {
   const { rotation, startRotating, stopRotating } = useRotation();
   const viewShotRef = useRef(null);
+  const router = useRouter();
+  const floorPlanImages = useRef<string[]>([]);
 
   /*Issue with smaller polygons not being visible on screen and too large can overtake screen, so we want to take min and max and give it to viewbox.
   Viewbox has  viewBox="x y maxHeight maxWidth".
@@ -47,12 +51,22 @@ export default function SvgComponent({
     return output;
   }
 
+  async function saveToList() {
+    try {
+      const uri = await captureRef(viewShotRef, { format: "png", quality: 1 });
+      floorPlanImages.current.push(uri);
+      console.info("Hello" + JSON.stringify(floorPlanImages));
+    } catch (error) {
+      throw new Error("Couldn't save picture");
+    }
+  }
+
   //So we can save the file in our own filesystem.
   //captureRef simply take a screenshot of the view. Could not make it work with SVG
   async function savePng() {
     try {
-      const uri = await captureRef(viewShotRef, { format: "png", quality: 1 });
-      await MediaLibrary.saveToLibraryAsync(uri);
+      console.info(typeof floorPlanImages.current);
+      router.push({ pathname: "pages/floorplans", params: { floorPlanImages: floorPlanImages.current } });
     } catch {
       throw new Error("Couldn't save picture");
     }
@@ -134,14 +148,20 @@ export default function SvgComponent({
           <TouchableOpacity onPress={onDelete}>
             <Text style={{ fontSize: 16 }}>Reset</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={savePng}>
-            <Text style={{ fontSize: 16 }}>Save floorplan</Text>
+          <TouchableOpacity
+            onPress={savePng}
+          // disabled={floorPlanImages.current.length === 0}
+          >
+            <Text style={{ fontSize: 16 }}>Go to floorplanner</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={onClose}>
             <Text style={{ fontSize: 16 }}>Cancel</Text>
           </TouchableOpacity>
+          <TouchableOpacity onPress={saveToList}>
+            <Text style={{ fontSize: 16 }}>Save floorplan</Text>
+          </TouchableOpacity>
         </View>
       </View>
-    </Modal>
+    </Modal >
   );
 }
