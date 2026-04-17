@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Modal, TouchableOpacity, View, Text, StyleSheet } from "react-native";
 
 type SaveFormModalProps = {
@@ -14,50 +13,39 @@ export const SaveFormModal = ({
   onSave,
   onSaveNext,
 }: SaveFormModalProps) => {
-  const [saveAndNext, setSaveAndNext] = useState(false);
-
-  const handleSave = () => {
-    if (saveAndNext) {
-      onSaveNext();
-    } else {
-      onSave();
-    }
-  };
-
   return (
     <Modal animationType="fade" transparent visible={visible}>
       <View style={styles.overlay}>
         <View style={styles.card}>
           <Text style={styles.title}>Save Floorplan</Text>
           <Text style={styles.message}>
-            Do you want to save the current floorplan?
+            Choose what to do after saving this room.
           </Text>
 
-          <View style={styles.actionRow}>
+          <View style={styles.actionColumn}>
             <TouchableOpacity
-              onPress={onClose}
-              style={[styles.button, styles.secondaryButton]}
-            >
-              <Text style={[styles.buttonText, styles.secondaryButtonText]}>
-                Cancel
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={handleSave}
+              onPress={onSave}
               style={[styles.button, styles.primaryButton]}
             >
               <Text style={[styles.buttonText, styles.primaryButtonText]}>
-                {saveAndNext ? "Save and Next" : "Save"}
+                Save and review floorplan
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={onSaveNext}
+              style={[styles.button, styles.primaryButton]}
+            >
+              <Text style={[styles.buttonText, styles.primaryButtonText]}>
+                Save and measure next room
               </Text>
             </TouchableOpacity>
           </View>
           <TouchableOpacity
-            onPress={() => setSaveAndNext(!saveAndNext)}
-            style={styles.switchModeButton}
+            onPress={onClose}
+            style={[styles.button, styles.secondaryButton]}
           >
-            <Text style={styles.switchModeText}>
-              {saveAndNext ? "Switch to Save Only" : "Switch to Save and Next"}
+            <Text style={[styles.buttonText, styles.secondaryButtonText]}>
+              Cancel
             </Text>
           </TouchableOpacity>
         </View>
@@ -98,14 +86,13 @@ const styles = StyleSheet.create({
     marginBottom: 18,
     lineHeight: 21,
   },
-  actionRow: {
-    flexDirection: "row",
-    columnGap: 10,
+  actionColumn: {
+    rowGap: 10,
   },
   button: {
-    flex: 1,
     borderRadius: 10,
-    paddingVertical: 11,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
     alignItems: "center",
   },
   primaryButton: {
@@ -113,25 +100,17 @@ const styles = StyleSheet.create({
   },
   secondaryButton: {
     backgroundColor: "#F3F4F6",
+    top: 10,
   },
   buttonText: {
     fontSize: 15,
     fontWeight: "600",
+    textAlign: "center",
   },
   primaryButtonText: {
     color: "#FFFFFF",
   },
   secondaryButtonText: {
     color: "#111827",
-  },
-  switchModeButton: {
-    marginTop: 14,
-    alignSelf: "center",
-    paddingVertical: 4,
-  },
-  switchModeText: {
-    fontSize: 14,
-    color: "#0B57D0",
-    fontWeight: "500",
   },
 });
