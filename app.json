@@ -58,7 +58,7 @@
       ],
       "expo-font",
       [
-        "@viro-community/react-viro",
+        "@reactvision/react-viro",
         {
           "android": {}
         }
