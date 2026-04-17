@@ -1,5 +1,5 @@
 import { Text, View } from "react-native";
-import PieChart from "react-native-pie-chart";
+import PieChart, { Slice } from "react-native-pie-chart";
 import { SharedValue, useSharedValue } from "react-native-reanimated";
 
 import Downscale from "./Downscale";
@@ -19,7 +19,7 @@ export const MarkerElement = (props: MarkerProps) => {
 
   const { photos } = marker;
   const hashedColors = new Map<string, number>();
-  const series = [];
+  const series: Slice[] = [];
 
   // Count how many times each color hash appears.
   photos.forEach((p: PhotoData) => {
