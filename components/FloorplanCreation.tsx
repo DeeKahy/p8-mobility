@@ -1,6 +1,6 @@
 import * as MediaLibrary from "expo-media-library";
 import { useRef } from "react";
-import { Modal, Text, TouchableOpacity, View } from "react-native";
+import { KeyboardAvoidingView, Modal, Text, TextInput, TouchableOpacity, View } from "react-native";
 import Svg, { G, Polygon, Text as SvgText } from "react-native-svg";
 import ViewShot, { captureRef } from "react-native-view-shot";
 
@@ -128,6 +128,11 @@ export default function SvgComponent({
           options={{ format: "png", quality: 1 }}
         >
           <CreateSvg inputString={turnPointsToString()} />
+          <View style={{ alignItems: 'center', position: 'relative' }}>
+            <TextInput
+              placeholder="Enter room name..."
+            />
+          </View>
         </ViewShot>
 
         {/* Buttons for what to do for the floorplan */}
