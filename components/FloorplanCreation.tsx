@@ -1,6 +1,6 @@
 import * as MediaLibrary from "expo-media-library";
-import { useRef } from "react";
-import { KeyboardAvoidingView, Modal, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { useRef, useState } from "react";
+import { Modal, Text, TextInput, TouchableOpacity, View } from "react-native";
 import Svg, { G, Polygon, Text as SvgText } from "react-native-svg";
 import ViewShot, { captureRef } from "react-native-view-shot";
 
@@ -9,7 +9,7 @@ import { useRotation } from "../app/hooks/useRotation";
 import { useRouter } from "expo-router";
 import { PointProps } from "../models/PointProps";
 import { calculateDistanceMeters, calculateMidPoint } from "../utils/arMath";
-
+import { SaveFormModal } from "./SaveModal";
 
 // Type to ensure that component CreateSvg only takes type of string
 type CreateSvgProps = {
@@ -26,6 +26,7 @@ export default function SvgComponent({
   const viewShotRef = useRef(null);
   const router = useRouter();
   const floorPlanImages = useRef<string[]>([]);
+  const [showSaveModal, setShowSaveModal] = useState(false);
 
   /*Issue with smaller polygons not being visible on screen and too large can overtake screen, so we want to take min and max and give it to viewbox.
   Viewbox has  viewBox="x y maxHeight maxWidth".
@@ -66,10 +67,24 @@ export default function SvgComponent({
   async function savePng() {
     try {
       console.info(typeof floorPlanImages.current);
-      router.push({ pathname: "pages/floorplans", params: { floorPlanImages: floorPlanImages.current } });
+      router.push({
+        pathname: "pages/floorplans",
+        params: { floorPlanImages: floorPlanImages.current },
+      });
     } catch {
       throw new Error("Couldn't save picture");
     }
+  }
+
+  async function handleSaveOnly() {
+    await saveToList();
+    setShowSaveModal(false);
+  }
+
+  async function handleSaveAndNext() {
+    await saveToList();
+    await savePng();
+    setShowSaveModal(false);
   }
 
   const CreateSvg = ({ inputString }: CreateSvgProps) => (
@@ -119,8 +134,34 @@ export default function SvgComponent({
   );
 
   return (
-    <Modal visible={visible}>
-      <View style={{ flex: 1, backgroundColor: "#f5f5f5", padding: 16 }}>
+    <Modal visible={visible} onRequestClose={onClose}>
+      <SaveFormModal
+        visible={showSaveModal}
+        onClose={() => setShowSaveModal(false)}
+        onSave={() => {
+          void handleSaveOnly();
+        }}
+        onSaveNext={() => {
+          void handleSaveAndNext();
+        }}
+      />
+      <View style={{ alignItems: "center", position: "relative" }}>
+        <TextInput
+          placeholder="Enter room name..."
+          style={{
+            position: "relative",
+            top: 40,
+            height: 40,
+            width: 200,
+            backgroundColor: "white",
+            paddingHorizontal: 10,
+            borderColor: "gray",
+            borderWidth: 1,
+            zIndex: 1,
+          }}
+        />
+      </View>
+      <View style={{ flex: 1, backgroundColor: "#f5f5f5", padding: 30 }}>
         {/* This is the what the generated of the floor plan is*/}
         <ViewShot
           ref={viewShotRef}
@@ -128,11 +169,6 @@ export default function SvgComponent({
           options={{ format: "png", quality: 1 }}
         >
           <CreateSvg inputString={turnPointsToString()} />
-          <View style={{ alignItems: 'center', position: 'relative' }}>
-            <TextInput
-              placeholder="Enter room name..."
-            />
-          </View>
         </ViewShot>
 
         {/* Buttons for what to do for the floorplan */}
@@ -153,20 +189,11 @@ export default function SvgComponent({
           <TouchableOpacity onPress={onDelete}>
             <Text style={{ fontSize: 16 }}>Reset</Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            onPress={savePng}
-          // disabled={floorPlanImages.current.length === 0}
-          >
-            <Text style={{ fontSize: 16 }}>Go to floorplanner</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={onClose}>
-            <Text style={{ fontSize: 16 }}>Cancel</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={saveToList}>
-            <Text style={{ fontSize: 16 }}>Save floorplan</Text>
+          <TouchableOpacity onPress={() => setShowSaveModal(true)}>
+            <Text style={{ fontSize: 16 }}>Save</Text>
           </TouchableOpacity>
         </View>
       </View>
-    </Modal >
+    </Modal>
   );
 }
