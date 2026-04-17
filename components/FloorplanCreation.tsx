@@ -78,6 +78,10 @@ export default function SvgComponent({
 
   async function handleSaveOnly() {
     await saveToList();
+    router.push({
+      pathname: "pages/floorplans",
+      params: { floorPlanImages: floorPlanImages.current },
+    });
     setShowSaveModal(false);
   }
 
