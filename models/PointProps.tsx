@@ -4,5 +4,5 @@ export type PointProps = {
   pointList: Point3D[];
   visible: boolean;
   onClose: () => void;
-  onDelete: () => void;
+  onReset: () => void;
 };

@@ -20,7 +20,7 @@ export default function SvgComponent({
   pointList,
   visible,
   onClose,
-  onDelete,
+  onReset,
 }: PointProps) {
   const { rotation, startRotating, stopRotating } = useRotation();
   const viewShotRef = useRef(null);
@@ -56,7 +56,6 @@ export default function SvgComponent({
     try {
       const uri = await captureRef(viewShotRef, { format: "png", quality: 1 });
       floorPlanImages.current.push(uri);
-      console.info("Hello" + JSON.stringify(floorPlanImages));
     } catch (error) {
       throw new Error("Couldn't save picture");
     }
@@ -66,10 +65,9 @@ export default function SvgComponent({
   //captureRef simply take a screenshot of the view. Could not make it work with SVG
   async function savePng() {
     try {
-      console.info(typeof floorPlanImages.current);
       router.push({
         pathname: "pages/floorplans",
-        params: { floorPlanImages: floorPlanImages.current },
+        params: { floorPlanImages: JSON.stringify(floorPlanImages.current) },
       });
     } catch {
       throw new Error("Couldn't save picture");
@@ -190,7 +188,7 @@ export default function SvgComponent({
             marginBottom: 30,
           }}
         >
-          <TouchableOpacity onPress={onDelete}>
+          <TouchableOpacity onPress={onReset}>
             <Text style={{ fontSize: 16 }}>Reset</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => setShowSaveModal(true)}>

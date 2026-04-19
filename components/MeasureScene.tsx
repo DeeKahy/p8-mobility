@@ -62,6 +62,12 @@ type HitResult = {
   transform?: HitTransform;
 };
 
+type MessureSceneProp = {
+  isMeasuring: boolean;
+  points: Point3D[];
+  onPointAdded: (points: Point3D) => void;
+};
+
 // Extracts the first valid hit position from AR hit test results
 function extractHitPosition(results: unknown): Point3D | null {
   if (!Array.isArray(results)) {
@@ -106,8 +112,8 @@ function logDistanceCm(firstPoint: Point3D, secondPoint: Point3D) {
 }
 
 export default function MeasureScene(props: any) {
-  const [points, setPoints] = useState<Point3D[]>([]);
-  const { isMeasuring = true, onPointAdded } = props;
+  // const [points, setPoints] = useState<Point3D[]>([]);
+  const { isMeasuring = true, points, onPointAdded } = props;
   const [firstPoint, setFirstPoint] = useState<Point3D | null>(null);
   const [secondPoint, setSecondPoint] = useState<Point3D | null>(null);
   const arSceneRef = useRef<ViroARScene | null>(null);
@@ -145,19 +151,13 @@ export default function MeasureScene(props: any) {
         }
       }
 
-      if (!hitPosition) return;
-
-      setPoints((prev) => {
-        const updatedPoints = [...prev, hitPosition];
-        setTimeout(() => {
-          onPointAdded?.(updatedPoints);
-        }, 0);
-        return updatedPoints;
-      });
       if (!hitPosition) {
         custom("No surface detected at this point.", "Ar");
         return;
       }
+      const updatedPoints = [...points, hitPosition];
+      onPointAdded?.(updatedPoints);
+      
       custom("hitPosition:" + hitPosition, "Ar");
       // First tap = first point
       // Second tap = second point
@@ -195,10 +195,10 @@ export default function MeasureScene(props: any) {
         position={
           points.length > 0
             ? [
-                points[points.length - 1][0],
-                points[points.length - 1][1],
-                points[points.length - 1][2],
-              ]
+              points[points.length - 1][0],
+              points[points.length - 1][1],
+              points[points.length - 1][2],
+            ]
             : HIDDEN_POINT
         }
         scale={[0.2, 0.2, 0.2]}
