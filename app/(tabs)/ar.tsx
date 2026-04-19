@@ -10,8 +10,6 @@ import { Point3D } from "../../models/3Dpoints";
 
 export default function ARView() {
   const [isMeasuring, setIsMeasuring] = useState(true);
-  const [resetArPoints, setResetArPoints] = useState<number>(0);
-  const [points, setPoints] = useState<Point3D[]>([]);
   const pointsRef = useRef<Point3D[]>([]);
   const isFocused = useIsFocused();
   const { custom } = useLogger();
@@ -30,20 +28,18 @@ export default function ARView() {
   };
 
   const handlePointsUpdate = (newPoints: Point3D[]) => {
-    setPoints(newPoints)
+    pointsRef.current = newPoints;
   };
 
   return (
     <View style={{ flex: 1 }}>
       <ViroARSceneNavigator
-        key={resetArPoints}
         autofocus
         initialScene={
           {
             scene: MeasureScene,
             passProps: {
               isMeasuring,
-              points,
               onPointAdded: handlePointsUpdate,
             },
           } as any
@@ -58,29 +54,20 @@ export default function ARView() {
       />
 
       <View>
-        <TouchableOpacity onPress={handleStop} disabled={points.length < 3}>
+        <TouchableOpacity onPress={handleStop}>
           <Text style={{ color: "black", fontSize: 18 }}>
             {isMeasuring ? "Stop Measuring" : "Resume Measuring"}
           </Text>
         </TouchableOpacity>
       </View>
-      <View>
-        <TouchableOpacity onPress={() => setPoints((points) => points.slice(0, -1))} disabled={points.length === 0}>
-          <Text style={{ color: "black", fontSize: 18 }}>
-            Undo last point
-          </Text>
-        </TouchableOpacity>
-      </View>
       {!isMeasuring && (
         <Floorplan
-          pointList={points}
+          pointList={pointsRef.current}
           visible={!isMeasuring}
           onClose={() => {
             setIsMeasuring(true);
           }}
-          onReset={() => {
-            setPoints([]);
-            setResetArPoints((i) => i + 1);
+          onDelete={() => {
             setIsMeasuring(true);
           }}
         />
