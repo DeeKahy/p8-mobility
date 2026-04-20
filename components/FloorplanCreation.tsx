@@ -1,8 +1,8 @@
-import * as MediaLibrary from "expo-media-library";
 import { useRef, useState } from "react";
 import { Modal, Text, TextInput, TouchableOpacity, View } from "react-native";
 import Svg, { G, Polygon, Text as SvgText } from "react-native-svg";
 import ViewShot, { captureRef } from "react-native-view-shot";
+import { Directory, File, Paths } from "expo-file-system";
 
 import { RotationControls } from "./RotationControls";
 import { useRotation } from "../app/hooks/useRotation";
@@ -27,6 +27,7 @@ export default function SvgComponent({
   const router = useRouter();
   const floorPlanImages = useRef<string[]>([]);
   const [showSaveModal, setShowSaveModal] = useState(false);
+  const imageCounter = useRef<number>(0);
 
   /*Issue with smaller polygons not being visible on screen and too large can overtake screen, so we want to take min and max and give it to viewbox.
   Viewbox has  viewBox="x y maxHeight maxWidth".
@@ -54,11 +55,28 @@ export default function SvgComponent({
 
   async function saveToList() {
     try {
-      const uri = await captureRef(viewShotRef, { format: "png", quality: 1 });
-      floorPlanImages.current.push(uri);
-      console.info("Hello" + JSON.stringify(floorPlanImages));
+      const imagesDirectory = new Directory(Paths.document, "floorplan-images");
+      if (!imagesDirectory.exists) {
+        imagesDirectory.create();
+      }
+
+      const capturedUri = await captureRef(viewShotRef, {
+        format: "png",
+        quality: 1,
+      });
+
+      const sourceFile = new File(capturedUri);
+      const output = new File(
+        imagesDirectory,
+        "floorplan-" + imageCounter.current + ".png"
+      );
+      console.log(output);
+      sourceFile.copy(output);
+      imageCounter.current += 1;
+
+      console.log(imageCounter.current);
     } catch (error) {
-      throw new Error("Couldn't save picture");
+      throw new Error("Couldn't save picture to list" + error);
     }
   }
 
@@ -68,7 +86,7 @@ export default function SvgComponent({
     try {
       console.info(typeof floorPlanImages.current);
       router.push({
-        pathname: "pages/floorplans",
+        pathname: "floorplans",
         params: { floorPlanImages: floorPlanImages.current },
       });
     } catch {
@@ -79,7 +97,7 @@ export default function SvgComponent({
   async function handleSaveOnly() {
     await saveToList();
     router.push({
-      pathname: "pages/floorplans",
+      pathname: "floorplans",
       params: { floorPlanImages: floorPlanImages.current },
     });
     setShowSaveModal(false);
@@ -172,7 +190,7 @@ export default function SvgComponent({
           style={{ flex: 1 }}
           options={{ format: "png", quality: 1 }}
         >
-          <CreateSvg inputString={turnPointsToString()}/>
+          <CreateSvg inputString={turnPointsToString()} />
         </ViewShot>
       </View>
 
