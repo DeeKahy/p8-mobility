@@ -1,7 +1,7 @@
 import { useIsFocused } from "@react-navigation/native";
 import { ViroARSceneNavigator } from "@reactvision/react-viro";
 import React, { useEffect, useRef, useState } from "react";
-import { Text, TouchableOpacity, View } from "react-native";
+import { Text, TouchableOpacity, View, StyleSheet } from "react-native";
 
 import Floorplan from "../../components/FloorplanCreation";
 import MeasureScene from "../../components/MeasureScene";
@@ -53,9 +53,15 @@ export default function ARView() {
         style={{ flex: 1 }}
       />
 
-      <View>
-        <TouchableOpacity onPress={handleStop}>
-          <Text style={{ color: "black", fontSize: 18 }}>
+      <View style={styles.buttonRow}>
+        <TouchableOpacity
+          onPress={handleStop}
+          style={[
+            styles.button,
+            isMeasuring ? styles.buttonStop : styles.buttonResume,
+          ]}
+        >
+          <Text style={styles.buttonText}>
             {isMeasuring ? "Stop Measuring" : "Resume Measuring"}
           </Text>
         </TouchableOpacity>
@@ -75,3 +81,40 @@ export default function ARView() {
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  arView: {
+    flex: 1,
+  },
+  buttonRow: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    flexDirection: "row",
+    gap: 10,
+    padding: 14,
+    paddingBottom: 28,
+    backgroundColor: "rgba(0,0,0,0.55)",
+  },
+  button: {
+    flex: 1,
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: "center",
+  },
+  buttonStop: {
+    backgroundColor: "#e63946",
+  },
+  buttonResume: {
+    backgroundColor: "#2a9d8f",
+  },
+  buttonText: {
+    color: "#fff",
+    fontSize: 15,
+    fontWeight: "500",
+  },
+});
