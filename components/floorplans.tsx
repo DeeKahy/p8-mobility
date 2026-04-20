@@ -61,7 +61,7 @@ export default (props: PickPlan) => {
     <View style={styles.container}>
       <Text style={styles.header}>Floor Plans</Text>
       <FlatList
-        data={images}
+        data={getImagesFromCache()}
         keyExtractor={(item, index) => index.toString()}
         renderItem={({ item }) => (
           <Item
