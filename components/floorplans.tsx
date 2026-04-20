@@ -21,10 +21,16 @@ const Item = ({ photoUri, pickFloorPlan, onDelete }: PickPlan) => (
     <Text style={styles.label} numberOfLines={1} ellipsizeMode="tail">
       {photoUri}
     </Text>
-    <TouchableOpacity onPress={() => pickFloorPlan(photoUri)}>
+    <TouchableOpacity
+      onPress={() => pickFloorPlan(photoUri)}
+      style={[styles.button]}
+    >
       <Text>Use Floor Plan</Text>
     </TouchableOpacity>
-    <TouchableOpacity onPress={() => onDelete(photoUri)}>
+    <TouchableOpacity
+      onPress={() => onDelete(photoUri)}
+      style={[styles.button]}
+    >
       <Text>Delete Floor Plan</Text>
     </TouchableOpacity>
   </View>
@@ -61,7 +67,7 @@ export default (props: PickPlan) => {
     <View style={styles.container}>
       <Text style={styles.header}>Floor Plans</Text>
       <FlatList
-        data={images}
+        data={getImagesFromCache()}
         keyExtractor={(item, index) => index.toString()}
         renderItem={({ item }) => (
           <Item

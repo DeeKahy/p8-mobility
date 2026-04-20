@@ -76,7 +76,7 @@ export default function SvgComponent({
   async function handleSaveOnly() {
     await saveToList();
     router.push({
-      pathname: "index",
+      pathname: "/",
     });
     setShowSaveModal(false);
   }
