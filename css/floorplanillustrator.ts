@@ -9,6 +9,16 @@ export const styles = StyleSheet.create({
     marginTop: 30,
     width: "100%",
   },
+  button: {
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  buttonText: {
+    color: "#fff",
+    fontSize: 16,
+  },
   header: {
     fontSize: 24,
     fontWeight: "700",
