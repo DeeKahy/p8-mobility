@@ -95,7 +95,8 @@ export default function SvgComponent({
     <Svg
       height="100%"
       width="100%"
-      viewBox={`${minX - padding} ${minZ - padding} ${maxX - minX + padding * 2} ${maxZ - minZ + padding * 2}`}
+      preserveAspectRatio="xMidYMid meet"
+      viewBox={`${minX - padding} ${minZ - padding} ${maxX - minX + padding * 2} ${maxZ - minZ + padding * 4}`}
     >
       {/* The element is a container used to group other SVG elements. Transformations applied to the g element are performed on all of its child elements. 
         So when we rotate, everything rotates with.
@@ -165,38 +166,37 @@ export default function SvgComponent({
           }}
         />
       </View>
-      <View style={{ flex: 1, backgroundColor: "#f5f5f5", padding: 30 }}>
-        {/* This is the what the generated of the floor plan is*/}
+      <View style={{ flex: 1 }}>
         <ViewShot
           ref={viewShotRef}
           style={{ flex: 1 }}
           options={{ format: "png", quality: 1 }}
         >
-          <CreateSvg inputString={turnPointsToString()} />
+          <CreateSvg inputString={turnPointsToString()}/>
         </ViewShot>
+      </View>
 
-        {/* Buttons for what to do for the floorplan */}
-        <RotationControls
-          rotation={rotation}
-          startRotating={startRotating}
-          stopRotating={stopRotating}
-        />
+      {/* Buttons for what to do for the floorplan */}
+      <RotationControls
+        rotation={rotation}
+        startRotating={startRotating}
+        stopRotating={stopRotating}
+      />
 
-        <View
-          style={{
-            flexDirection: "row",
-            justifyContent: "space-around",
-            paddingVertical: 20,
-            marginBottom: 30,
-          }}
-        >
-          <TouchableOpacity onPress={onDelete}>
-            <Text style={{ fontSize: 16 }}>Reset</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => setShowSaveModal(true)}>
-            <Text style={{ fontSize: 16 }}>Save</Text>
-          </TouchableOpacity>
-        </View>
+      <View
+        style={{
+          flexDirection: "row",
+          justifyContent: "space-around",
+          paddingVertical: 20,
+          marginBottom: 30,
+        }}
+      >
+        <TouchableOpacity onPress={onDelete}>
+          <Text style={{ fontSize: 16 }}>Reset</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => setShowSaveModal(true)}>
+          <Text style={{ fontSize: 16 }}>Save</Text>
+        </TouchableOpacity>
       </View>
     </Modal>
   );
