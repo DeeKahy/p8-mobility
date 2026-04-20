@@ -15,6 +15,7 @@ import { PhotoData } from "../models/PhotoFormModel";
 interface FloorplanContextReturn {
   floorplan: string | null;
   pickFloorplan: () => Promise<void>;
+  pickFromMyFloorplan: (myFloorPlan: string) => void;
   handleCanvasPress: (event: TapGestureEvent) => void;
   markers: Marker[];
   addMarker: (x: number, y: number, photos: PhotoData[]) => void;
@@ -95,12 +96,18 @@ export const FloorplanProvider = ({
     }
   };
 
+  const pickFromMyFloorplan = (myFloorPlan: string) => {
+    setFloorplan(myFloorPlan);
+    marker.clearMarkers(); // Clear markers when new floor plan is selected
+  };
+
   return (
     <FloorplanContext.Provider
       value={{
         ...marker,
         floorplan,
         pickFloorplan,
+        pickFromMyFloorplan,
         handleCanvasPress,
         selectedMarker: selectedMarkerId
           ? marker.markers.find((m) => m.id === selectedMarkerId)

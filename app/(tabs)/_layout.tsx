@@ -48,15 +48,6 @@ export default function TabLayout() {
             ),
           }}
         />
-        <Tabs.Screen
-          name="floorplans"
-          options={{
-            title: "My Floorplans",
-            tabBarIcon: ({ color, size }) => (
-              <Ionicons name="car" size={size} color={color} />
-            ),
-          }}
-        />
       </Tabs>
     </FloorplanProvider>
   );

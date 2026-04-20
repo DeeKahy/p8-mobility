@@ -62,7 +62,6 @@ type HitResult = {
   transform?: HitTransform;
 };
 
-
 // Extracts the first valid hit position from AR hit test results
 function extractHitPosition(results: unknown): Point3D | null {
   if (!Array.isArray(results)) {

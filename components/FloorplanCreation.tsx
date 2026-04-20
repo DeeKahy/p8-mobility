@@ -1,15 +1,15 @@
+import { Directory, File, Paths } from "expo-file-system";
+import { useRouter } from "expo-router";
 import { useRef, useState } from "react";
 import { Modal, Text, TextInput, TouchableOpacity, View } from "react-native";
 import Svg, { G, Polygon, Text as SvgText } from "react-native-svg";
 import ViewShot, { captureRef } from "react-native-view-shot";
-import { Directory, File, Paths } from "expo-file-system";
 
 import { RotationControls } from "./RotationControls";
+import { SaveFormModal } from "./SaveModal";
 import { useRotation } from "../app/hooks/useRotation";
-import { useRouter } from "expo-router";
 import { PointProps } from "../models/PointProps";
 import { calculateDistanceMeters, calculateMidPoint } from "../utils/arMath";
-import { SaveFormModal } from "./SaveModal";
 
 // Type to ensure that component CreateSvg only takes type of string
 type CreateSvgProps = {
@@ -25,9 +25,7 @@ export default function SvgComponent({
   const { rotation, startRotating, stopRotating } = useRotation();
   const viewShotRef = useRef(null);
   const router = useRouter();
-  const floorPlanImages = useRef<string[]>([]);
   const [showSaveModal, setShowSaveModal] = useState(false);
-  const imageCounter = useRef<number>(0);
 
   /*Issue with smaller polygons not being visible on screen and too large can overtake screen, so we want to take min and max and give it to viewbox.
   Viewbox has  viewBox="x y maxHeight maxWidth".
@@ -65,47 +63,26 @@ export default function SvgComponent({
         quality: 1,
       });
 
+      console.log("capturedUri:", capturedUri);
+      const outputUri = imagesDirectory.uri + `/floorplan-${Date.now()}.png`;
+      const destFile = new File(outputUri);
       const sourceFile = new File(capturedUri);
-      const output = new File(
-        imagesDirectory,
-        "floorplan-" + imageCounter.current + ".png"
-      );
-      console.log(output);
-      sourceFile.copy(output);
-      imageCounter.current += 1;
-
-      console.log(imageCounter.current);
+      sourceFile.copy(destFile);
     } catch (error) {
       throw new Error("Couldn't save picture to list" + error);
-    }
-  }
-
-  //So we can save the file in our own filesystem.
-  //captureRef simply take a screenshot of the view. Could not make it work with SVG
-  async function savePng() {
-    try {
-      console.info(typeof floorPlanImages.current);
-      router.push({
-        pathname: "floorplans",
-        params: { floorPlanImages: floorPlanImages.current },
-      });
-    } catch {
-      throw new Error("Couldn't save picture");
     }
   }
 
   async function handleSaveOnly() {
     await saveToList();
     router.push({
-      pathname: "floorplans",
-      params: { floorPlanImages: floorPlanImages.current },
+      pathname: "index",
     });
     setShowSaveModal(false);
   }
 
   async function handleSaveAndNext() {
     await saveToList();
-    await savePng();
     setShowSaveModal(false);
   }
 
@@ -162,10 +139,10 @@ export default function SvgComponent({
         visible={showSaveModal}
         onClose={() => setShowSaveModal(false)}
         onSave={() => {
-          void handleSaveOnly();
+          handleSaveOnly();
         }}
         onSaveNext={() => {
-          void handleSaveAndNext();
+          handleSaveAndNext();
         }}
       />
       <View style={{ alignItems: "center", position: "relative" }}>
