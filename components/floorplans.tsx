@@ -52,11 +52,12 @@ export default (props: PickPlan) => {
     return imagesDirectory.list().map((file) => file.uri);
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [images, setImages] = useState<string[] | undefined>(
     getImagesFromCache
   );
 
-  if (!images || images.length === 0) {
+  if (getImagesFromCache()?.length === 0) {
     return (
       <View style={styles.container}>
         <Text style={styles.header}>Floor Plans</Text>
