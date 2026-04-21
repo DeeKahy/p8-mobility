@@ -73,15 +73,6 @@ export default function ARView() {
     return null;
   }
 
-  const handleARError = (error: unknown) => {
-    const message =
-      (error as { nativeEvent?: { error?: { message?: string } } })?.nativeEvent
-        ?.error?.message ||
-      "AR failed to start. Please install/update ARCore and try again.";
-    setStatus("unsupported");
-    setErrorMessage(message);
-  };
-
   const handleStop = () => {
     setIsMeasuring(false);
     console.log("Final Points:", pointsRef.current);
@@ -130,7 +121,6 @@ export default function ARView() {
     <View style={{ flex: 1 }}>
       <ViroARSceneNavigator
         autofocus
-        onError={handleARError as any}
         initialScene={
           {
             scene: MeasureScene,
