@@ -55,7 +55,7 @@ export default function HomeScreen() {
   const [showCamera, setShowCamera] = useState(false);
   const [showNewMarkerOptions, setShowNewMarkerOptions] = useState(false);
   const [pendingPhotos, setPendingPhotos] = useState<string[]>([]);
-  const [showPhotoForm, setShowPhotoForm] = useState(true);
+  const [showPhotoForm, setShowPhotoForm] = useState(false);
   const [showPhotoListView, setShowPhotoListView] = useState<boolean>(false);
 
   const describedPhotos = useRef<PhotoData[]>([]);
@@ -106,6 +106,7 @@ export default function HomeScreen() {
 
     setShowNewMarkerOptions(false);
     setShowTempMarker(false);
+    setShowPhotoForm(true);
     setPendingPhotos((await getValidImages(result)).map((p) => p.uri));
   };
 
@@ -126,7 +127,7 @@ export default function HomeScreen() {
     setShowNewMarkerOptions(false);
     const result = await pickPhotoFromLibrary(0);
     if (!result || !selectedMarkerId) return;
-
+    setShowPhotoForm(true);
     setPendingPhotos((await getValidImages(result)).map((p) => p.uri));
   };
 
