@@ -54,7 +54,9 @@ export default function SvgComponent({
 
   async function saveToList() {
     try {
+      //Creates a path for a new directory in the local storage
       const imagesDirectory = new Directory(Paths.document, "floorplan-images");
+      //Checks if the directory already exists
       if (!imagesDirectory.exists) {
         imagesDirectory.create();
       }
