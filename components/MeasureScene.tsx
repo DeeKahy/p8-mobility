@@ -3,7 +3,7 @@ import {
   ViroBox,
   ViroMaterials,
   ViroText,
-} from "@viro-community/react-viro";
+} from "@reactvision/react-viro";
 import React, { useMemo, useRef, useState } from "react";
 import { Dimensions, PixelRatio, StyleSheet } from "react-native";
 

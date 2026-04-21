@@ -1,4 +1,4 @@
-import { Point3D } from "../app/models/3Dpoints";
+import { Point3D } from "../models/3Dpoints";
 // Validates that a value is a proper 3D coordinate
 export function isValidPoint(position: unknown): position is Point3D {
   return (
