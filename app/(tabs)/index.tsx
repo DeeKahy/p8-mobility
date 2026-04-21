@@ -1,7 +1,8 @@
 import { CameraView } from "expo-camera";
+import { Directory, File, Paths } from "expo-file-system";
 import * as ImagePicker from "expo-image-picker";
 import { StatusBar } from "expo-status-bar";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Alert, Image, Text, TouchableOpacity, View } from "react-native";
 import {
   Gesture,
@@ -31,10 +32,13 @@ import { isImageBlurry } from "../../utils/blurDetection";
 export default function HomeScreen() {
   const {
     markers,
+    storedFloorplans,
+    isLoadingStoredFloorplans,
     floorplan,
     selectedMarkerId,
     pickFloorplan,
     pickFromMyFloorplan,
+    deleteStoredFloorplan,
     handleCanvasPress,
     addPhotos,
     removePhoto,
@@ -51,19 +55,29 @@ export default function HomeScreen() {
   const { onUpdate: onResumableUpdate, state: resumableState } =
     useTransformationState("resumable");
 
-  const { log } = useLogger();
+  const { error, log } = useLogger();
 
   const [showPhotos, setShowPhotos] = useState(false);
   const [showCamera, setShowCamera] = useState(false);
   const [showNewMarkerOptions, setShowNewMarkerOptions] = useState(false);
   const [pendingPhotos, setPendingPhotos] = useState<string[]>([]);
   const [showPhotoListView, setShowPhotoListView] = useState<boolean>(false);
+  const [photoGalleryMarkerId, setPhotoGalleryMarkerId] = useState<
+    string | null
+  >(null);
 
   const describedPhotos = useRef<PhotoData[]>([]);
   const cameraAction = useRef<((uri: string) => void) | undefined>(undefined);
   const cameraRef = useRef<CameraView>(null);
   const savedPhotos = useRef<PhotoData[]>([]);
   let currentUri = pendingPhotos[0];
+  const photoGalleryMarker = photoGalleryMarkerId
+    ? markers.find((marker) => marker.id === photoGalleryMarkerId)
+    : undefined;
+
+  useEffect(() => {
+    savedPhotos.current = markers.flatMap((marker) => marker.photos);
+  }, [markers]);
 
   async function getValidImages(images: ImagePicker.ImagePickerAsset[]) {
     const twoWeeksAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
@@ -99,15 +113,54 @@ export default function HomeScreen() {
     return validImages;
   }
 
+  async function persistPhotoUris(photoUris: string[]): Promise<string[]> {
+    const markerImagesDirectory = new Directory(
+      Paths.document,
+      "marker-images"
+    );
+
+    if (!markerImagesDirectory.exists) {
+      markerImagesDirectory.create();
+    }
+
+    const persistedPhotoUris: string[] = [];
+
+    for (const photoUri of photoUris) {
+      const fileExtensionMatch = photoUri.match(/\.(\w+)(\?.*)?$/);
+      const fileExtension = fileExtensionMatch?.[1] ?? "jpg";
+      const persistedPhotoUri =
+        markerImagesDirectory.uri +
+        `/marker-photo-${Date.now()}-${persistedPhotoUris.length}.${fileExtension}`;
+
+      const sourceFile = new File(photoUri);
+      const destinationFile = new File(persistedPhotoUri);
+      sourceFile.copy(destinationFile);
+      persistedPhotoUris.push(persistedPhotoUri);
+    }
+
+    return persistedPhotoUris;
+  }
+
   const handleNewMarkerFromCameraRoll = async () => {
     console.info("handleNewMarkerFromCameraRoll");
     setShowNewMarkerOptions(false);
     const result = await pickPhotoFromLibrary(0);
     if (!result || !tempMarker) return;
 
-    setShowNewMarkerOptions(false);
-    setShowTempMarker(false);
-    setPendingPhotos((await getValidImages(result)).map((p) => p.uri));
+    try {
+      const validPhotoUris = (await getValidImages(result)).map((p) => p.uri);
+      const persistedPhotoUris = await persistPhotoUris(validPhotoUris);
+
+      setShowNewMarkerOptions(false);
+      setShowTempMarker(false);
+      setPendingPhotos(persistedPhotoUris);
+      log("Successfully persisted new marker photos from gallery");
+    } catch (caughtError) {
+      const errorMessage =
+        caughtError instanceof Error ? caughtError.message : "Unknown error";
+      error(`Persisting new marker gallery photos failed: ${errorMessage}`);
+      throw caughtError;
+    }
   };
 
   const handleNewMarkerFromPicture = async () => {
@@ -116,8 +169,20 @@ export default function HomeScreen() {
     if (!tempMarker) return;
 
     cameraAction.current = (img) => {
-      setPendingPhotos([img]);
-      setShowCamera(false);
+      persistPhotoUris([img])
+        .then((persistedPhotoUris) => {
+          setPendingPhotos(persistedPhotoUris);
+          setShowCamera(false);
+          log("Successfully persisted new marker photo from camera");
+        })
+        .catch((caughtError: unknown) => {
+          const errorMessage =
+            caughtError instanceof Error
+              ? caughtError.message
+              : "Unknown error";
+          error(`Persisting new marker camera photo failed: ${errorMessage}`);
+          throw caughtError;
+        });
     };
     setShowNewMarkerOptions(false);
     setShowTempMarker(false);
@@ -128,7 +193,20 @@ export default function HomeScreen() {
     const result = await pickPhotoFromLibrary(0);
     if (!result || !selectedMarkerId) return;
 
-    setPendingPhotos((await getValidImages(result)).map((p) => p.uri));
+    try {
+      const validPhotoUris = (await getValidImages(result)).map((p) => p.uri);
+      const persistedPhotoUris = await persistPhotoUris(validPhotoUris);
+
+      setPendingPhotos(persistedPhotoUris);
+      log("Successfully persisted additional marker photos from gallery");
+    } catch (caughtError) {
+      const errorMessage =
+        caughtError instanceof Error ? caughtError.message : "Unknown error";
+      error(
+        `Persisting additional marker gallery photos failed: ${errorMessage}`
+      );
+      throw caughtError;
+    }
   };
 
   const handleAddFromPictureToMarker = async () => {
@@ -137,14 +215,30 @@ export default function HomeScreen() {
     setShowCamera(true);
 
     cameraAction.current = (img) => {
-      setPendingPhotos([img]);
-      setShowCamera(false);
+      persistPhotoUris([img])
+        .then((persistedPhotoUris) => {
+          setPendingPhotos(persistedPhotoUris);
+          setShowCamera(false);
+          log("Successfully persisted additional marker photo from camera");
+        })
+        .catch((caughtError: unknown) => {
+          const errorMessage =
+            caughtError instanceof Error
+              ? caughtError.message
+              : "Unknown error";
+          error(
+            `Persisting additional marker camera photo failed: ${errorMessage}`
+          );
+          throw caughtError;
+        });
     };
   };
 
   const handleDeletePhoto = (photo: PhotoData) => {
-    if (!selectedMarkerId) return;
-    removePhoto(selectedMarkerId, photo);
+    const markerIdToUpdate = photoGalleryMarkerId ?? selectedMarkerId;
+
+    if (!markerIdToUpdate) return;
+    removePhoto(markerIdToUpdate, photo);
   };
 
   const pickPhotoFromLibrary = async (selectionLimit = 1) => {
@@ -160,6 +254,9 @@ export default function HomeScreen() {
   };
 
   const handleShowPhotos = () => {
+    if (selectedMarkerId) {
+      setPhotoGalleryMarkerId(selectedMarkerId);
+    }
     setShowMarkerOptions(false);
     setShowPhotos(true);
   };
@@ -167,6 +264,7 @@ export default function HomeScreen() {
   const closeAllModals = () => {
     setShowCamera(false);
     setShowPhotos(false);
+    setPhotoGalleryMarkerId(null);
     setSelectedMarkerId(null);
     setShowMarkerOptions(false);
     setShowTempMarker(false);
@@ -195,11 +293,10 @@ export default function HomeScreen() {
           <Text style={styles.pickButtonText}>Add from gallery</Text>
         </TouchableOpacity>
         <MyFloorPlans
+          floorplans={storedFloorplans}
+          isLoading={isLoadingStoredFloorplans}
           pickFloorPlan={pickFromMyFloorplan}
-          photoUri=""
-          onDelete={function (uri: string): void {
-            throw new Error("Function not implemented.");
-          }}
+          onDeleteFloorPlan={deleteStoredFloorplan}
         />
       </View>
     );
@@ -331,7 +428,7 @@ export default function HomeScreen() {
 
         <PhotoGalleryModal
           showModal={showPhotos}
-          marker={selectedMarker}
+          marker={photoGalleryMarker}
           handleDeletePhoto={handleDeletePhoto}
           closeAllModals={closeAllModals}
         />

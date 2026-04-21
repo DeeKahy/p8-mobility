@@ -8,8 +8,15 @@ import ViewShot, { captureRef } from "react-native-view-shot";
 import { RotationControls } from "./RotationControls";
 import { SaveFormModal } from "./SaveModal";
 import { useRotation } from "../app/hooks/useRotation";
+import { useFloorplan } from "../context/FloorplanContext";
+import { useLogger } from "../context/LoggerContext";
 import { PointProps } from "../models/PointProps";
+import {
+  getFloorplanImageRecord,
+  saveFloorplanImageRecord,
+} from "../utils/api";
 import { calculateDistanceMeters, calculateMidPoint } from "../utils/arMath";
+import { FloorplanImageRecord } from "../utils/types";
 
 // Type to ensure that component CreateSvg only takes type of string
 type CreateSvgProps = {
@@ -27,6 +34,8 @@ export default function SvgComponent({
   const [name, setName] = useState<string>("");
   const router = useRouter();
   const [showSaveModal, setShowSaveModal] = useState(false);
+  const { refreshStoredFloorplans } = useFloorplan();
+  const { error, log } = useLogger();
 
   /*Issue with smaller polygons not being visible on screen and too large can overtake screen, so we want to take min and max and give it to viewbox.
   Viewbox has  viewBox="x y maxHeight maxWidth".
@@ -71,8 +80,48 @@ export default function SvgComponent({
       const destFile = new File(outputUri);
       const sourceFile = new File(capturedUri);
       sourceFile.copy(destFile);
-    } catch (error) {
-      throw new Error("Couldn't save picture to list" + error);
+
+      const createdAt = new Date().toISOString();
+      const nextFloorplanId = `floorplan-${Date.now()}`;
+      let floorplanImageRecord: FloorplanImageRecord = { floorplans: [] };
+
+      try {
+        floorplanImageRecord = await getFloorplanImageRecord();
+        log("Successfully fetched floorplan image record before save");
+      } catch (caughtError) {
+        const errorMessage =
+          caughtError instanceof Error ? caughtError.message : "Unknown error";
+
+        if (errorMessage !== "file not found") {
+          error(
+            `Fetching floorplan image record before save failed: ${errorMessage}`
+          );
+          throw caughtError;
+        }
+
+        log("No existing floorplan image record found before save");
+      }
+
+      const nextFloorplanName =
+        name.trim().length > 0 ? name.trim() : `Floorplan ${createdAt}`;
+
+      await saveFloorplanImageRecord({
+        floorplans: floorplanImageRecord.floorplans.concat({
+          id: nextFloorplanId,
+          imageUri: outputUri,
+          imageName: nextFloorplanName,
+          createdAt,
+        }),
+      });
+      log(`Successfully saved floorplan ${nextFloorplanId} to API`);
+
+      await refreshStoredFloorplans();
+      log("Successfully refreshed stored floorplans after save");
+    } catch (caughtError) {
+      const errorMessage =
+        caughtError instanceof Error ? caughtError.message : "Unknown error";
+      error(`Saving floorplan failed: ${errorMessage}`);
+      throw new Error("Couldn't save picture to list" + caughtError);
     }
   }
 
