@@ -38,8 +38,7 @@ export function LoggerProvider({ children }: { children: React.ReactNode }) {
     };
 
     const formattedMessage = `[${group}] ${message}`;
-    console.log(formattedMessage)
-
+    console.log(formattedMessage);
 
     setLogs((prev) => [entry, ...prev]);
   };
