@@ -24,9 +24,9 @@ export default function ARView() {
   const pointsRef = useRef<Point3D[]>([]);
   const isFocused = useIsFocused();
   const { custom } = useLogger();
-  const [status, setStatus] = useState<"checking" | "supported" | "unsupported">(
-    "checking"
-  );
+  const [status, setStatus] = useState<
+    "checking" | "supported" | "unsupported"
+  >("checking");
   const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
