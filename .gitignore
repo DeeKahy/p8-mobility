@@ -54,3 +54,6 @@ result-*
 .maestro/screenshots/
 maestro-*.mp4
 maestro-*.png
+
+# IDE settings
+.vscode
