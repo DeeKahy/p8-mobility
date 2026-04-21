@@ -2,7 +2,7 @@ import { StyleSheet } from "react-native";
 
 export const styles = StyleSheet.create({
   container: {
-    height: "65%",
+    height: "73%",
     backgroundColor: "#f5f5f5",
     paddingTop: 48,
     paddingHorizontal: 16,
@@ -27,7 +27,7 @@ export const styles = StyleSheet.create({
   },
   list: {
     gap: 16,
-    paddingBottom: 32,
+    paddingBottom: 30,
   },
   card: {
     backgroundColor: "#ffffff",

@@ -24,6 +24,7 @@ export default function SvgComponent({
 }: PointProps) {
   const { rotation, startRotating, stopRotating } = useRotation();
   const viewShotRef = useRef(null);
+  const [name, setName] = useState<string>("");
   const router = useRouter();
   const [showSaveModal, setShowSaveModal] = useState(false);
 
@@ -130,6 +131,16 @@ export default function SvgComponent({
           );
         })}
       </G>
+      <View
+        style={{
+          top: 550,
+          position: "relative",
+          justifyContent: "center",
+          alignItems: "center",
+        }}
+      >
+        <Text style={{ fontSize: 20 }}>{name}</Text>
+      </View>
     </Svg>
   );
 
@@ -148,6 +159,8 @@ export default function SvgComponent({
       <View style={{ alignItems: "center", position: "relative" }}>
         <TextInput
           placeholder="Enter room name..."
+          onChangeText={(newText) => setName(newText)}
+          defaultValue={name}
           style={{
             position: "relative",
             top: 40,
@@ -158,6 +171,7 @@ export default function SvgComponent({
             borderColor: "gray",
             borderWidth: 1,
             zIndex: 1,
+            fontSize: 16,
           }}
         />
       </View>
@@ -186,9 +200,6 @@ export default function SvgComponent({
           marginBottom: 30,
         }}
       >
-        <TouchableOpacity onPress={onDelete}>
-          <Text style={{ fontSize: 16 }}>Reset</Text>
-        </TouchableOpacity>
         <TouchableOpacity onPress={() => setShowSaveModal(true)}>
           <Text style={{ fontSize: 16 }}>Save</Text>
         </TouchableOpacity>

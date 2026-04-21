@@ -194,7 +194,13 @@ export default function HomeScreen() {
         <TouchableOpacity style={styles.pickButton} onPress={pickFloorplan}>
           <Text style={styles.pickButtonText}>Add from gallery</Text>
         </TouchableOpacity>
-        <MyFloorPlans pickFloorPlan={pickFromMyFloorplan} />
+        <MyFloorPlans
+          pickFloorPlan={pickFromMyFloorplan}
+          photoUri=""
+          onDelete={function (uri: string): void {
+            throw new Error("Function not implemented.");
+          }}
+        />
       </View>
     );
   }

@@ -1,6 +1,13 @@
 import { Directory, Paths, File } from "expo-file-system";
 import { useState } from "react";
-import { Text, View, FlatList, Image, TouchableOpacity } from "react-native";
+import {
+  Text,
+  View,
+  FlatList,
+  Image,
+  TouchableOpacity,
+  Alert,
+} from "react-native";
 
 import { useToast } from "../context/ToastProvider";
 import { styles } from "../css/floorplanillustrator";
@@ -49,7 +56,29 @@ export default (props: PickPlan) => {
     getImagesFromCache
   );
 
+  if (!images || images.length === 0) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.header}>Floor Plans</Text>
+        <Text style={styles.empty}>
+          No floor plans found. Please create one in the AR tab.
+        </Text>
+      </View>
+    );
+  }
+
   const onDelete = (photoUri: string) => {
+    Alert.alert("Delete Image", "Are you sure you want to delete this image?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: () => onConfirmDelete(photoUri),
+      },
+    ]);
+  };
+
+  const onConfirmDelete = (photoUri: string) => {
     try {
       const uriFile = new File(photoUri);
       if (uriFile) {
