@@ -12,7 +12,7 @@ export const styles = StyleSheet.create({
     backgroundColor: "#fff",
     alignItems: "center",
     justifyContent: "center",
-    padding: 20,
+    paddingTop: 50,
   },
   title: {
     fontSize: 28,
@@ -70,16 +70,6 @@ export const styles = StyleSheet.create({
     height: 30,
     alignItems: "center",
     justifyContent: "center",
-  },
-  markerDot: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: "#FF5722",
-    borderWidth: 3,
-    borderColor: "#fff",
-    transform: [{ translateX: -10 }, { translateY: -10 }],
-    pointerEvents: "none",
   },
   markerCount: {
     position: "absolute",

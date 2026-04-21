@@ -1,10 +1,12 @@
-import * as MediaLibrary from "expo-media-library";
-import { useRef } from "react";
-import { Modal, Text, TouchableOpacity, View } from "react-native";
+import { Directory, File, Paths } from "expo-file-system";
+import { useRouter } from "expo-router";
+import { useRef, useState } from "react";
+import { Modal, Text, TextInput, TouchableOpacity, View } from "react-native";
 import Svg, { G, Polygon, Text as SvgText } from "react-native-svg";
 import ViewShot, { captureRef } from "react-native-view-shot";
 
 import { RotationControls } from "./RotationControls";
+import { SaveFormModal } from "./SaveModal";
 import { useRotation } from "../app/hooks/useRotation";
 import { PointProps } from "../models/PointProps";
 import { calculateDistanceMeters, calculateMidPoint } from "../utils/arMath";
@@ -22,6 +24,9 @@ export default function SvgComponent({
 }: PointProps) {
   const { rotation, startRotating, stopRotating } = useRotation();
   const viewShotRef = useRef(null);
+  const [name, setName] = useState<string>("");
+  const router = useRouter();
+  const [showSaveModal, setShowSaveModal] = useState(false);
 
   /*Issue with smaller polygons not being visible on screen and too large can overtake screen, so we want to take min and max and give it to viewbox.
   Viewbox has  viewBox="x y maxHeight maxWidth".
@@ -47,22 +52,49 @@ export default function SvgComponent({
     return output;
   }
 
-  //So we can save the file in our own filesystem.
-  //captureRef simply take a screenshot of the view. Could not make it work with SVG
-  async function savePng() {
+  async function saveToList() {
     try {
-      const uri = await captureRef(viewShotRef, { format: "png", quality: 1 });
-      await MediaLibrary.saveToLibraryAsync(uri);
-    } catch {
-      throw new Error("Couldn't save picture");
+      //Creates a path for a new directory in the local storage
+      const imagesDirectory = new Directory(Paths.document, "floorplan-images");
+      //Checks if the directory already exists
+      if (!imagesDirectory.exists) {
+        imagesDirectory.create();
+      }
+
+      const capturedUri = await captureRef(viewShotRef, {
+        format: "png",
+        quality: 1,
+      });
+
+      console.log("capturedUri:", capturedUri);
+      const outputUri = imagesDirectory.uri + `/floorplan-${Date.now()}.png`;
+      const destFile = new File(outputUri);
+      const sourceFile = new File(capturedUri);
+      sourceFile.copy(destFile);
+    } catch (error) {
+      throw new Error("Couldn't save picture to list" + error);
     }
+  }
+
+  async function handleSaveOnly() {
+    await saveToList();
+    router.push({
+      pathname: "/",
+    });
+    setShowSaveModal(false);
+  }
+
+  async function handleSaveAndNext() {
+    await saveToList();
+    setShowSaveModal(false);
   }
 
   const CreateSvg = ({ inputString }: CreateSvgProps) => (
     <Svg
       height="100%"
       width="100%"
-      viewBox={`${minX - padding} ${minZ - padding} ${maxX - minX + padding * 2} ${maxZ - minZ + padding * 2}`}
+      preserveAspectRatio="xMidYMid meet"
+      viewBox={`${minX - padding} ${minZ - padding} ${maxX - minX + padding * 2} ${maxZ - minZ + padding * 4}`}
     >
       {/* The element is a container used to group other SVG elements. Transformations applied to the g element are performed on all of its child elements. 
         So when we rotate, everything rotates with.
@@ -101,13 +133,51 @@ export default function SvgComponent({
           );
         })}
       </G>
+      <View
+        style={{
+          top: 550,
+          position: "relative",
+          justifyContent: "center",
+          alignItems: "center",
+        }}
+      >
+        <Text style={{ fontSize: 20 }}>{name}</Text>
+      </View>
     </Svg>
   );
 
   return (
-    <Modal visible={visible}>
-      <View style={{ flex: 1, backgroundColor: "#f5f5f5", padding: 16 }}>
-        {/* This is the what the generated of the floor plan is*/}
+    <Modal visible={visible} onRequestClose={onClose}>
+      <SaveFormModal
+        visible={showSaveModal}
+        onClose={() => setShowSaveModal(false)}
+        onSave={() => {
+          handleSaveOnly();
+        }}
+        onSaveNext={() => {
+          handleSaveAndNext();
+        }}
+      />
+      <View style={{ alignItems: "center", position: "relative" }}>
+        <TextInput
+          placeholder="Enter room name..."
+          onChangeText={(newText) => setName(newText)}
+          defaultValue={name}
+          style={{
+            position: "relative",
+            top: 40,
+            height: 40,
+            width: 200,
+            backgroundColor: "white",
+            paddingHorizontal: 10,
+            borderColor: "gray",
+            borderWidth: 1,
+            zIndex: 1,
+            fontSize: 16,
+          }}
+        />
+      </View>
+      <View style={{ flex: 1 }}>
         <ViewShot
           ref={viewShotRef}
           style={{ flex: 1 }}
@@ -115,32 +185,26 @@ export default function SvgComponent({
         >
           <CreateSvg inputString={turnPointsToString()} />
         </ViewShot>
+      </View>
 
-        {/* Buttons for what to do for the floorplan */}
-        <RotationControls
-          rotation={rotation}
-          startRotating={startRotating}
-          stopRotating={stopRotating}
-        />
+      {/* Buttons for what to do for the floorplan */}
+      <RotationControls
+        rotation={rotation}
+        startRotating={startRotating}
+        stopRotating={stopRotating}
+      />
 
-        <View
-          style={{
-            flexDirection: "row",
-            justifyContent: "space-around",
-            paddingVertical: 20,
-            marginBottom: 30,
-          }}
-        >
-          <TouchableOpacity onPress={onDelete}>
-            <Text style={{ fontSize: 16 }}>Reset</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={savePng}>
-            <Text style={{ fontSize: 16 }}>Save floorplan</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={onClose}>
-            <Text style={{ fontSize: 16 }}>Cancel</Text>
-          </TouchableOpacity>
-        </View>
+      <View
+        style={{
+          flexDirection: "row",
+          justifyContent: "space-around",
+          paddingVertical: 20,
+          marginBottom: 30,
+        }}
+      >
+        <TouchableOpacity onPress={() => setShowSaveModal(true)}>
+          <Text style={{ fontSize: 16 }}>Save</Text>
+        </TouchableOpacity>
       </View>
     </Modal>
   );

@@ -3,11 +3,12 @@ import { useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 //Expected photo data format to make it easier to pass over including only the most necessary. Also works in unison with yup validator.
 import { View, Image, TextInput, Button, Text, Modal, ScrollView, KeyboardAvoidingView, Platform } from "react-native";
-import DropDownPicker from "react-native-dropdown-picker";
+import DropDownPicker, { ItemType } from "react-native-dropdown-picker";
 import * as yup from "yup";
 
 import { styles } from "../css/photoForm";
 import { PhotoData } from "../models/PhotoFormModel";
+import { hashNameToColor } from "../utils/stringColor";
 //Photo form to take data from index.tsx and opening and closing modal
 type PhotoFormProps = {
   visible: boolean;
@@ -27,6 +28,18 @@ const schema = yup
     description: yup.string().default(""),
   })
   .required();
+
+// Generates icons based on item names
+const generateIcon = (s: string) => (
+  <View
+    style={{
+      width: 20, // Dynamic sizing doesn't work here
+      height: 20,
+      borderRadius: "50%",
+      backgroundColor: hashNameToColor(s),
+    }}
+  />
+);
 
 export const PhotoFormModal = ({
   visible,
@@ -57,6 +70,23 @@ export const PhotoFormModal = ({
     resolver: yupResolver(schema),
   });
 
+  // Area group names. // TODO: Add the user's own to this if we let them declare some
+  const names: string[] = [
+    "Kitchen",
+    "Living Room",
+    "Bathroom",
+    "Bedroom",
+    "Other",
+  ];
+  const items: ItemType<string>[] = [];
+  names.forEach((s: string) => {
+    items.push({
+      label: s,
+      value: s,
+      icon: () => generateIcon(s),
+    });
+  });
+
   return (
     <Modal animationType="slide" transparent visible={visible}>
       <KeyboardAvoidingView
@@ -80,6 +110,37 @@ export const PhotoFormModal = ({
                 control={control}
                 name="pictureName"
                 render={({ field: { onChange, value } }) => (
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Picture name..."
+                    value={value}
+                    onChangeText={onChange}
+                  />
+                )}
+              />
+              {errors.pictureName && (
+                <Text style={styles.error}>{errors.pictureName.message}</Text>
+              )}
+
+              <Text>Area group:</Text>
+              <Controller
+                control={control}
+                name="areaGroup"
+                render={({ field: { onChange, value } }) => (
+              <View>
+                <DropDownPicker
+                  open={open}
+                  value={value}
+                  items={items}
+                  setOpen={setOpen}
+                  setValue={(currentValue) => {
+                    const newValue = currentValue(value);
+                    setShowOtherInputForm(newValue === "Other");
+                    onChange(newValue);
+                  }}
+                  placeholder="Select area group"
+                />
+                {showOtherInputForm && (
                   <TextInput
                     style={styles.input}
                     placeholder="Picture name..."
