@@ -2,7 +2,17 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import { useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 //Expected photo data format to make it easier to pass over including only the most necessary. Also works in unison with yup validator.
-import { View, Image, TextInput, Button, Text, Modal, ScrollView, KeyboardAvoidingView, Platform } from "react-native";
+import {
+  View,
+  Image,
+  TextInput,
+  Button,
+  Text,
+  Modal,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+} from "react-native";
 import DropDownPicker, { ItemType } from "react-native-dropdown-picker";
 import * as yup from "yup";
 
