@@ -14,6 +14,7 @@ import {
 } from "react-native-zoom-toolkit";
 
 import { CameraUI } from "../../components/CameraUI";
+import MyFloorPlans from "../../components/floorplans";
 import { EditMarkerModal } from "../../components/index/EditMarkerModal";
 import { MarkerElement } from "../../components/index/MarkerElement";
 import { MarkerOptionsModal } from "../../components/index/MarkerOptionsModal";
@@ -33,6 +34,7 @@ export default function HomeScreen() {
     floorplan,
     selectedMarkerId,
     pickFloorplan,
+    pickFromMyFloorplan,
     handleCanvasPress,
     addPhotos,
     removePhoto,
@@ -190,8 +192,15 @@ export default function HomeScreen() {
           Select a floor plan image to get started
         </Text>
         <TouchableOpacity style={styles.pickButton} onPress={pickFloorplan}>
-          <Text style={styles.pickButtonText}>Select Floor Plan</Text>
+          <Text style={styles.pickButtonText}>Add from gallery</Text>
         </TouchableOpacity>
+        <MyFloorPlans
+          pickFloorPlan={pickFromMyFloorplan}
+          photoUri=""
+          onDelete={function (uri: string): void {
+            throw new Error("Function not implemented.");
+          }}
+        />
       </View>
     );
   }

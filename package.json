@@ -24,9 +24,9 @@
   "dependencies": {
     "@expo/vector-icons": "^15.1.1",
     "@hookform/resolvers": "^5.2.2",
+    "@reactvision/react-viro": "^2.54.0",
     "@turf/area": "^7.3.4",
     "@types/jest": "29.5.14",
-    "@reactvision/react-viro": "^2.54.0",
     "buffer": "^6.0.3",
     "eslint": "^9.39.3",
     "eslint-config-universe": "^15.0.3",

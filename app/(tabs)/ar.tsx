@@ -139,9 +139,15 @@ export default function ARView() {
         style={{ flex: 1 }}
       />
 
-      <View>
-        <TouchableOpacity onPress={handleStop}>
-          <Text style={{ color: "black", fontSize: 18 }}>
+      <View style={styles.buttonRow}>
+        <TouchableOpacity
+          onPress={handleStop}
+          style={[
+            styles.button,
+            isMeasuring ? styles.buttonStop : styles.buttonResume,
+          ]}
+        >
+          <Text style={styles.buttonText}>
             {isMeasuring ? "Stop Measuring" : "Resume Measuring"}
           </Text>
         </TouchableOpacity>
@@ -163,6 +169,40 @@ export default function ARView() {
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  arView: {
+    flex: 1,
+  },
+  buttonRow: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    flexDirection: "row",
+    gap: 10,
+    padding: 14,
+    paddingBottom: 28,
+    backgroundColor: "rgba(0,0,0,0.55)",
+  },
+  button: {
+    flex: 1,
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: "center",
+  },
+  buttonStop: {
+    backgroundColor: "#e63946",
+  },
+  buttonResume: {
+    backgroundColor: "#2a9d8f",
+  },
+  buttonText: {
+    color: "#fff",
+    fontSize: 15,
+    fontWeight: "500",
+  },
   centered: {
     flex: 1,
     alignItems: "center",
@@ -181,16 +221,5 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     textAlign: "center",
     color: "#444",
-  },
-  button: {
-    marginTop: 8,
-    backgroundColor: "#1d4ed8",
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 10,
-  },
-  buttonText: {
-    color: "#fff",
-    fontWeight: "600",
   },
 });
