@@ -37,6 +37,9 @@ export function LoggerProvider({ children }: { children: React.ReactNode }) {
       group,
     };
 
+    const formattedMessage = `[${group}] ${message}`;
+    console.log(formattedMessage);
+
     setLogs((prev) => [entry, ...prev]);
   };
   // Default loggers that will always be there. Very usefull

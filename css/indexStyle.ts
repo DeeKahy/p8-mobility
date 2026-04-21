@@ -71,16 +71,6 @@ export const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  markerDot: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: "#FF5722",
-    borderWidth: 3,
-    borderColor: "#fff",
-    transform: [{ translateX: -10 }, { translateY: -10 }],
-    pointerEvents: "none",
-  },
   markerCount: {
     position: "absolute",
     top: -8,
