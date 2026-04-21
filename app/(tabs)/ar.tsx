@@ -138,6 +138,12 @@ export default function ARView() {
         videoQuality="Low"
         style={{ flex: 1 }}
       />
+      {isMeasuring && (
+        <View style={styles.crosshairContainer} pointerEvents="none">
+          <View style={styles.crosshairHorizontal} />
+          <View style={styles.crosshairVertical} />
+        </View>
+      )}
 
       <View style={styles.buttonRow}>
         <TouchableOpacity
@@ -221,5 +227,26 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     textAlign: "center",
     color: "#444",
+  },
+  crosshairContainer: {
+    position: "absolute",
+    top: 10,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  crosshairHorizontal: {
+    position: "absolute",
+    width: 30,
+    height: 2,
+    backgroundColor: "white",
+  },
+  crosshairVertical: {
+    position: "absolute",
+    width: 2,
+    height: 30,
+    backgroundColor: "white",
   },
 });
