@@ -1,9 +1,7 @@
 import { StyleSheet } from "react-native";
 export const styles = StyleSheet.create({
   container: {
-    flex: 1,
     padding: 20,
-    justifyContent: "center",
     backgroundColor: "#fff",
   },
   formCard: {
@@ -53,7 +51,8 @@ export const styles = StyleSheet.create({
     textAlign: "center",
   },
   buttonContainer: {
-    marginTop: 20,
+    paddingBottom: "10%",
+    marginTop: "5%",
   },
   error: {
     color: "red",
@@ -61,10 +60,9 @@ export const styles = StyleSheet.create({
   },
   fullscreenOverlay: {
     position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    top: "10%",
+    width: "100%",
+    bottom: "10%",
     backgroundColor: "#fff",
     zIndex: 5,
   },
