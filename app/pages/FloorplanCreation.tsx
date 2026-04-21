@@ -22,7 +22,7 @@ import {
   calculateMidPoint,
   isValidPoint,
 } from "../../utils/arMath";
-import { useRotation } from "../hooks/useRotation";
+import useRotation from "../hooks/useRotation";
 
 // Type to ensure that component CreateSvg only takes type of string
 type CreateSvgProps = {
@@ -99,7 +99,11 @@ export default function SvgComponent({
       });
 
       console.log("capturedUri:", capturedUri);
-      const outputUri = imagesDirectory.uri + `/floorplan-${Date.now()}.png`;
+      const normalizedName = name.trim() || "Unnamed Floorplan";
+      //Removes spaces and special characters from the name
+      const safeName = encodeURIComponent(normalizedName.replace(/\s+/g, "_"));
+      const outputUri =
+        imagesDirectory.uri + `/floorplan-${Date.now()}-${safeName}.png`;
       const destFile = new File(outputUri);
       const sourceFile = new File(capturedUri);
       sourceFile.copy(destFile);

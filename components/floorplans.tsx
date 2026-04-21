@@ -16,9 +16,10 @@ type PickPlan = {
   photoUri: string;
   pickFloorPlan: (photoUri: string) => void;
   onDelete: (uri: string) => void;
+  name?: string;
 };
 
-const Item = ({ photoUri, pickFloorPlan, onDelete }: PickPlan) => (
+const Item = ({ photoUri, pickFloorPlan, onDelete, name }: PickPlan) => (
   <View style={styles.card}>
     <Image
       source={{ uri: photoUri }}
@@ -26,26 +27,43 @@ const Item = ({ photoUri, pickFloorPlan, onDelete }: PickPlan) => (
       resizeMode="contain"
     />
     <Text style={styles.label} numberOfLines={1} ellipsizeMode="tail">
-      {photoUri}
+      {name || photoUri}
     </Text>
-    <TouchableOpacity
-      onPress={() => pickFloorPlan(photoUri)}
-      style={[styles.button]}
-    >
-      <Text>Use Floor Plan</Text>
-    </TouchableOpacity>
-    <TouchableOpacity
-      onPress={() => onDelete(photoUri)}
-      style={[styles.button]}
-    >
-      <Text>Delete Floor Plan</Text>
-    </TouchableOpacity>
+    <View style={styles.buttonRow}>
+      <TouchableOpacity
+        onPress={() => pickFloorPlan(photoUri)}
+        style={styles.rowButton}
+      >
+        <Text style={styles.buttonText}>Use Floor Plan</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        onPress={() => onDelete(photoUri)}
+        style={[styles.rowButton, styles.deleteButton]}
+      >
+        <Text style={styles.buttonText}>Delete</Text>
+      </TouchableOpacity>
+    </View>
   </View>
 );
 
 export default (props: PickPlan) => {
   const { showToast } = useToast();
   const imagesDirectory = new Directory(Paths.document, "floorplan-images");
+
+  const getFloorplanNameFromUri = (photoUri: string) => {
+    try {
+      const fileName = photoUri.split("/").pop() || "";
+      const match = fileName.match(/^floorplan-\d+-(.+)\.png$/);
+      if (!match) {
+        return "Unnamed Floorplan";
+      }
+
+      return decodeURIComponent(match[1]).replace(/_/g, " ");
+    } catch {
+      return "Unnamed Floorplan";
+    }
+  };
 
   const getImagesFromCache = () => {
     if (!imagesDirectory.exists) return;
@@ -69,14 +87,18 @@ export default (props: PickPlan) => {
   }
 
   const onDelete = (photoUri: string) => {
-    Alert.alert("Delete Image", "Are you sure you want to delete this image?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Delete",
-        style: "destructive",
-        onPress: () => onConfirmDelete(photoUri),
-      },
-    ]);
+    Alert.alert(
+      "Delete Floor Plan",
+      "Are you sure you want to delete this floorplan?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: () => onConfirmDelete(photoUri),
+        },
+      ]
+    );
   };
 
   const onConfirmDelete = (photoUri: string) => {
@@ -104,6 +126,7 @@ export default (props: PickPlan) => {
             photoUri={item}
             pickFloorPlan={props.pickFloorPlan}
             onDelete={onDelete}
+            name={getFloorplanNameFromUri(item)}
           />
         )}
         contentContainerStyle={styles.list}

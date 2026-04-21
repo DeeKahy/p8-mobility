@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 
-export function useRotation() {
+export default function useRotation() {
   const [rotation, setRotation] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
