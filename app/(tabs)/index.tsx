@@ -55,6 +55,7 @@ export default function HomeScreen() {
   const [showCamera, setShowCamera] = useState(false);
   const [showNewMarkerOptions, setShowNewMarkerOptions] = useState(false);
   const [pendingPhotos, setPendingPhotos] = useState<string[]>([]);
+  const [showPhotoForm, setShowPhotoForm] = useState(true);
   const [showPhotoListView, setShowPhotoListView] = useState<boolean>(false);
 
   const describedPhotos = useRef<PhotoData[]>([]);
@@ -203,7 +204,7 @@ export default function HomeScreen() {
 
         {currentUri && (
           <PhotoFormModal
-            visible
+            visible={showPhotoForm}
             onSkip={() => {
               pendingPhotos.pop();
               setPendingPhotos(pendingPhotos);
@@ -221,6 +222,7 @@ export default function HomeScreen() {
                 describedPhotos.current = []; // Prep for next marker creation.
               }
               currentUri = pendingPhotos[0];
+              setShowPhotoForm(false);
             }} // Skip one URI on close.
             photoUri={currentUri}
             date="2026-01-01"

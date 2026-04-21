@@ -62,6 +62,7 @@ export const styles = StyleSheet.create({
     position: "absolute",
     top: "10%",
     width: "100%",
+    height: "90%",
     bottom: "10%",
     backgroundColor: "#fff",
     zIndex: 5,
