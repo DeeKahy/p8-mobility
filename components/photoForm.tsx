@@ -127,49 +127,12 @@ export const PhotoFormModal = ({
                 control={control}
                 name="areaGroup"
                 render={({ field: { onChange, value } }) => (
-              <View>
-                <DropDownPicker
-                  open={open}
-                  value={value}
-                  items={items}
-                  setOpen={setOpen}
-                  setValue={(currentValue) => {
-                    const newValue = currentValue(value);
-                    setShowOtherInputForm(newValue === "Other");
-                    onChange(newValue);
-                  }}
-                  placeholder="Select area group"
-                />
-                {showOtherInputForm && (
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Picture name..."
-                    value={value}
-                    onChangeText={onChange}
-                  />
-                )}
-              />
-              {errors.pictureName && (
-                <Text style={styles.error}>{errors.pictureName.message}</Text>
-              )}
-
-              <Text>Area group:</Text>
-              <Controller
-                control={control}
-                name="areaGroup"
-                render={({ field: { onChange, value } }) => (
                   <View>
                     <DropDownPicker
                       open={open}
                       value={value}
+                      items={items}
                       listMode="SCROLLVIEW"
-                      items={[
-                        { label: "Kitchen", value: "Kitchen" },
-                        { label: "Living Room", value: "Living Room" },
-                        { label: "Bathroom", value: "Bathroom" },
-                        { label: "Bedroom", value: "Bedroom" },
-                        { label: "Other", value: "Other" },
-                      ]}
                       setOpen={setOpen}
                       setValue={(currentValue) => {
                         const newValue = currentValue(value);
@@ -181,16 +144,18 @@ export const PhotoFormModal = ({
                     {showOtherInputForm && (
                       <TextInput
                         style={styles.input}
-                        placeholder="Other..."
+                        placeholder="Picture name..."
+                        value={value}
                         onChangeText={onChange}
                       />
                     )}
                   </View>
                 )}
               />
-              {errors.areaGroup && (
-                <Text style={styles.error}>{errors.areaGroup.message}</Text>
+              {errors.pictureName && (
+                <Text style={styles.error}>{errors.pictureName.message}</Text>
               )}
+
               <Text>Description:</Text>
               <Controller
                 control={control}
