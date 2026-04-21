@@ -3,6 +3,7 @@ import {
   isARSupportedOnDevice,
   ViroARSceneNavigator,
 } from "@reactvision/react-viro";
+import { useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -14,13 +15,11 @@ import {
   StyleSheet,
 } from "react-native";
 
-import Floorplan from "../../components/FloorplanCreation";
 import MeasureScene from "../../components/MeasureScene";
 import { useLogger } from "../../context/LoggerContext";
 import { Point3D } from "../../models/3Dpoints";
 
 export default function ARView() {
-  const [isMeasuring, setIsMeasuring] = useState(true);
   const pointsRef = useRef<Point3D[]>([]);
   const isFocused = useIsFocused();
   const { custom } = useLogger();
@@ -28,6 +27,7 @@ export default function ARView() {
     "checking" | "supported" | "unsupported"
   >("checking");
   const [errorMessage, setErrorMessage] = useState("");
+  const router = useRouter();
 
   useEffect(() => {
     custom(`AR focus: ${isFocused}`, "camera");
@@ -74,9 +74,12 @@ export default function ARView() {
   }
 
   const handleStop = () => {
-    setIsMeasuring(false);
-    console.log("Final Points:", pointsRef.current);
-    console.log("Area:", pointsRef.current);
+    router.push({
+      pathname: "pages/FloorplanCreation",
+      params: {
+        points: JSON.stringify(pointsRef.current),
+      },
+    });
   };
 
   const handlePointsUpdate = (newPoints: Point3D[]) => {
@@ -125,7 +128,6 @@ export default function ARView() {
           {
             scene: MeasureScene,
             passProps: {
-              isMeasuring,
               onPointAdded: handlePointsUpdate,
             },
           } as any
@@ -138,38 +140,19 @@ export default function ARView() {
         videoQuality="Low"
         style={{ flex: 1 }}
       />
-      {isMeasuring && (
-        <View style={styles.crosshairContainer} pointerEvents="none">
-          <View style={styles.crosshairHorizontal} />
-          <View style={styles.crosshairVertical} />
-        </View>
-      )}
+      <View style={styles.crosshairContainer} pointerEvents="none">
+        <View style={styles.crosshairHorizontal} />
+        <View style={styles.crosshairVertical} />
+      </View>
 
       <View style={styles.buttonRow}>
         <TouchableOpacity
           onPress={handleStop}
-          style={[
-            styles.button,
-            isMeasuring ? styles.buttonStop : styles.buttonResume,
-          ]}
+          style={[styles.button, styles.buttonStop]}
         >
-          <Text style={styles.buttonText}>
-            {isMeasuring ? "Stop Measuring" : "Resume Measuring"}
-          </Text>
+          <Text style={styles.buttonText}>Stop Measuring</Text>
         </TouchableOpacity>
       </View>
-      {!isMeasuring && (
-        <Floorplan
-          pointList={pointsRef.current}
-          visible={!isMeasuring}
-          onClose={() => {
-            setIsMeasuring(true);
-          }}
-          onDelete={() => {
-            setIsMeasuring(true);
-          }}
-        />
-      )}
     </View>
   );
 }

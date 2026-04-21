@@ -107,7 +107,7 @@ function logDistanceCm(firstPoint: Point3D, secondPoint: Point3D) {
 
 export default function MeasureScene(props: any) {
   const [points, setPoints] = useState<Point3D[]>([]);
-  const { isMeasuring = true, onPointAdded } = props;
+  const { onPointAdded } = props;
   const [firstPoint, setFirstPoint] = useState<Point3D | null>(null);
   const [secondPoint, setSecondPoint] = useState<Point3D | null>(null);
   const arSceneRef = useRef<ViroARScene | null>(null);
@@ -123,7 +123,6 @@ export default function MeasureScene(props: any) {
   }, [points]);
 
   const handleSceneClick = async (tapPosition: Point3D) => {
-    if (!isMeasuring) return;
     if (!arSceneRef.current) return;
 
     try {
