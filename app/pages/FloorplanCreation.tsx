@@ -73,7 +73,7 @@ export default function SvgComponent({
   const padding = roomSize * 0.1;
   const fontSize = roomSize * 0.05;
   const stroke = roomSize * 0.008;
-  const offset = fontSize * 0.1; 
+  const offset = fontSize * 0.1;
 
   //Take the captured points and turn them into string format of "x1,y1 x2,y2 ...xn,yn", because Polygon points={} needs points string in that format.
   function turnPointsToString(): string {
