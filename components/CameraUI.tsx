@@ -1,15 +1,15 @@
 import { CameraView, useCameraPermissions } from "expo-camera";
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 interface CameraUIProps {
   onPictureTaken: ((uri: string) => void) | undefined;
   onCancel?: () => void;
-  cameraRef: React.RefObject<CameraView | null>;
 }
 
 export const CameraUI = (props: CameraUIProps) => {
-  const { onPictureTaken, onCancel, cameraRef } = props;
+  const cameraRef = useRef<CameraView>(null);
+  const { onPictureTaken, onCancel } = props;
   const [permission, requestPermission] = useCameraPermissions();
 
   useEffect(() => {
@@ -33,9 +33,12 @@ export const CameraUI = (props: CameraUIProps) => {
     <View style={styles.cameraContainer}>
       <CameraView style={styles.camera} ref={cameraRef}>
         <View style={styles.cameraButtons}>
-          <TouchableOpacity style={styles.cancelButton} onPress={onCancel}>
-            <Text style={styles.buttonText}>Cancel</Text>
-          </TouchableOpacity>
+          {onCancel && (
+            // Only show cancel button if onCancel is given
+            <TouchableOpacity style={styles.cancelButton} onPress={onCancel}>
+              <Text style={styles.buttonText}>Cancel</Text>
+            </TouchableOpacity>
+          )}
 
           <TouchableOpacity
             style={styles.captureButton}
@@ -67,6 +70,7 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   cancelButton: {
+    position: "absolute",
     padding: 15,
   },
   captureButton: {
@@ -76,6 +80,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.3)",
     alignItems: "center",
     justifyContent: "center",
+    transform: [{ translateX: "50%" }, { translateX: -35 }],
   },
   captureButtonInner: {
     width: 60,

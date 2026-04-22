@@ -1,4 +1,3 @@
-import { CameraView } from "expo-camera";
 import * as ImagePicker from "expo-image-picker";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useRef, useState } from "react";
@@ -31,6 +30,7 @@ import type { Marker } from "../../hooks/useMarkers";
 import { PhotoData } from "../../models/PhotoFormModel";
 import { getBlurScore, IMAGE_BLUR_THRESHOLD } from "../../utils/blurDetection";
 import { preparePhotosForUpload } from "../../utils/imageDataHelpers";
+import { getVisibleRectFromState } from "../../utils/getVisibleRect";
 
 export default function HomeScreen() {
   //---------------------------------- Starts when page is rendered-------------
@@ -76,7 +76,6 @@ export default function HomeScreen() {
 
   const describedPhotos = useRef<PhotoData[]>([]);
   const cameraAction = useRef<((uri: string) => void) | undefined>(undefined);
-  const cameraRef = useRef<CameraView>(null);
   const pendingPhotoMetadata = useRef<
     Record<string, { base64: string; fileExtension: string }>
   >({});
@@ -320,7 +319,6 @@ export default function HomeScreen() {
       <View style={{ flex: 1 }}>
         <CameraUI
           onPictureTaken={cameraAction.current}
-          cameraRef={cameraRef}
           onCancel={() => setShowCamera(false)}
         />
         {loadingText && <LoadingOverlay text={loadingText} />}
@@ -412,6 +410,12 @@ export default function HomeScreen() {
           extendGestures // This should be used with extendBorders or it might act weird.
           extendBorders // extendBorders is our own addition. Don't forget to apply the patch!
           onUpdate={onResumableUpdate}
+          onLongPress={(event) => {
+            const rect = getVisibleRectFromState(resumableState);
+            const centerX = rect.x + rect.width / 2;
+            const centerY = rect.y + rect.height / 2;
+            console.info(centerX, centerY);
+          }}
         >
           <GestureDetector
             gesture={Gesture.Tap() // Copying ResumableZoom's tap gesture parameters to have taps registered on the inside of it.
