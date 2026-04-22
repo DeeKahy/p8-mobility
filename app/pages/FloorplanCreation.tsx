@@ -73,7 +73,7 @@ export default function SvgComponent({
   const padding = roomSize * 0.1;
   const fontSize = roomSize * 0.05;
   const stroke = roomSize * 0.008;
-  const offset = fontSize * 0.1;
+  const offset = fontSize * 0.1; 
 
   //Take the captured points and turn them into string format of "x1,y1 x2,y2 ...xn,yn", because Polygon points={} needs points string in that format.
   function turnPointsToString(): string {
@@ -98,7 +98,6 @@ export default function SvgComponent({
         quality: 1,
       });
 
-      console.log("capturedUri:", capturedUri);
       const normalizedName = name.trim() || "Unnamed Floorplan";
       //Removes spaces and special characters from the name
       const safeName = encodeURIComponent(normalizedName.replace(/\s+/g, "_"));
@@ -180,21 +179,25 @@ export default function SvgComponent({
           const next = pointList[(index + 1) % pointList.length];
           const dist = calculateDistanceMeters([point, next]);
           const mid = calculateMidPoint(point, next, offset);
-          const angle =
+          // To rotate the text according to the edge, we calculate the angle of the edge and then rotate the text accordingly.
+          const rawAngle =
             Math.atan2(next[2] - point[2], next[0] - point[0]) *
             (180 / Math.PI);
+          const textAngle =
+            rawAngle > 90 || rawAngle < -90 ? rawAngle + 180 : rawAngle;
           return (
             <SvgText
               key={index} //Unique length to render, so if we have 4 points we get 4 different lengths
               //Position of text
               x={mid.x}
-              y={mid.z / 1.3}
+              y={mid.z * 1.3}
               fontSize={fontSize}
               fill="black"
-              //Rotates the text to aline with the edge line instead of passing through the lines
-              transform={`rotate(${angle}, ${mid.x}, ${mid.z})`}
+              alignmentBaseline="middle"
+              // To rotate the text according to the edge.
+              transform={`rotate(${textAngle}, ${mid.x}, ${mid.z})`}
             >
-              {`${dist.toFixed(2)}m`}
+              {`${dist.toFixed(1)} m`}
             </SvgText>
           );
         })}

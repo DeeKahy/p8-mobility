@@ -16,7 +16,7 @@ export function calculateDistanceMeters(points: [Point3D, Point3D]) {
   const dx = p2[0] - p1[0];
   const dy = p2[1] - p1[1];
   const dz = p2[2] - p1[2];
-  return Math.sqrt(dx ** 2 + dy ** 2 + dz ** 2);
+  return Math.sqrt(dx ** 2 + dy ** 2 + dz ** 2); 
 }
 
 export function calculateTurf(points: Point3D[]) {
