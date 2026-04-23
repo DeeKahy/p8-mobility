@@ -105,12 +105,16 @@ export default function SvgComponent({
       const nextFloorplanName =
         name.trim().length > 0 ? name.trim() : `Floorplan ${createdAt}`;
 
+      // Save enough data for the floorplan to be restored locally later even
+      // if the original file disappears from device storage.
       await saveFloorplanImageRecord({
         floorplans: floorplanImageRecord.floorplans.concat({
           id: nextFloorplanId,
           imageUri: outputUri,
           imageName: nextFloorplanName,
           createdAt,
+          imageBase64: await destFile.base64(),
+          imageFileExtension: "png",
         }),
       });
       log(`Successfully saved floorplan ${nextFloorplanId} to API`);

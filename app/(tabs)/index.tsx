@@ -26,10 +26,12 @@ import { PhotoList } from "../../components/photos_list";
 import { useFloorplan } from "../../context/FloorplanContext";
 import { useLogger } from "../../context/LoggerContext";
 import { styles } from "../../css/indexStyle";
+import type { Marker } from "../../hooks/useMarkers";
 import { PhotoData } from "../../models/PhotoFormModel";
 import { isImageBlurry } from "../../utils/blurDetection";
 
 export default function HomeScreen() {
+  //---------------------------------- Starts when page is rendered-------------
   const {
     markers,
     storedFloorplans,
@@ -62,6 +64,7 @@ export default function HomeScreen() {
   const [showNewMarkerOptions, setShowNewMarkerOptions] = useState(false);
   const [pendingPhotos, setPendingPhotos] = useState<string[]>([]);
   const [showPhotoListView, setShowPhotoListView] = useState<boolean>(false);
+  // Keep the gallery tied to the marker it opened for while selection/modal state changes.
   const [photoGalleryMarkerId, setPhotoGalleryMarkerId] = useState<
     string | null
   >(null);
@@ -69,11 +72,21 @@ export default function HomeScreen() {
   const describedPhotos = useRef<PhotoData[]>([]);
   const cameraAction = useRef<((uri: string) => void) | undefined>(undefined);
   const cameraRef = useRef<CameraView>(null);
+  const pendingPhotoMetadata = useRef<
+    Record<string, { base64: string; fileExtension: string }>
+  >({});
   const savedPhotos = useRef<PhotoData[]>([]);
   let currentUri = pendingPhotos[0];
-  const photoGalleryMarker = photoGalleryMarkerId
-    ? markers.find((marker) => marker.id === photoGalleryMarkerId)
-    : undefined;
+  // The gallery edits photos for the single marker it was opened from. Re-read
+  // that marker from the latest markers array so modal actions use fresh photos.
+  let photoGalleryMarker: Marker | undefined;
+  if (photoGalleryMarkerId) {
+    photoGalleryMarker = markers.find(
+      (marker) => marker.id === photoGalleryMarkerId
+    );
+  } else {
+    photoGalleryMarker = undefined;
+  }
 
   useEffect(() => {
     savedPhotos.current = markers.flatMap((marker) => marker.photos);
@@ -112,7 +125,10 @@ export default function HomeScreen() {
     }
     return validImages;
   }
-
+  /**
+   * Copies selected photo files into the app's document storage and returns
+   * stable URIs that can be reused after the original picker URIs expire.
+   */
   async function persistPhotoUris(photoUris: string[]): Promise<string[]> {
     const markerImagesDirectory = new Directory(
       Paths.document,
@@ -135,20 +151,28 @@ export default function HomeScreen() {
       const sourceFile = new File(photoUri);
       const destinationFile = new File(persistedPhotoUri);
       sourceFile.copy(destinationFile);
+      pendingPhotoMetadata.current[persistedPhotoUri] = {
+        base64: await destinationFile.base64(),
+        fileExtension,
+      };
       persistedPhotoUris.push(persistedPhotoUri);
     }
 
     return persistedPhotoUris;
   }
 
+  /**
+   * Starts the new-marker gallery flow by validating selected images,
+   * persisting accepted photos, and queueing them for the marker form.
+   */
   const handleNewMarkerFromCameraRoll = async () => {
-    console.info("handleNewMarkerFromCameraRoll");
     setShowNewMarkerOptions(false);
     const result = await pickPhotoFromLibrary(0);
     if (!result || !tempMarker) return;
 
     try {
-      const validPhotoUris = (await getValidImages(result)).map((p) => p.uri);
+      const validImages = await getValidImages(result);
+      const validPhotoUris = validImages.map((p) => p.uri);
       const persistedPhotoUris = await persistPhotoUris(validPhotoUris);
 
       setShowNewMarkerOptions(false);
@@ -159,7 +183,7 @@ export default function HomeScreen() {
       const errorMessage =
         caughtError instanceof Error ? caughtError.message : "Unknown error";
       error(`Persisting new marker gallery photos failed: ${errorMessage}`);
-      throw caughtError;
+      
     }
   };
 
@@ -208,7 +232,10 @@ export default function HomeScreen() {
       throw caughtError;
     }
   };
-
+  /**
+   * Starts the add-to-marker camera flow, persists the captured photo,
+   * and queues it for the selected marker's photo form.
+   */
   const handleAddFromPictureToMarker = async () => {
     if (!selectedMarkerId) return;
     setShowNewMarkerOptions(false);
@@ -240,7 +267,9 @@ export default function HomeScreen() {
     if (!markerIdToUpdate) return;
     removePhoto(markerIdToUpdate, photo);
   };
-
+  /**
+   * Opens the device image library and returns the selected image assets.
+   */
   const pickPhotoFromLibrary = async (selectionLimit = 1) => {
     const res = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ["images"],
@@ -311,7 +340,10 @@ export default function HomeScreen() {
           <PhotoFormModal
             visible
             onSkip={() => {
-              pendingPhotos.pop();
+              const skippedPhotoUri = pendingPhotos.pop();
+              if (skippedPhotoUri) {
+                delete pendingPhotoMetadata.current[skippedPhotoUri];
+              }
               setPendingPhotos(pendingPhotos);
               if (tempMarker && describedPhotos.current.length > 0) {
                 // If we've gotten submissions for something and nothing is pending, create or update a marker.
@@ -331,10 +363,21 @@ export default function HomeScreen() {
             photoUri={currentUri}
             date="2026-01-01"
             onSubmit={(photoData) => {
-              pendingPhotos.pop();
+              const submittedPhotoUri = pendingPhotos.pop();
+              const pendingMetadata = submittedPhotoUri
+                ? pendingPhotoMetadata.current[submittedPhotoUri]
+                : undefined;
+              if (submittedPhotoUri) {
+                delete pendingPhotoMetadata.current[submittedPhotoUri];
+              }
+              const persistedPhotoData: PhotoData = {
+                ...photoData,
+                photoBase64: pendingMetadata?.base64,
+                photoFileExtension: pendingMetadata?.fileExtension,
+              };
               // Store data on submit of photo data.
-              describedPhotos.current.push(photoData);
-              savedPhotos.current.push(photoData);
+              describedPhotos.current.push(persistedPhotoData);
+              savedPhotos.current.push(persistedPhotoData);
               console.info(savedPhotos);
               setPendingPhotos(pendingPhotos);
               if (tempMarker && describedPhotos.current.length > 0) {

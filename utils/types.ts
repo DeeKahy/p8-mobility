@@ -13,6 +13,10 @@ export interface FloorplanImage {
   imageUri: string;
   imageName: string;
   createdAt: string;
+  // Server-backed fallback used to recreate the local floorplan image.
+  imageBase64?: string;
+  // Preserved so restored floorplan files keep a usable extension.
+  imageFileExtension?: string;
 }
 
 export interface FloorplanImageRecord {
