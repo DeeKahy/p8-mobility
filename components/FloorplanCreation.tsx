@@ -16,7 +16,7 @@ import {
   saveFloorplanImageRecord,
 } from "../utils/api";
 import { calculateDistanceMeters, calculateMidPoint } from "../utils/arMath";
-import { toImageDataUri } from "../utils/imageDataUri";
+import { toImageDataUri } from "../utils/imageDataHelpers";
 import { FloorplanImageRecord } from "../utils/types";
 
 // Type to ensure that component CreateSvg only takes type of string

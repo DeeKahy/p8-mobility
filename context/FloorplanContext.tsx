@@ -23,7 +23,11 @@ import {
   saveFloorplanImageRecord,
   saveFloorplanMarkerCollectionRecord,
 } from "../utils/api";
-import { toImageDataUri } from "../utils/imageDataUri";
+import {
+  normalizeFloorplanImage,
+  normalizeMarkers,
+  toImageDataUri,
+} from "../utils/imageDataHelpers";
 import {
   FloorplanImage,
   FloorplanImageRecord,
@@ -119,43 +123,6 @@ export const FloorplanProvider = ({
       }
     );
   }, [marker.markers]);
-
-  function normalizeFloorplanImage(
-    storedFloorplan: FloorplanImage
-  ): FloorplanImage {
-    if (
-      storedFloorplan.imageUri.startsWith("data:") ||
-      !storedFloorplan.imageBase64
-    ) {
-      return storedFloorplan;
-    }
-
-    return {
-      ...storedFloorplan,
-      imageUri: toImageDataUri(
-        storedFloorplan.imageBase64,
-        storedFloorplan.imageFileExtension ?? "png"
-      ),
-    };
-  }
-
-  function normalizePhoto(photo: PhotoData): PhotoData {
-    if (photo.photoUri.startsWith("data:") || !photo.photoBase64) {
-      return photo;
-    }
-
-    return {
-      ...photo,
-      photoUri: toImageDataUri(photo.photoBase64, photo.photoFileExtension ?? "jpg"),
-    };
-  }
-
-  function normalizeMarkers(markersToNormalize: Marker[]): Marker[] {
-    return markersToNormalize.map((currentMarker) => ({
-      ...currentMarker,
-      photos: currentMarker.photos.map((photo) => normalizePhoto(photo)),
-    }));
-  }
 
   function replaceMarkersFromSystem(nextMarkers: Marker[]): void {
     isApplyingSystemMarkerUpdate.current = true;

@@ -29,7 +29,7 @@ import { styles } from "../../css/indexStyle";
 import type { Marker } from "../../hooks/useMarkers";
 import { PhotoData } from "../../models/PhotoFormModel";
 import { isImageBlurry } from "../../utils/blurDetection";
-import { toImageDataUri } from "../../utils/imageDataUri";
+import { toImageDataUri } from "../../utils/imageDataHelpers";
 
 export default function HomeScreen() {
   //---------------------------------- Starts when page is rendered-------------
