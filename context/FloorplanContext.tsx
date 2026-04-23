@@ -23,15 +23,18 @@ import {
   saveFloorplanMarkerCollectionRecord,
 } from "../utils/api";
 import {
+  readLocalFloorplanImageRecord,
+  readLocalMarkerCollectionRecord,
+  writeLocalFloorplanImageRecord,
+  writeLocalMarkerCollectionRecord,
+} from "../utils/cache_functions";
+import {
   FloorplanImage,
   FloorplanImageRecord,
   FloorplanMarkerCollectionRecord,
 } from "../utils/types";
 
 const FLOORPLAN_IMAGES_DIRECTORY_NAME = "floorplan-images";
-// Local cache files let the app render quickly before server reconciliation.
-const LOCAL_FLOORPLAN_CACHE_FILE_NAME = "floorplans-local-cache.json";
-const LOCAL_MARKER_CACHE_FILE_NAME = "floorplan-markers-local-cache.json";
 
 interface FloorplanContextReturn {
   floorplanId: string | null;
@@ -119,51 +122,6 @@ export const FloorplanProvider = ({
       debug(`Could not persist markers for floorplan: ${errorMessage}`);
     });
   }, [floorplanId, marker.markers]);
-
-  // Getters for our local cashe, is stored on the phone.
-  function getLocalFloorplanCacheFile() {
-    return new File(Paths.document, LOCAL_FLOORPLAN_CACHE_FILE_NAME);
-  }
-  // Same stuff
-  function getLocalMarkerCacheFile() {
-    return new File(Paths.document, LOCAL_MARKER_CACHE_FILE_NAME);
-  }
-
-  /**
-   * gets the locally cached floorplan metadata
-   */
-  async function readLocalFloorplanImageRecord(): Promise<FloorplanImageRecord> {
-    const cacheFile = getLocalFloorplanCacheFile();
-
-    if (!cacheFile.exists) {
-      return { floorplans: [] };
-    }
-
-    return JSON.parse(await cacheFile.text()) as FloorplanImageRecord;
-  }
-
-  async function writeLocalFloorplanImageRecord(
-    floorplanImageRecord: FloorplanImageRecord
-  ): Promise<void> {
-    const cacheFile = getLocalFloorplanCacheFile();
-    cacheFile.write(JSON.stringify(floorplanImageRecord));
-  }
-
-  async function readLocalMarkerCollectionRecord(): Promise<FloorplanMarkerCollectionRecord> {
-    const cacheFile = getLocalMarkerCacheFile();
-    if (!cacheFile.exists) {
-      return { collections: [] };
-    }
-
-    return JSON.parse(await cacheFile.text()) as FloorplanMarkerCollectionRecord;
-  }
-
-  async function writeLocalMarkerCollectionRecord(
-    floorplanMarkerCollectionRecord: FloorplanMarkerCollectionRecord
-  ): Promise<void> {
-    const cacheFile = getLocalMarkerCacheFile();
-    cacheFile.write(JSON.stringify(floorplanMarkerCollectionRecord));
-  }
 
   /**
    * Ensures a floorplan image exists locally. If the file is missing but the
