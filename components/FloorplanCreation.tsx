@@ -5,6 +5,7 @@ import { Modal, Text, TextInput, TouchableOpacity, View } from "react-native";
 import Svg, { G, Polygon, Text as SvgText } from "react-native-svg";
 import ViewShot, { captureRef } from "react-native-view-shot";
 
+import LoadingOverlay from "./LoadingOverlay";
 import { RotationControls } from "./RotationControls";
 import { SaveFormModal } from "./SaveModal";
 import { useRotation } from "../app/hooks/useRotation";
@@ -31,6 +32,7 @@ export default function SvgComponent({
   const [name, setName] = useState<string>("");
   const router = useRouter();
   const [showSaveModal, setShowSaveModal] = useState(false);
+  const [isSavingFloorplan, setIsSavingFloorplan] = useState(false);
   const { refreshStoredFloorplans, storedFloorplans } = useFloorplan();
   const { error, log } = useLogger();
 
@@ -60,6 +62,7 @@ export default function SvgComponent({
 
   async function saveToList() {
     try {
+      setIsSavingFloorplan(true);
       const capturedUri = await captureRef(viewShotRef, {
         format: "png",
         quality: 1,
@@ -91,6 +94,8 @@ export default function SvgComponent({
         caughtError instanceof Error ? caughtError.message : "Unknown error";
       error(`Saving floorplan failed: ${errorMessage}`);
       throw new Error("Couldn't save picture to list" + caughtError);
+    } finally {
+      setIsSavingFloorplan(false);
     }
   }
 
@@ -166,6 +171,7 @@ export default function SvgComponent({
 
   return (
     <Modal visible={visible} onRequestClose={onClose}>
+      {isSavingFloorplan && <LoadingOverlay text="Saving floorplan..." />}
       <SaveFormModal
         visible={showSaveModal}
         onClose={() => setShowSaveModal(false)}

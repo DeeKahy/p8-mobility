@@ -40,6 +40,7 @@ interface FloorplanContextReturn {
   floorplan: string | null;
   storedFloorplans: FloorplanImage[];
   isLoadingStoredFloorplans: boolean;
+  isSavingMarkers: boolean;
   pickFloorplan: () => Promise<void>;
   pickFromMyFloorplan: (storedFloorplan: FloorplanImage) => Promise<void>;
   refreshStoredFloorplans: () => Promise<void>;
@@ -90,6 +91,7 @@ export const FloorplanProvider = ({
   >([]);
   const [isLoadingStoredFloorplans, setIsLoadingStoredFloorplans] =
     useState(true);
+  const [isSavingMarkers, setIsSavingMarkers] = useState(false);
   const marker = useMarkers();
   const { debug, error, log } = useLogger();
   const isApplyingSystemMarkerUpdate = useRef(false);
@@ -225,6 +227,7 @@ export const FloorplanProvider = ({
     }
 
     try {
+      setIsSavingMarkers(true);
       log("Prepering Makers payload payload");
       const serverReadyMarkers = prepareMarkersForServer(markersToSave);
       const floorplanCollectionIndex =
@@ -270,6 +273,8 @@ export const FloorplanProvider = ({
         `Saving markers for floorplan ${floorplanIdToSave} failed: ${errorMessage}`
       );
       debug(`Could not save markers for floorplan: ${errorMessage}`);
+    } finally {
+      setIsSavingMarkers(false);
     }
   }
 
@@ -441,6 +446,7 @@ export const FloorplanProvider = ({
         floorplan,
         storedFloorplans,
         isLoadingStoredFloorplans,
+        isSavingMarkers,
         pickFloorplan,
         pickFromMyFloorplan,
         refreshStoredFloorplans,

@@ -14,6 +14,7 @@ import {
 } from "react-native-zoom-toolkit";
 
 import { CameraUI } from "../../components/CameraUI";
+import LoadingOverlay from "../../components/LoadingOverlay";
 import MyFloorPlans from "../../components/floorplans";
 import { EditMarkerModal } from "../../components/index/EditMarkerModal";
 import { MarkerElement } from "../../components/index/MarkerElement";
@@ -24,10 +25,14 @@ import { PhotoFormModal } from "../../components/photoForm";
 import { PhotoList } from "../../components/photos_list";
 import { useFloorplan } from "../../context/FloorplanContext";
 import { useLogger } from "../../context/LoggerContext";
+import { useToast } from "../../context/ToastProvider";
 import { styles } from "../../css/indexStyle";
 import type { Marker } from "../../hooks/useMarkers";
 import { PhotoData } from "../../models/PhotoFormModel";
-import { isImageBlurry } from "../../utils/blurDetection";
+import {
+  getBlurScore,
+  IMAGE_BLUR_THRESHOLD,
+} from "../../utils/blurDetection";
 import { preparePhotosForUpload } from "../../utils/imageDataHelpers";
 
 export default function HomeScreen() {
@@ -36,6 +41,7 @@ export default function HomeScreen() {
     markers,
     storedFloorplans,
     isLoadingStoredFloorplans,
+    isSavingMarkers,
     floorplan,
     selectedMarkerId,
     pickFloorplan,
@@ -58,12 +64,14 @@ export default function HomeScreen() {
     useTransformationState("resumable");
 
   const { error, log } = useLogger();
+  const { showToast } = useToast();
 
   const [showPhotos, setShowPhotos] = useState(false);
   const [showCamera, setShowCamera] = useState(false);
   const [showNewMarkerOptions, setShowNewMarkerOptions] = useState(false);
   const [pendingPhotos, setPendingPhotos] = useState<string[]>([]);
   const [showPhotoListView, setShowPhotoListView] = useState<boolean>(false);
+  const [loadingText, setLoadingText] = useState<string | null>(null);
   // Keep the gallery tied to the marker it opened for while selection/modal state changes.
   const [photoGalleryMarkerId, setPhotoGalleryMarkerId] = useState<
     string | null
@@ -92,6 +100,35 @@ export default function HomeScreen() {
     savedPhotos.current = markers.flatMap((marker) => marker.photos);
   }, [markers]);
 
+  async function scoreAndToastBlur(uri: string): Promise<number> {
+    const score = await getBlurScore(uri);
+    const isBlurry = score < IMAGE_BLUR_THRESHOLD;
+    const roundedScore = Math.round(score);
+
+    showToast(
+      `Blur score: ${roundedScore} (${isBlurry ? "blurry" : "sharp"})`,
+      isBlurry ? "Error" : "Info"
+    );
+    log(
+      `Blur detection result | score: ${score} | threshold: ${IMAGE_BLUR_THRESHOLD} | blurry: ${isBlurry}`
+    );
+
+    return score;
+  }
+
+  async function withLoadingOverlay<T>(
+    text: string,
+    action: () => Promise<T>
+  ): Promise<T> {
+    setLoadingText(text);
+
+    try {
+      return await action();
+    } finally {
+      setLoadingText(null);
+    }
+  }
+
   async function getValidImages(images: ImagePicker.ImagePickerAsset[]) {
     const twoWeeksAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
     const validImages: ImagePicker.ImagePickerAsset[] = [];
@@ -116,11 +153,7 @@ export default function HomeScreen() {
         continue;
       }
 
-      const isBlurry = await isImageBlurry(image.uri, log);
-      if (isBlurry) {
-        Alert.alert("Image is too blurry. Please choose another.");
-        continue;
-      }
+      await scoreAndToastBlur(image.uri);
       validImages.push(image);
     }
     return validImages;
@@ -136,13 +169,16 @@ export default function HomeScreen() {
     if (!result || !tempMarker) return;
 
     try {
-      // Validates thats its not older than x days
-      const validImages = await getValidImages(result);
-      const validPhotoUris = validImages.map((p) => p.uri);
-      log("Preparing photos for upload");
-      const { preparedPhotoUris, photoMetadataByUri } =
-        await preparePhotosForUpload(validPhotoUris);
-        // Copiere Fra curent over i  photoMetadataByUri
+      const { preparedPhotoUris, photoMetadataByUri } = await withLoadingOverlay(
+        "Running blur detection...",
+        async () => {
+          // Validates thats its not older than x days
+          const validImages = await getValidImages(result);
+          const validPhotoUris = validImages.map((p) => p.uri);
+          log("Preparing photos for upload");
+          return preparePhotosForUpload(validPhotoUris);
+        }
+      );
       Object.assign(pendingPhotoMetadata.current, photoMetadataByUri);
 
       setShowNewMarkerOptions(false);
@@ -163,8 +199,11 @@ export default function HomeScreen() {
     if (!tempMarker) return;
 
     cameraAction.current = (img) => {
-      log("Preparing photos for upload");
-      preparePhotosForUpload([img])
+      withLoadingOverlay("Running blur detection...", async () => {
+        await scoreAndToastBlur(img);
+          log("Preparing photos for upload");
+          return preparePhotosForUpload([img]);
+        })
         .then(({ preparedPhotoUris, photoMetadataByUri }) => {
           Object.assign(pendingPhotoMetadata.current, photoMetadataByUri);
           setPendingPhotos(preparedPhotoUris);
@@ -190,10 +229,16 @@ export default function HomeScreen() {
     if (!result || !selectedMarkerId) return;
 
     try {
-      const validPhotoUris = (await getValidImages(result)).map((p) => p.uri);
-      log("Preparing photos for upload");
-      const { preparedPhotoUris, photoMetadataByUri } =
-        await preparePhotosForUpload(validPhotoUris);
+      const { preparedPhotoUris, photoMetadataByUri } = await withLoadingOverlay(
+        "Running blur detection...",
+        async () => {
+          const validPhotoUris = (await getValidImages(result)).map(
+            (photo) => photo.uri
+          );
+          log("Preparing photos for upload");
+          return preparePhotosForUpload(validPhotoUris);
+        }
+      );
       Object.assign(pendingPhotoMetadata.current, photoMetadataByUri);
 
       setPendingPhotos(preparedPhotoUris);
@@ -217,8 +262,11 @@ export default function HomeScreen() {
     setShowCamera(true);
 
     cameraAction.current = (img) => {
-      log("Preparing photos for upload");
-      preparePhotosForUpload([img])
+      withLoadingOverlay("Running blur detection...", async () => {
+        await scoreAndToastBlur(img);
+          log("Preparing photos for upload");
+          return preparePhotosForUpload([img]);
+        })
         .then(({ preparedPhotoUris, photoMetadataByUri }) => {
           Object.assign(pendingPhotoMetadata.current, photoMetadataByUri);
           setPendingPhotos(preparedPhotoUris);
@@ -278,11 +326,14 @@ export default function HomeScreen() {
 
   if (showCamera) {
     return (
-      <CameraUI
-        onPictureTaken={cameraAction.current}
-        cameraRef={cameraRef}
-        onCancel={() => setShowCamera(false)}
-      />
+      <View style={{ flex: 1 }}>
+        <CameraUI
+          onPictureTaken={cameraAction.current}
+          cameraRef={cameraRef}
+          onCancel={() => setShowCamera(false)}
+        />
+        {loadingText && <LoadingOverlay text={loadingText} />}
+      </View>
     );
   }
 
@@ -317,67 +368,90 @@ export default function HomeScreen() {
           <PhotoFormModal
             visible
             onSkip={() => {
-              const skippedPhotoUri = pendingPhotos.pop();
-              if (skippedPhotoUri) {
-                delete pendingPhotoMetadata.current[skippedPhotoUri];
-              }
-              setPendingPhotos(pendingPhotos);
-              if (tempMarker && describedPhotos.current.length > 0) {
-                // If we've gotten submissions for something and nothing is pending, create or update a marker.
-                if (selectedMarkerId) {
-                  log("Marker flow step: photo form complete, adding photos to existing marker");
-                  addPhotos(selectedMarkerId, describedPhotos.current);
-                } else {
-                  log("Marker flow step: photo form complete, creating new marker");
-                  addMarker(
-                    tempMarker.x,
-                    tempMarker.y,
-                    describedPhotos.current
-                  );
+              setPendingPhotos((currentPendingPhotos) => {
+                const nextPendingPhotos = currentPendingPhotos.slice(1);
+                const skippedPhotoUri = currentPendingPhotos[0];
+
+                if (skippedPhotoUri) {
+                  delete pendingPhotoMetadata.current[skippedPhotoUri];
                 }
-                describedPhotos.current = []; // Prep for next marker creation.
-              }
-              currentUri = pendingPhotos[0];
+
+                if (
+                  nextPendingPhotos.length === 0 &&
+                  tempMarker &&
+                  describedPhotos.current.length > 0
+                ) {
+                  if (selectedMarkerId) {
+                    log(
+                      "Marker flow step: photo form complete, adding photos to existing marker"
+                    );
+                    addPhotos(selectedMarkerId, describedPhotos.current);
+                  } else {
+                    log(
+                      "Marker flow step: photo form complete, creating new marker"
+                    );
+                    addMarker(
+                      tempMarker.x,
+                      tempMarker.y,
+                      describedPhotos.current
+                    );
+                  }
+                  describedPhotos.current = [];
+                }
+
+                return nextPendingPhotos;
+              });
             }} // Skip one URI on close.
             photoUri={currentUri}
             date="2026-01-01"
             onSubmit={(photoData) => {
-              // URI for picture that has just been submitted
-              const submittedPhotoUri = pendingPhotos.pop();
-              let Metadata;
-              if (submittedPhotoUri) {
-                Metadata = pendingPhotoMetadata.current[submittedPhotoUri];
+              setPendingPhotos((currentPendingPhotos) => {
+                const nextPendingPhotos = currentPendingPhotos.slice(1);
+                const submittedPhotoUri = currentPendingPhotos[0];
+                const submittedPhotoMetadata = submittedPhotoUri
+                  ? pendingPhotoMetadata.current[submittedPhotoUri]
+                  : undefined;
 
-              if (submittedPhotoUri) {
-                delete pendingPhotoMetadata.current[submittedPhotoUri];
-              }
-              const preparedPhotoData: PhotoData = {
-                ...photoData,
-                photoBase64: Metadata?.base64,
-                photoFileExtension: Metadata?.fileExtension,
-              };
-              // Store data on submit of photo data.
-              describedPhotos.current.push(preparedPhotoData);
-              savedPhotos.current.push(preparedPhotoData);
-              setPendingPhotos(pendingPhotos);
-              if (tempMarker && describedPhotos.current.length > 0) {
-                // If we've gotten submissions for something and nothing is pending, create or update a marker.
-                if (selectedMarkerId) {
-                  log("Marker flow step: photo form complete, adding photos to existing marker");
-                  addPhotos(selectedMarkerId, describedPhotos.current);
-                } else {
-                  log("Marker flow step: photo form complete, creating new marker");
-                  addMarker(
-                    tempMarker.x,
-                    tempMarker.y,
-                    describedPhotos.current
-                  );
+                if (submittedPhotoUri) {
+                  delete pendingPhotoMetadata.current[submittedPhotoUri];
                 }
-                describedPhotos.current = []; // Prep for next marker creation.
-              }
-              currentUri = pendingPhotos[0];
+
+                const preparedPhotoData: PhotoData = {
+                  ...photoData,
+                  photoBase64: submittedPhotoMetadata?.base64,
+                  photoFileExtension: submittedPhotoMetadata?.fileExtension,
+                };
+
+                describedPhotos.current.push(preparedPhotoData);
+                savedPhotos.current.push(preparedPhotoData);
+
+                if (
+                  nextPendingPhotos.length === 0 &&
+                  tempMarker &&
+                  describedPhotos.current.length > 0
+                ) {
+                  if (selectedMarkerId) {
+                    log(
+                      "Marker flow step: photo form complete, adding photos to existing marker"
+                    );
+                    addPhotos(selectedMarkerId, describedPhotos.current);
+                  } else {
+                    log(
+                      "Marker flow step: photo form complete, creating new marker"
+                    );
+                    addMarker(
+                      tempMarker.x,
+                      tempMarker.y,
+                      describedPhotos.current
+                    );
+                  }
+                  describedPhotos.current = [];
+                }
+
+                return nextPendingPhotos;
+              });
             }}
-           } />
+          />
         )}
 
         {/* Header with change floor plan option */}
@@ -475,6 +549,11 @@ export default function HomeScreen() {
         <Text style={styles.instructions}>
           Tap on the floor plan to place a marker
         </Text>
+        {(loadingText || isSavingMarkers) && (
+          <LoadingOverlay
+            text={loadingText ?? "Saving marker..."}
+          />
+        )}
       </View>
     </GestureHandlerRootView>
   );
