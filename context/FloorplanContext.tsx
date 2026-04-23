@@ -120,7 +120,7 @@ export const FloorplanProvider = ({
       return;
     }
 
-    log("Marker sync step: detected marker change, starting save");
+    log("Marker save step: detected marker change, starting save");
     persistMarkersForFloorplan(floorplanId, marker.markers).catch(
       (caughtError: unknown) => {
         const errorMessage =
@@ -176,6 +176,7 @@ export const FloorplanProvider = ({
     nextFloorplanId: string
   ): Promise<void> {
     try {
+      // Vi henter alle markers fra alle pt. Kunne laves til global stadie, vis performence isue senere hen
       const floorplanMarkerCollectionRecord =
         await getFloorplanMarkerCollectionRecord();
       setStoredMarkerCollections(floorplanMarkerCollectionRecord.collections);
@@ -184,6 +185,7 @@ export const FloorplanProvider = ({
         floorplanMarkerCollectionRecord.collections.find(
           (collection) => collection.floorplanId === nextFloorplanId
         );
+
       let markers: Marker[];
       if (selectedCollection && selectedCollection.markers) {
         markers = selectedCollection.markers;
@@ -223,25 +225,36 @@ export const FloorplanProvider = ({
     }
 
     try {
-      log("Marker save step 1: building next marker collection payload");
+      log("Prepering Makers payload payload");
       const serverReadyMarkers = prepareMarkersForServer(markersToSave);
       const floorplanCollectionIndex =
         storedMarkerCollections.findIndex(
           (collection) => collection.floorplanId === floorplanIdToSave
         );
 
-      const nextCollections =
-        floorplanCollectionIndex === -1
-          ? storedMarkerCollections.concat({
-              floorplanId: floorplanIdToSave,
+      let nextCollections;
+
+      if (floorplanCollectionIndex === -1) {
+        // No existing collection 
+        const newCollection = {
+          floorplanId: floorplanIdToSave,
+          markers: serverReadyMarkers,
+        };
+
+        nextCollections = storedMarkerCollections.concat(newCollection);
+      } else {
+        // Existing collection
+        nextCollections = storedMarkerCollections.map((collection, index) => {
+          if (index === floorplanCollectionIndex) {
+            return {
+              ...collection,
               markers: serverReadyMarkers,
-            })
-          : storedMarkerCollections.map(
-              (collection, collectionIndex) =>
-              collectionIndex === floorplanCollectionIndex
-                ? { ...collection, markers: serverReadyMarkers }
-                : collection
-            );
+            };
+          }
+
+          return collection;
+        });
+      }
 
       log("Marker save step 2: sending marker collections to server");
       await saveFloorplanMarkerCollectionRecord({
