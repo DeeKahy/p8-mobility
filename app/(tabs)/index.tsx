@@ -383,7 +383,7 @@ export default function HomeScreen() {
               }
               currentUri = pendingPhotos[0];
             }}
-          />
+           } />
         )}
 
         {/* Header with change floor plan option */}

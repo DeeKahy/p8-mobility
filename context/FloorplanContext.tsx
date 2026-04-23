@@ -84,7 +84,7 @@ export const FloorplanProvider = ({
     useState(true);
   const marker = useMarkers();
   const { debug, error, log } = useLogger();
-  const skippedMarkerSyncCount = useRef(0);
+  const isApplyingSystemMarkerUpdate = useRef(false);
 
   const [showMarkerOptions, setShowMarkerOptions] = useState(false);
 
@@ -102,21 +102,23 @@ export const FloorplanProvider = ({
   }, []);
 
   useEffect(() => {
+    if (isApplyingSystemMarkerUpdate.current) {
+      isApplyingSystemMarkerUpdate.current = false;
+      return;
+    }
+
     if (!floorplanId) {
       return;
     }
 
-    if (skippedMarkerSyncCount.current > 0) {
-      skippedMarkerSyncCount.current -= 1;
-      return;
-    }
-
-    persistMarkersForSelectedFloorplan().catch((error: unknown) => {
-      const errorMessage =
-        error instanceof Error ? error.message : "Unknown error";
-      debug(`Could not persist markers for floorplan: ${errorMessage}`);
-    });
-  }, [floorplanId, marker.markers]);
+    persistMarkersForFloorplan(floorplanId, marker.markers).catch(
+      (caughtError: unknown) => {
+        const errorMessage =
+          caughtError instanceof Error ? caughtError.message : "Unknown error";
+        debug(`Could not persist markers for floorplan: ${errorMessage}`);
+      }
+    );
+  }, [marker.markers]);
 
   function normalizeFloorplanImage(
     storedFloorplan: FloorplanImage
@@ -155,8 +157,18 @@ export const FloorplanProvider = ({
     }));
   }
 
+  function replaceMarkersFromSystem(nextMarkers: Marker[]): void {
+    isApplyingSystemMarkerUpdate.current = true;
+    marker.replaceMarkers(nextMarkers);
+  }
+
+  function clearMarkersFromSystem(): void {
+    isApplyingSystemMarkerUpdate.current = true;
+    marker.clearMarkers();
+  }
+
   /**
-   * Fetches the floorplan list from the server and uses it as the source of truth.
+   * Fetches the floorplan list from the server
    */
   async function refreshStoredFloorplans(): Promise<void> {
     setIsLoadingStoredFloorplans(true);
@@ -198,18 +210,22 @@ export const FloorplanProvider = ({
         floorplanMarkerCollectionRecord.collections.find(
           (collection) => collection.floorplanId === nextFloorplanId
         );
-      const serverMarkers = normalizeMarkers(selectedCollection?.markers ?? []);
+      let markers: Marker[];
+      if (selectedCollection && selectedCollection.markers) {
+        markers = selectedCollection.markers;
+      } else {
+        markers = [];
+      }
+      const serverMarkers = normalizeMarkers(markers);
 
-      skippedMarkerSyncCount.current += 1;
-      marker.replaceMarkers(serverMarkers);
+      replaceMarkersFromSystem(serverMarkers);
     } catch (caughtError) {
       const errorMessage =
         caughtError instanceof Error ? caughtError.message : "Unknown error";
 
       if (errorMessage === "file not found") {
         log(`No saved markers found for floorplan ${nextFloorplanId}`);
-        skippedMarkerSyncCount.current += 1;
-        marker.replaceMarkers([]);
+        replaceMarkersFromSystem([]);
       } else {
         error(
           `Fetching markers for floorplan ${nextFloorplanId} failed: ${errorMessage}`
@@ -220,11 +236,14 @@ export const FloorplanProvider = ({
   }
 
   /**
-   * Persists the current in-memory marker state for the selected floorplan to
-   * the server record.
+  Function to save the markers, to the currently selected floorplan
    */
-  async function persistMarkersForSelectedFloorplan(): Promise<void> {
-    if (!floorplanId) {
+  async function persistMarkersForFloorplan(
+    floorplanIdToSave: string,
+    markersToSave: Marker[]
+  ): Promise<void> {
+    if (!floorplanIdToSave) {
+      error("No id for the selected floorplan");
       return;
     }
 
@@ -237,7 +256,7 @@ export const FloorplanProvider = ({
         floorplanMarkerCollectionRecord =
           await getFloorplanMarkerCollectionRecord();
         log(
-          `Successfully fetched marker collections before saving floorplan ${floorplanId}`
+          `Successfully fetched marker collections before saving floorplan ${floorplanIdToSave}`
         );
       } catch (caughtError) {
         const errorMessage =
@@ -250,38 +269,38 @@ export const FloorplanProvider = ({
           throw caughtError;
         }
 
-        log(
-          `No existing marker collection file found before saving floorplan ${floorplanId}`
+        error(
+          `No existing marker collection file found before saving floorplan ${floorplanIdToSave}`
         );
       }
 
       const floorplanCollectionIndex =
         floorplanMarkerCollectionRecord.collections.findIndex(
-          (collection) => collection.floorplanId === floorplanId
+          (collection) => collection.floorplanId === floorplanIdToSave
         );
 
       const nextCollections =
         floorplanCollectionIndex === -1
           ? floorplanMarkerCollectionRecord.collections.concat({
-            floorplanId,
-            markers: marker.markers,
-          })
+              floorplanId: floorplanIdToSave,
+              markers: markersToSave,
+            })
           : floorplanMarkerCollectionRecord.collections.map(
-            (collection, collectionIndex) =>
+              (collection, collectionIndex) =>
               collectionIndex === floorplanCollectionIndex
-                ? { ...collection, markers: marker.markers }
+                ? { ...collection, markers: markersToSave }
                 : collection
-          );
+            );
 
       await saveFloorplanMarkerCollectionRecord({
         collections: nextCollections,
       });
-      log(`Successfully saved markers for floorplan ${floorplanId}`);
+      log(`Successfully saved markers for floorplan ${floorplanIdToSave}`);
     } catch (caughtError) {
       const errorMessage =
         caughtError instanceof Error ? caughtError.message : "Unknown error";
       error(
-        `Saving markers for floorplan ${floorplanId} failed: ${errorMessage}`
+        `Saving markers for floorplan ${floorplanIdToSave} failed: ${errorMessage}`
       );
       debug(`Could not save markers for floorplan: ${errorMessage}`);
     }
@@ -360,7 +379,7 @@ export const FloorplanProvider = ({
           imageBase64,
           imageFileExtension,
         };
-
+        // Vi overskriver faktisk bare hele den eksisterende liste af floorplans hver gang
         const nextFloorplans =
           floorplanImageRecord.floorplans.concat(nextStoredFloorplan);
         await saveFloorplanImageRecord({ floorplans: nextFloorplans });
@@ -369,13 +388,12 @@ export const FloorplanProvider = ({
         await refreshStoredFloorplans();
         log("Successfully refreshed stored floorplans after gallery save");
 
-        skippedMarkerSyncCount.current += 1;
         setFloorplanId(nextStoredFloorplan.id);
         setFloorplan(nextStoredFloorplan.imageUri);
         setSelectedMarkerId(null);
         setShowMarkerOptions(false);
         setShowTempMarker(false);
-        marker.clearMarkers();
+        clearMarkersFromSystem();
       } catch (caughtError) {
         const errorMessage =
           caughtError instanceof Error ? caughtError.message : "Unknown error";
@@ -386,14 +404,12 @@ export const FloorplanProvider = ({
   };
 
   const pickFromMyFloorplan = async (storedFloorplan: FloorplanImage) => {
-    skippedMarkerSyncCount.current += 1;
     setFloorplanId(storedFloorplan.id);
     setFloorplan(storedFloorplan.imageUri);
     setSelectedMarkerId(null);
     setShowMarkerOptions(false);
     setShowTempMarker(false);
-    skippedMarkerSyncCount.current += 1;
-    marker.replaceMarkers([]);
+    replaceMarkersFromSystem([]);
 
     await loadMarkersForStoredFloorplan(storedFloorplan.id);
   };
@@ -428,21 +444,20 @@ export const FloorplanProvider = ({
       setSelectedMarkerId(null);
       setShowMarkerOptions(false);
       setShowTempMarker(false);
-      marker.clearMarkers();
+      clearMarkersFromSystem();
     }
   };
 
   const clearAllUserData = async (): Promise<void> => {
     await resetUserData();
 
-    skippedMarkerSyncCount.current = 0;
     setFloorplanId(null);
     setFloorplan(null);
     setStoredFloorplans([]);
     setSelectedMarkerId(null);
     setShowMarkerOptions(false);
     setShowTempMarker(false);
-    marker.clearMarkers();
+    clearMarkersFromSystem();
   };
 
   return (
