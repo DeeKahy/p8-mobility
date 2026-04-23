@@ -26,6 +26,7 @@ import {
 import {
   normalizeFloorplanImage,
   normalizeMarkers,
+  prepareMarkersForServer,
   toImageDataUri,
 } from "../utils/imageDataHelpers";
 import {
@@ -84,6 +85,9 @@ export const FloorplanProvider = ({
   const [storedFloorplans, setStoredFloorplans] = useState<FloorplanImage[]>(
     []
   );
+  const [storedMarkerCollections, setStoredMarkerCollections] = useState<
+    FloorplanMarkerCollectionRecord["collections"]
+  >([]);
   const [isLoadingStoredFloorplans, setIsLoadingStoredFloorplans] =
     useState(true);
   const marker = useMarkers();
@@ -107,6 +111,7 @@ export const FloorplanProvider = ({
 
   useEffect(() => {
     if (isApplyingSystemMarkerUpdate.current) {
+      log("Marker sync step: skipping save for system-applied marker update");
       isApplyingSystemMarkerUpdate.current = false;
       return;
     }
@@ -115,6 +120,7 @@ export const FloorplanProvider = ({
       return;
     }
 
+    log("Marker sync step: detected marker change, starting save");
     persistMarkersForFloorplan(floorplanId, marker.markers).catch(
       (caughtError: unknown) => {
         const errorMessage =
@@ -172,6 +178,7 @@ export const FloorplanProvider = ({
     try {
       const floorplanMarkerCollectionRecord =
         await getFloorplanMarkerCollectionRecord();
+      setStoredMarkerCollections(floorplanMarkerCollectionRecord.collections);
       log(`Successfully fetched markers for floorplan ${nextFloorplanId}`);
       const selectedCollection =
         floorplanMarkerCollectionRecord.collections.find(
@@ -192,6 +199,7 @@ export const FloorplanProvider = ({
 
       if (errorMessage === "file not found") {
         log(`No saved markers found for floorplan ${nextFloorplanId}`);
+        setStoredMarkerCollections([]);
         replaceMarkersFromSystem([]);
       } else {
         error(
@@ -215,53 +223,32 @@ export const FloorplanProvider = ({
     }
 
     try {
-      let floorplanMarkerCollectionRecord: FloorplanMarkerCollectionRecord = {
-        collections: [],
-      };
-
-      try {
-        floorplanMarkerCollectionRecord =
-          await getFloorplanMarkerCollectionRecord();
-        log(
-          `Successfully fetched marker collections before saving floorplan ${floorplanIdToSave}`
-        );
-      } catch (caughtError) {
-        const errorMessage =
-          caughtError instanceof Error ? caughtError.message : "Unknown error";
-
-        if (errorMessage !== "file not found") {
-          error(
-            `Fetching marker collections before save failed: ${errorMessage}`
-          );
-          throw caughtError;
-        }
-
-        error(
-          `No existing marker collection file found before saving floorplan ${floorplanIdToSave}`
-        );
-      }
-
+      log("Marker save step 1: building next marker collection payload");
+      const serverReadyMarkers = prepareMarkersForServer(markersToSave);
       const floorplanCollectionIndex =
-        floorplanMarkerCollectionRecord.collections.findIndex(
+        storedMarkerCollections.findIndex(
           (collection) => collection.floorplanId === floorplanIdToSave
         );
 
       const nextCollections =
         floorplanCollectionIndex === -1
-          ? floorplanMarkerCollectionRecord.collections.concat({
+          ? storedMarkerCollections.concat({
               floorplanId: floorplanIdToSave,
-              markers: markersToSave,
+              markers: serverReadyMarkers,
             })
-          : floorplanMarkerCollectionRecord.collections.map(
+          : storedMarkerCollections.map(
               (collection, collectionIndex) =>
               collectionIndex === floorplanCollectionIndex
-                ? { ...collection, markers: markersToSave }
+                ? { ...collection, markers: serverReadyMarkers }
                 : collection
             );
 
+      log("Marker save step 2: sending marker collections to server");
       await saveFloorplanMarkerCollectionRecord({
         collections: nextCollections,
       });
+      log("Marker save step 3: updating client marker collection state");
+      setStoredMarkerCollections(nextCollections);
       log(`Successfully saved markers for floorplan ${floorplanIdToSave}`);
     } catch (caughtError) {
       const errorMessage =
@@ -404,6 +391,11 @@ export const FloorplanProvider = ({
         (currentFloorplan) => currentFloorplan.id !== storedFloorplan.id
       )
     );
+    setStoredMarkerCollections((currentCollections) =>
+      currentCollections.filter(
+        (collection) => collection.floorplanId !== storedFloorplan.id
+      )
+    );
 
     if (floorplanId === storedFloorplan.id) {
       setFloorplanId(null);
@@ -421,6 +413,7 @@ export const FloorplanProvider = ({
     setFloorplanId(null);
     setFloorplan(null);
     setStoredFloorplans([]);
+    setStoredMarkerCollections([]);
     setSelectedMarkerId(null);
     setShowMarkerOptions(false);
     setShowTempMarker(false);

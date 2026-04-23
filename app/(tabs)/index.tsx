@@ -325,8 +325,10 @@ export default function HomeScreen() {
               if (tempMarker && describedPhotos.current.length > 0) {
                 // If we've gotten submissions for something and nothing is pending, create or update a marker.
                 if (selectedMarkerId) {
+                  log("Marker flow step: photo form complete, adding photos to existing marker");
                   addPhotos(selectedMarkerId, describedPhotos.current);
                 } else {
+                  log("Marker flow step: photo form complete, creating new marker");
                   addMarker(
                     tempMarker.x,
                     tempMarker.y,
@@ -361,8 +363,10 @@ export default function HomeScreen() {
               if (tempMarker && describedPhotos.current.length > 0) {
                 // If we've gotten submissions for something and nothing is pending, create or update a marker.
                 if (selectedMarkerId) {
+                  log("Marker flow step: photo form complete, adding photos to existing marker");
                   addPhotos(selectedMarkerId, describedPhotos.current);
                 } else {
+                  log("Marker flow step: photo form complete, creating new marker");
                   addMarker(
                     tempMarker.x,
                     tempMarker.y,

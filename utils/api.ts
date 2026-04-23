@@ -103,8 +103,10 @@ export async function deleteFloorplanImageRecord(
 export async function saveFloorplanMarkerCollectionRecord(
   floorplanMarkerCollectionRecord: FloorplanMarkerCollectionRecord
 ): Promise<void> {
+  
   const saveFloorplanMarkerCollectionUrl = `${API_BASE_URL}/saveData/${API_USER}/${FLOORPLAN_MARKERS_FILE_NAME}`;
-
+  const requestBody = JSON.stringify(floorplanMarkerCollectionRecord);
+  console.log("Sending photo, this takes a while because we need to sent everything all the time.")
   const saveFloorplanMarkerCollectionResponse = await fetch(
     saveFloorplanMarkerCollectionUrl,
     {
@@ -112,7 +114,7 @@ export async function saveFloorplanMarkerCollectionRecord(
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(floorplanMarkerCollectionRecord),
+      body: requestBody,
     }
   );
 

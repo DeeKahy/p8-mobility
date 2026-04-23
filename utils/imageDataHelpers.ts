@@ -75,6 +75,21 @@ export function normalizePhoto(photo: PhotoData): PhotoData {
 }
 
 /**
+ * Removes duplicated image payload from photoUri before server writes when the
+ * same image content is already present in photoBase64.
+ */
+export function preparePhotoForServer(photo: PhotoData): PhotoData {
+  if (!photo.photoBase64 || !photo.photoUri.startsWith("data:")) {
+    return photo;
+  }
+
+  return {
+    ...photo,
+    photoUri: "",
+  };
+}
+
+/**
  * Applies photo normalization across a full marker list so marker data from the
  * server is ready for UI use in one step.
  */
@@ -82,6 +97,17 @@ export function normalizeMarkers(markersToNormalize: Marker[]): Marker[] {
   return markersToNormalize.map((currentMarker) => ({
     ...currentMarker,
     photos: currentMarker.photos.map((photo) => normalizePhoto(photo)),
+  }));
+}
+
+/**
+ * Removes duplicated image payloads across a full marker list before server
+ * writes so photoBase64 remains the single source of image bytes in the JSON.
+ */
+export function prepareMarkersForServer(markersToSave: Marker[]): Marker[] {
+  return markersToSave.map((currentMarker) => ({
+    ...currentMarker,
+    photos: currentMarker.photos.map((photo) => preparePhotoForServer(photo)),
   }));
 }
 

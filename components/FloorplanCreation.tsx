@@ -11,13 +11,9 @@ import { useRotation } from "../app/hooks/useRotation";
 import { useFloorplan } from "../context/FloorplanContext";
 import { useLogger } from "../context/LoggerContext";
 import { PointProps } from "../models/PointProps";
-import {
-  getFloorplanImageRecord,
-  saveFloorplanImageRecord,
-} from "../utils/api";
+import { saveFloorplanImageRecord } from "../utils/api";
 import { calculateDistanceMeters, calculateMidPoint } from "../utils/arMath";
 import { toImageDataUri } from "../utils/imageDataHelpers";
-import { FloorplanImageRecord } from "../utils/types";
 
 // Type to ensure that component CreateSvg only takes type of string
 type CreateSvgProps = {
@@ -35,7 +31,7 @@ export default function SvgComponent({
   const [name, setName] = useState<string>("");
   const router = useRouter();
   const [showSaveModal, setShowSaveModal] = useState(false);
-  const { refreshStoredFloorplans } = useFloorplan();
+  const { refreshStoredFloorplans, storedFloorplans } = useFloorplan();
   const { error, log } = useLogger();
 
   /*Issue with smaller polygons not being visible on screen and too large can overtake screen, so we want to take min and max and give it to viewbox.
@@ -72,31 +68,12 @@ export default function SvgComponent({
       const createdAt = new Date().toISOString();
       const nextFloorplanId = `floorplan-${Date.now()}`;
       const imageBase64 = await new File(capturedUri).base64();
-      let floorplanImageRecord: FloorplanImageRecord = { floorplans: [] };
-
-      try {
-        floorplanImageRecord = await getFloorplanImageRecord();
-        log("Successfully fetched floorplan image record before save");
-      } catch (caughtError) {
-        const errorMessage =
-          caughtError instanceof Error ? caughtError.message : "Unknown error";
-
-        if (errorMessage !== "file not found") {
-          error(
-            `Fetching floorplan image record before save failed: ${errorMessage}`
-          );
-          throw caughtError;
-        }
-
-        log("No existing floorplan image record found before save");
-      }
-
       const nextFloorplanName =
         name.trim().length > 0 ? name.trim() : `Floorplan ${createdAt}`;
 
       // Save it to the server
       await saveFloorplanImageRecord({
-        floorplans: floorplanImageRecord.floorplans.concat({
+        floorplans: storedFloorplans.concat({
           id: nextFloorplanId,
           imageUri: toImageDataUri(imageBase64, "png"),
           imageName: nextFloorplanName,
