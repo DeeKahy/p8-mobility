@@ -91,15 +91,22 @@ export default function HomeScreen() {
   useEffect(() => {
     savedPhotos.current = markers.flatMap((marker) => marker.photos);
   }, [markers]);
-
+  /**
+   * Builds a data URI string from raw image data.
+   * Why:
+   * - Allows images to be used directly in React Native <Image /> without relying
+   *   on a file path.
+   */
   function toImageDataUri(base64: string, fileExtension: string): string {
     const normalizedExtension = fileExtension.toLowerCase();
-    const mimeType =
-      normalizedExtension === "jpg" || normalizedExtension === "jpeg"
-        ? "image/jpeg"
-        : `image/${normalizedExtension}`;
-
-    return `data:${mimeType};base64,${base64}`;
+    let mimeType: string;
+    if (normalizedExtension === "jpg" || normalizedExtension === "jpeg") {
+      mimeType = "image/jpeg";
+    } else {
+      mimeType = `image/${normalizedExtension}`;
+    }
+    const dataUri = `data:${mimeType};base64,${base64}`;
+    return dataUri;
   }
 
   async function getValidImages(images: ImagePicker.ImagePickerAsset[]) {
@@ -179,7 +186,7 @@ export default function HomeScreen() {
       const errorMessage =
         caughtError instanceof Error ? caughtError.message : "Unknown error";
       error(`Preparing new marker gallery photos failed: ${errorMessage}`);
-      
+
     }
   };
 
@@ -359,17 +366,21 @@ export default function HomeScreen() {
             photoUri={currentUri}
             date="2026-01-01"
             onSubmit={(photoData) => {
+              // URI for picture that has just been submitted
               const submittedPhotoUri = pendingPhotos.pop();
-              const pendingMetadata = submittedPhotoUri
-                ? pendingPhotoMetadata.current[submittedPhotoUri]
-                : undefined;
+              let Metadata;
+              if (submittedPhotoUri) {
+                Metadata = pendingPhotoMetadata.current[submittedPhotoUri];
+              } else {
+                Metadata = undefined;
+              }
               if (submittedPhotoUri) {
                 delete pendingPhotoMetadata.current[submittedPhotoUri];
               }
               const preparedPhotoData: PhotoData = {
                 ...photoData,
-                photoBase64: pendingMetadata?.base64,
-                photoFileExtension: pendingMetadata?.fileExtension,
+                photoBase64: Metadata?.base64,
+                photoFileExtension: Metadata?.fileExtension,
               };
               // Store data on submit of photo data.
               describedPhotos.current.push(preparedPhotoData);
