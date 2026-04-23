@@ -136,27 +136,29 @@ export default function HomeScreen() {
     return validImages;
   }
   async function preparePhotosForUpload(photoUris: string[]): Promise<string[]> {
-    const persistedPhotoUris: string[] = [];
+    log("Preparing photos for upload");
+    const preparedPhotoUris: string[] = [];
 
     for (const photoUri of photoUris) {
       const fileExtensionMatch = photoUri.match(/\.(\w+)(\?.*)?$/);
       const fileExtension = fileExtensionMatch?.[1] ?? "jpg";
       const base64 = await new File(photoUri).base64();
-      const persistedPhotoUri = toImageDataUri(base64, fileExtension);
+      const preparedPhotoUri = toImageDataUri(base64, fileExtension);
 
-      pendingPhotoMetadata.current[persistedPhotoUri] = {
+      pendingPhotoMetadata.current[preparedPhotoUri] = {
         base64,
         fileExtension,
       };
-      persistedPhotoUris.push(persistedPhotoUri);
+      preparedPhotoUris.push(preparedPhotoUri);
     }
 
-    return persistedPhotoUris;
+    return preparedPhotoUris;
   }
 
   /**
-   * Starts the new-marker gallery flow by validating selected images,
-   * persisting accepted photos, and queueing them for the marker form.
+   * Starts the new-marker gallery flow by validating selected images.
+   * We also prepare the picture for upload, making them base64 for sending.
+
    */
   const handleNewMarkerFromCameraRoll = async () => {
     setShowNewMarkerOptions(false);
@@ -164,18 +166,19 @@ export default function HomeScreen() {
     if (!result || !tempMarker) return;
 
     try {
+      // Validates thats its not older than x days
       const validImages = await getValidImages(result);
       const validPhotoUris = validImages.map((p) => p.uri);
-      const persistedPhotoUris = await preparePhotosForUpload(validPhotoUris);
+      const preparedPhotoUris = await preparePhotosForUpload(validPhotoUris);
 
       setShowNewMarkerOptions(false);
       setShowTempMarker(false);
-      setPendingPhotos(persistedPhotoUris);
-      log("Successfully persisted new marker photos from gallery");
+      setPendingPhotos(preparedPhotoUris);
+      log("Successfully prepared new marker photos from gallery");
     } catch (caughtError) {
       const errorMessage =
         caughtError instanceof Error ? caughtError.message : "Unknown error";
-      error(`Persisting new marker gallery photos failed: ${errorMessage}`);
+      error(`Preparing new marker gallery photos failed: ${errorMessage}`);
       
     }
   };
@@ -187,17 +190,17 @@ export default function HomeScreen() {
 
     cameraAction.current = (img) => {
       preparePhotosForUpload([img])
-        .then((persistedPhotoUris) => {
-          setPendingPhotos(persistedPhotoUris);
+        .then((preparedPhotoUris) => {
+          setPendingPhotos(preparedPhotoUris);
           setShowCamera(false);
-          log("Successfully persisted new marker photo from camera");
+          log("Successfully prepared new marker photo from camera");
         })
         .catch((caughtError: unknown) => {
           const errorMessage =
             caughtError instanceof Error
               ? caughtError.message
               : "Unknown error";
-          error(`Persisting new marker camera photo failed: ${errorMessage}`);
+          error(`Preparing new marker camera photo failed: ${errorMessage}`);
           throw caughtError;
         });
     };
@@ -212,21 +215,21 @@ export default function HomeScreen() {
 
     try {
       const validPhotoUris = (await getValidImages(result)).map((p) => p.uri);
-      const persistedPhotoUris = await preparePhotosForUpload(validPhotoUris);
+      const preparedPhotoUris = await preparePhotosForUpload(validPhotoUris);
 
-      setPendingPhotos(persistedPhotoUris);
-      log("Successfully persisted additional marker photos from gallery");
+      setPendingPhotos(preparedPhotoUris);
+      log("Successfully prepared additional marker photos from gallery");
     } catch (caughtError) {
       const errorMessage =
         caughtError instanceof Error ? caughtError.message : "Unknown error";
       error(
-        `Persisting additional marker gallery photos failed: ${errorMessage}`
+        `Preparing additional marker gallery photos failed: ${errorMessage}`
       );
       throw caughtError;
     }
   };
   /**
-   * Starts the add-to-marker camera flow, persists the captured photo,
+   * Starts the add-to-marker camera flow, prepares the captured photo,
    * and queues it for the selected marker's photo form.
    */
   const handleAddFromPictureToMarker = async () => {
@@ -236,10 +239,10 @@ export default function HomeScreen() {
 
     cameraAction.current = (img) => {
       preparePhotosForUpload([img])
-        .then((persistedPhotoUris) => {
-          setPendingPhotos(persistedPhotoUris);
+        .then((preparedPhotoUris) => {
+          setPendingPhotos(preparedPhotoUris);
           setShowCamera(false);
-          log("Successfully persisted additional marker photo from camera");
+          log("Successfully prepared additional marker photo from camera");
         })
         .catch((caughtError: unknown) => {
           const errorMessage =
@@ -247,7 +250,7 @@ export default function HomeScreen() {
               ? caughtError.message
               : "Unknown error";
           error(
-            `Persisting additional marker camera photo failed: ${errorMessage}`
+            `Preparing additional marker camera photo failed: ${errorMessage}`
           );
           throw caughtError;
         });
@@ -363,14 +366,14 @@ export default function HomeScreen() {
               if (submittedPhotoUri) {
                 delete pendingPhotoMetadata.current[submittedPhotoUri];
               }
-              const persistedPhotoData: PhotoData = {
+              const preparedPhotoData: PhotoData = {
                 ...photoData,
                 photoBase64: pendingMetadata?.base64,
                 photoFileExtension: pendingMetadata?.fileExtension,
               };
               // Store data on submit of photo data.
-              describedPhotos.current.push(persistedPhotoData);
-              savedPhotos.current.push(persistedPhotoData);
+              describedPhotos.current.push(preparedPhotoData);
+              savedPhotos.current.push(preparedPhotoData);
               setPendingPhotos(pendingPhotos);
               if (tempMarker && describedPhotos.current.length > 0) {
                 // If we've gotten submissions for something and nothing is pending, create or update a marker.
