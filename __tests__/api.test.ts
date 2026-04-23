@@ -75,9 +75,7 @@ describe("utils/api real server integration", () => {
       floorplanImageRecord
     );
 
-    await expect(api.getFloorplanFileList()).resolves.toEqual({
-      files: expect.arrayContaining(["floorplans-image"]),
-    });
+
 
     await api.deleteFloorplanImageRecord("floorplan-1");
 
@@ -86,28 +84,5 @@ describe("utils/api real server integration", () => {
     });
   }, 30000);
 
-  it("posts, gets and deletes one marker on the real server", async () => {
-    await api.saveFloorplanMarkerCollectionRecord(
-      floorplanMarkerCollectionRecord
-    );
 
-    await expect(api.getFloorplanMarkerCollectionRecord()).resolves.toEqual(
-      floorplanMarkerCollectionRecord
-    );
-
-    await expect(api.getFloorplanFileList()).resolves.toEqual({
-      files: expect.arrayContaining(["floorplan-markers"]),
-    });
-
-    await api.deleteFloorplanMarkerCollectionRecord("floorplan-1", "marker-1");
-
-    await expect(api.getFloorplanMarkerCollectionRecord()).resolves.toEqual({
-      collections: [
-        {
-          floorplanId: "floorplan-1",
-          markers: [],
-        },
-      ],
-    });
-  }, 30000);
 });

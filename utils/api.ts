@@ -147,71 +147,7 @@ export async function getFloorplanMarkerCollectionRecord(): Promise<FloorplanMar
   return (await getFloorplanMarkerCollectionResponse.json()) as FloorplanMarkerCollectionRecord;
 }
 
-export async function deleteFloorplanMarkerCollectionRecord(
-  floorplanId: string,
-  markerId: string
-): Promise<void> {
-  const getFloorplanMarkerCollectionUrl = `${API_BASE_URL}/getData/${API_USER}/${FLOORPLAN_MARKERS_FILE_NAME}`;
 
-  const getFloorplanMarkerCollectionResponse = await fetch(
-    getFloorplanMarkerCollectionUrl
-  );
-
-  if (!getFloorplanMarkerCollectionResponse.ok) {
-    const getFloorplanMarkerCollectionError =
-      ((await getFloorplanMarkerCollectionResponse.json()) as ApiErrorResponse)
-        .error ??
-      `Getting floorplan markers failed with status ${getFloorplanMarkerCollectionResponse.status}`;
-
-    throw new Error(getFloorplanMarkerCollectionError);
-  }
-
-  const floorplanMarkerCollectionRecord =
-    (await getFloorplanMarkerCollectionResponse.json()) as FloorplanMarkerCollectionRecord;
-  const floorplanCollection = floorplanMarkerCollectionRecord.collections.find(
-    (collection) => collection.floorplanId === floorplanId
-  );
-
-  if (!floorplanCollection) {
-    throw new Error(`Floorplan ${floorplanId} was not found`);
-  }
-
-  const filteredMarkers = floorplanCollection.markers.filter(
-    (marker) => marker.id !== markerId
-  );
-
-  if (filteredMarkers.length === floorplanCollection.markers.length) {
-    throw new Error(`Marker ${markerId} was not found`);
-  }
-
-  const updatedCollections = floorplanMarkerCollectionRecord.collections.map(
-    (collection) =>
-      collection.floorplanId === floorplanId
-        ? { ...collection, markers: filteredMarkers }
-        : collection
-  );
-  const saveFloorplanMarkerCollectionUrl = `${API_BASE_URL}/saveData/${API_USER}/${FLOORPLAN_MARKERS_FILE_NAME}`;
-
-  const saveFloorplanMarkerCollectionResponse = await fetch(
-    saveFloorplanMarkerCollectionUrl,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ collections: updatedCollections }),
-    }
-  );
-
-  if (!saveFloorplanMarkerCollectionResponse.ok) {
-    const saveFloorplanMarkerCollectionError =
-      ((await saveFloorplanMarkerCollectionResponse.json()) as ApiErrorResponse)
-        .error ??
-      `Deleting floorplan marker failed with status ${saveFloorplanMarkerCollectionResponse.status}`;
-
-    throw new Error(saveFloorplanMarkerCollectionError);
-  }
-}
 
 export async function deleteFloorplanMarkerCollectionsForFloorplan(
   floorplanId: string
@@ -265,21 +201,6 @@ export async function deleteFloorplanMarkerCollectionsForFloorplan(
   }
 }
 
-export async function getFloorplanFileList(): Promise<FloorplanFileListResponse> {
-  const getFloorplanFileListUrl = `${API_BASE_URL}/listData/${API_USER}`;
-
-  const getFloorplanFileListResponse = await fetch(getFloorplanFileListUrl);
-
-  if (!getFloorplanFileListResponse.ok) {
-    const getFloorplanFileListError =
-      ((await getFloorplanFileListResponse.json()) as ApiErrorResponse).error ??
-      `Getting floorplan file list failed with status ${getFloorplanFileListResponse.status}`;
-
-    throw new Error(getFloorplanFileListError);
-  }
-
-  return (await getFloorplanFileListResponse.json()) as FloorplanFileListResponse;
-}
 
 export async function resetUserData(): Promise<void> {
   const resetUserUrl = `${API_BASE_URL}/resetUser/${API_USER}`;
