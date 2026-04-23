@@ -1,4 +1,3 @@
-import { File } from "expo-file-system";
 import {
   Alert,
   FlatList,
@@ -66,14 +65,6 @@ export default function FloorplanList({
 }: FloorplanListProps) {
   const { showToast } = useToast();
 
-  const deleteLocalFloorplanImage = (imageUri: string) => {
-    const floorplanFile = new File(imageUri);
-
-    if (floorplanFile.exists) {
-      floorplanFile.delete();
-    }
-  };
-
   const confirmDeleteFloorplan = (storedFloorplan: FloorplanImage) => {
     Alert.alert("Delete Image", "Are you sure you want to delete this image?", [
       { text: "Cancel", style: "cancel" },
@@ -82,7 +73,6 @@ export default function FloorplanList({
         style: "destructive",
         onPress: async () => {
           try {
-            deleteLocalFloorplanImage(storedFloorplan.imageUri);
             await onDeleteFloorPlan(storedFloorplan);
             showToast("Image has been deleted", "Success");
           } catch (error) {

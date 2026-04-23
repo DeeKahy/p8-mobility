@@ -278,3 +278,19 @@ export async function getFloorplanFileList(): Promise<FloorplanFileListResponse>
 
   return (await getFloorplanFileListResponse.json()) as FloorplanFileListResponse;
 }
+
+export async function resetUserData(): Promise<void> {
+  const resetUserUrl = `${API_BASE_URL}/resetUser/${API_USER}`;
+
+  const resetUserResponse = await fetch(resetUserUrl, {
+    method: "DELETE",
+  });
+
+  if (!resetUserResponse.ok) {
+    const resetUserError =
+      ((await resetUserResponse.json()) as ApiErrorResponse).error ??
+      `Resetting user data failed with status ${resetUserResponse.status}`;
+
+    throw new Error(resetUserError);
+  }
+}

@@ -1,8 +1,8 @@
 export type PhotoData = {
   photoUri: string;
-  // Server-backed fallback used to recreate the local file if it disappears.
+  // Base64 payload kept with the server record so the app can render photos directly.
   photoBase64?: string;
-  // Preserved so restored files keep a usable extension.
+  // Preserved so the app can build a correct data URI MIME type.
   photoFileExtension?: string;
   dateTaken: string;
   pictureName: string;

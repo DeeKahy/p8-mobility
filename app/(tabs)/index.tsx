@@ -1,5 +1,5 @@
 import { CameraView } from "expo-camera";
-import { Directory, File, Paths } from "expo-file-system";
+import { File } from "expo-file-system";
 import * as ImagePicker from "expo-image-picker";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useRef, useState } from "react";
@@ -92,6 +92,16 @@ export default function HomeScreen() {
     savedPhotos.current = markers.flatMap((marker) => marker.photos);
   }, [markers]);
 
+  function toImageDataUri(base64: string, fileExtension: string): string {
+    const normalizedExtension = fileExtension.toLowerCase();
+    const mimeType =
+      normalizedExtension === "jpg" || normalizedExtension === "jpeg"
+        ? "image/jpeg"
+        : `image/${normalizedExtension}`;
+
+    return `data:${mimeType};base64,${base64}`;
+  }
+
   async function getValidImages(images: ImagePicker.ImagePickerAsset[]) {
     const twoWeeksAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
     const validImages: ImagePicker.ImagePickerAsset[] = [];
@@ -125,34 +135,17 @@ export default function HomeScreen() {
     }
     return validImages;
   }
-  /**
-   * Copies selected photo files into the app's document storage and returns
-   * stable URIs that can be reused after the original picker URIs expire.
-   */
   async function persistPhotoUris(photoUris: string[]): Promise<string[]> {
-    const markerImagesDirectory = new Directory(
-      Paths.document,
-      "marker-images"
-    );
-
-    if (!markerImagesDirectory.exists) {
-      markerImagesDirectory.create();
-    }
-
     const persistedPhotoUris: string[] = [];
 
     for (const photoUri of photoUris) {
       const fileExtensionMatch = photoUri.match(/\.(\w+)(\?.*)?$/);
       const fileExtension = fileExtensionMatch?.[1] ?? "jpg";
-      const persistedPhotoUri =
-        markerImagesDirectory.uri +
-        `/marker-photo-${Date.now()}-${persistedPhotoUris.length}.${fileExtension}`;
+      const base64 = await new File(photoUri).base64();
+      const persistedPhotoUri = toImageDataUri(base64, fileExtension);
 
-      const sourceFile = new File(photoUri);
-      const destinationFile = new File(persistedPhotoUri);
-      sourceFile.copy(destinationFile);
       pendingPhotoMetadata.current[persistedPhotoUri] = {
-        base64: await destinationFile.base64(),
+        base64,
         fileExtension,
       };
       persistedPhotoUris.push(persistedPhotoUri);
@@ -378,7 +371,6 @@ export default function HomeScreen() {
               // Store data on submit of photo data.
               describedPhotos.current.push(persistedPhotoData);
               savedPhotos.current.push(persistedPhotoData);
-              console.info(savedPhotos);
               setPendingPhotos(pendingPhotos);
               if (tempMarker && describedPhotos.current.length > 0) {
                 // If we've gotten submissions for something and nothing is pending, create or update a marker.

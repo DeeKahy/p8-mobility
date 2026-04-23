@@ -13,9 +13,9 @@ export interface FloorplanImage {
   imageUri: string;
   imageName: string;
   createdAt: string;
-  // Server-backed fallback used to recreate the local floorplan image.
+  // Base64 payload kept with the server record so the app can render images directly.
   imageBase64?: string;
-  // Preserved so restored floorplan files keep a usable extension.
+  // Preserved so the app can build a correct data URI MIME type.
   imageFileExtension?: string;
 }
 

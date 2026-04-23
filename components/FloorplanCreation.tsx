@@ -1,4 +1,4 @@
-import { Directory, File, Paths } from "expo-file-system";
+import { File } from "expo-file-system";
 import { useRouter } from "expo-router";
 import { useRef, useState } from "react";
 import { Modal, Text, TextInput, TouchableOpacity, View } from "react-native";
@@ -52,6 +52,16 @@ export default function SvgComponent({
   const stroke = roomSize * 0.008;
   const offset = fontSize * 0.1;
 
+  function toImageDataUri(base64: string, fileExtension: string): string {
+    const normalizedExtension = fileExtension.toLowerCase();
+    const mimeType =
+      normalizedExtension === "jpg" || normalizedExtension === "jpeg"
+        ? "image/jpeg"
+        : `image/${normalizedExtension}`;
+
+    return `data:${mimeType};base64,${base64}`;
+  }
+
   //Take the captured points and turn them into string format of "x1,y1 x2,y2 ...xn,yn", because Polygon points={} needs points string in that format.
   function turnPointsToString(): string {
     let output = "";
@@ -63,26 +73,14 @@ export default function SvgComponent({
 
   async function saveToList() {
     try {
-      //Creates a path for a new directory in the local storage
-      const imagesDirectory = new Directory(Paths.document, "floorplan-images");
-      //Checks if the directory already exists
-      if (!imagesDirectory.exists) {
-        imagesDirectory.create();
-      }
-
       const capturedUri = await captureRef(viewShotRef, {
         format: "png",
         quality: 1,
       });
 
-      console.log("capturedUri:", capturedUri);
-      const outputUri = imagesDirectory.uri + `/floorplan-${Date.now()}.png`;
-      const destFile = new File(outputUri);
-      const sourceFile = new File(capturedUri);
-      sourceFile.copy(destFile);
-
       const createdAt = new Date().toISOString();
       const nextFloorplanId = `floorplan-${Date.now()}`;
+      const imageBase64 = await new File(capturedUri).base64();
       let floorplanImageRecord: FloorplanImageRecord = { floorplans: [] };
 
       try {
@@ -110,10 +108,10 @@ export default function SvgComponent({
       await saveFloorplanImageRecord({
         floorplans: floorplanImageRecord.floorplans.concat({
           id: nextFloorplanId,
-          imageUri: outputUri,
+          imageUri: toImageDataUri(imageBase64, "png"),
           imageName: nextFloorplanName,
           createdAt,
-          imageBase64: await destFile.base64(),
+          imageBase64,
           imageFileExtension: "png",
         }),
       });

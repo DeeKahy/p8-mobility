@@ -1,4 +1,4 @@
-import { Directory, File, Paths } from "expo-file-system";
+import { File } from "expo-file-system";
 import * as ImagePicker from "expo-image-picker";
 import {
   createContext,
@@ -19,22 +19,15 @@ import {
   deleteFloorplanMarkerCollectionsForFloorplan,
   getFloorplanImageRecord,
   getFloorplanMarkerCollectionRecord,
+  resetUserData,
   saveFloorplanImageRecord,
   saveFloorplanMarkerCollectionRecord,
 } from "../utils/api";
-import {
-  readLocalFloorplanImageRecord,
-  readLocalMarkerCollectionRecord,
-  writeLocalFloorplanImageRecord,
-  writeLocalMarkerCollectionRecord,
-} from "../utils/cache_functions";
 import {
   FloorplanImage,
   FloorplanImageRecord,
   FloorplanMarkerCollectionRecord,
 } from "../utils/types";
-
-const FLOORPLAN_IMAGES_DIRECTORY_NAME = "floorplan-images";
 
 interface FloorplanContextReturn {
   floorplanId: string | null;
@@ -44,6 +37,7 @@ interface FloorplanContextReturn {
   pickFloorplan: () => Promise<void>;
   pickFromMyFloorplan: (storedFloorplan: FloorplanImage) => Promise<void>;
   refreshStoredFloorplans: () => Promise<void>;
+  clearAllUserData: () => Promise<void>;
   deleteStoredFloorplan: (storedFloorplan: FloorplanImage) => Promise<void>;
   handleCanvasPress: (event: TapGestureEvent) => void;
   markers: Marker[];
@@ -99,10 +93,10 @@ export const FloorplanProvider = ({
   const [selectedMarkerId, setSelectedMarkerId] = useState<string | null>(null);
 
   useEffect(() => {
-    loadLocalThenServer().catch((error: unknown) => {
+    refreshStoredFloorplans().catch((error: unknown) => {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error";
-      debug(`Could not hydrate local sync state: ${errorMessage}`);
+      debug(`Could not fetch stored floorplans: ${errorMessage}`);
     });
   }, []);
 
@@ -123,71 +117,69 @@ export const FloorplanProvider = ({
     });
   }, [floorplanId, marker.markers]);
 
-  /**
-   * Ensures a floorplan image exists locally. If the file is missing but the
-   * server-backed base64 payload exists, recreate the local file from it.
-   */
-  async function restoreFloorplanImageIfNeeded(
-    storedFloorplan: FloorplanImage
-  ): Promise<FloorplanImage> {
-    const localFloorplanFile = new File(storedFloorplan.imageUri);
+  function toImageDataUri(base64: string, fileExtension: string): string {
+    const normalizedExtension = fileExtension.toLowerCase();
+    const mimeType =
+      normalizedExtension === "jpg" || normalizedExtension === "jpeg"
+        ? "image/jpeg"
+        : normalizedExtension === "svg"
+          ? "image/svg+xml"
+          : `image/${normalizedExtension}`;
 
-    if (localFloorplanFile.exists || !storedFloorplan.imageBase64) {
+    return `data:${mimeType};base64,${base64}`;
+  }
+
+  function normalizeFloorplanImage(
+    storedFloorplan: FloorplanImage
+  ): FloorplanImage {
+    if (
+      storedFloorplan.imageUri.startsWith("data:") ||
+      !storedFloorplan.imageBase64
+    ) {
       return storedFloorplan;
     }
 
-    const imagesDirectory = new Directory(
-      Paths.document,
-      FLOORPLAN_IMAGES_DIRECTORY_NAME
-    );
-    if (!imagesDirectory.exists) {
-      imagesDirectory.create();
-    }
-
-    const fileExtension = storedFloorplan.imageFileExtension ?? "png";
-    const restoredFloorplanUri =
-      imagesDirectory.uri + `/${storedFloorplan.id}.${fileExtension}`;
-    const restoredFloorplanFile = new File(restoredFloorplanUri);
-    restoredFloorplanFile.create({ intermediates: true, overwrite: true });
-    restoredFloorplanFile.write(storedFloorplan.imageBase64, {
-      encoding: "base64",
-    });
-
     return {
       ...storedFloorplan,
-      imageUri: restoredFloorplanUri,
+      imageUri: toImageDataUri(
+        storedFloorplan.imageBase64,
+        storedFloorplan.imageFileExtension ?? "png"
+      ),
     };
   }
 
-  /**
-   * Restores local floorplan files for a batch of floorplans before they are
-   * displayed or written back into local cache.
-   */
+  function normalizePhoto(photo: PhotoData): PhotoData {
+    if (photo.photoUri.startsWith("data:") || !photo.photoBase64) {
+      return photo;
+    }
 
-  async function restoreFloorplanImages(
-    floorplansToRestore: FloorplanImage[]
-  ): Promise<FloorplanImage[]> {
-    const restorePromises = floorplansToRestore.map((floorplan) =>
-      restoreFloorplanImageIfNeeded(floorplan)
-    );
+    return {
+      ...photo,
+      photoUri: toImageDataUri(photo.photoBase64, photo.photoFileExtension ?? "jpg"),
+    };
+  }
 
-    const restoredFloorplans = await Promise.all(restorePromises);
-
-    return restoredFloorplans;
+  function normalizeMarkers(markersToNormalize: Marker[]): Marker[] {
+    return markersToNormalize.map((currentMarker) => ({
+      ...currentMarker,
+      photos: currentMarker.photos.map((photo) => normalizePhoto(photo)),
+    }));
   }
 
   /**
-   * Fetches the floorplan list from the server. and updates the local cache to match.
+   * Fetches the floorplan list from the server and uses it as the source of truth.
    */
   async function refreshStoredFloorplans(): Promise<void> {
+    setIsLoadingStoredFloorplans(true);
+
     try {
       const floorplanImageRecord = await getFloorplanImageRecord();
-      const restoredFloorplans = await restoreFloorplanImages(
-        floorplanImageRecord.floorplans
-      );
       log("Successfully fetched stored floorplans from API");
-      setStoredFloorplans(restoredFloorplans);
-      await writeLocalFloorplanImageRecord({ floorplans: restoredFloorplans });
+      setStoredFloorplans(
+        floorplanImageRecord.floorplans.map((floorplan) =>
+          normalizeFloorplanImage(floorplan)
+        )
+      );
     } catch (caughtError) {
       const errorMessage =
         caughtError instanceof Error ? caughtError.message : "Unknown error";
@@ -195,106 +187,16 @@ export const FloorplanProvider = ({
       if (errorMessage === "file not found") {
         log("Stored floorplans API returned no saved floorplans yet");
         setStoredFloorplans([]);
-        await writeLocalFloorplanImageRecord({ floorplans: [] });
       } else {
         error(`Fetching stored floorplans failed: ${errorMessage}`);
-        debug(`Could not fetch stored floorplans: ${errorMessage}`);
       }
-    }
-  }
-
-  /**
-   * 1. Read cached floorplans from local storage.
-   * 2. If a floorplan is already selected, restore its cached markers and marker photos.
-   * 3. Fetch the latest floorplans from the server and update local state/cache to match
-   *    the server version.
-   */
-  async function loadLocalThenServer(): Promise<void> {
-    setIsLoadingStoredFloorplans(true);
-
-    try {
-      const localFloorplanImageRecord = await readLocalFloorplanImageRecord();
-      const restoredLocalFloorplans = await restoreFloorplanImages(
-        localFloorplanImageRecord.floorplans
-      );
-
-      setStoredFloorplans(restoredLocalFloorplans);
-
-
-      if (floorplanId) {
-        const localMarkerCollectionRecord = await readLocalMarkerCollectionRecord();
-        const localCollection = localMarkerCollectionRecord.collections.find(
-          (collection) => collection.floorplanId === floorplanId
-        );
-
-        if (localCollection) {
-          skippedMarkerSyncCount.current += 1;
-          marker.replaceMarkers(await restoreMarkerPhotos(localCollection.markers));
-        }
-      }
-    } catch (caughtError) {
-      const errorMessage =
-        caughtError instanceof Error ? caughtError.message : "Unknown error";
-      error(`Could not hydrate local cache: ${errorMessage}`);
-    }
-
-    try {
-      await refreshStoredFloorplans();
     } finally {
       setIsLoadingStoredFloorplans(false);
     }
   }
 
   /**
-   * Ensures a marker photo exists locally. If the local file is missing but
-   * the photo record still has base64 payload from the server, recreate it.
-   */
-  async function restoreMarkerPhotoIfNeeded(photo: PhotoData): Promise<PhotoData> {
-    const localPhotoFile = new File(photo.photoUri);
-
-    if (localPhotoFile.exists || !photo.photoBase64) {
-      return photo;
-    }
-
-    const markerImagesDirectory = new Directory(Paths.document, "marker-images");
-    if (!markerImagesDirectory.exists) {
-      markerImagesDirectory.create();
-    }
-
-    const fileExtension = photo.photoFileExtension ?? "jpg";
-    const restoredPhotoUri =
-      markerImagesDirectory.uri +
-      `/marker-photo-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${fileExtension}`;
-
-    const restoredPhotoFile = new File(restoredPhotoUri);
-    restoredPhotoFile.create({ intermediates: true, overwrite: true });
-    restoredPhotoFile.write(photo.photoBase64, { encoding: "base64" });
-
-    return {
-      ...photo,
-      photoUri: restoredPhotoUri,
-    };
-  }
-
-  /**
-   * Restores local marker photo files for an entire marker collection.
-   */
-  async function restoreMarkerPhotos(
-    markersToRestore: Marker[]
-  ): Promise<Marker[]> {
-    return Promise.all(
-      markersToRestore.map(async (currentMarker) => ({
-        ...currentMarker,
-        photos: await Promise.all(
-          currentMarker.photos.map((photo) => restoreMarkerPhotoIfNeeded(photo))
-        ),
-      }))
-    );
-  }
-
-  /**
-   * Loads one floorplan's markers from the server, repairs missing local photo
-   * files, and refreshes the local marker cache with the server-priority state.
+   * Loads one floorplan's markers from the server and uses the server state.
    */
   async function loadMarkersForStoredFloorplan(
     nextFloorplanId: string
@@ -307,39 +209,16 @@ export const FloorplanProvider = ({
         floorplanMarkerCollectionRecord.collections.find(
           (collection) => collection.floorplanId === nextFloorplanId
         );
-      const restoredMarkers = await restoreMarkerPhotos(
-        selectedCollection?.markers ?? []
-      );
-      const localMarkerCollectionRecord = await readLocalMarkerCollectionRecord();
-      const nextCollections =
-        localMarkerCollectionRecord.collections.some(
-          (collection) => collection.floorplanId === nextFloorplanId
-        )
-          ? localMarkerCollectionRecord.collections.map((collection) =>
-            collection.floorplanId === nextFloorplanId
-              ? { ...collection, markers: restoredMarkers }
-              : collection
-          )
-          : localMarkerCollectionRecord.collections.concat({
-            floorplanId: nextFloorplanId,
-            markers: restoredMarkers,
-          });
-      await writeLocalMarkerCollectionRecord({ collections: nextCollections });
+      const serverMarkers = normalizeMarkers(selectedCollection?.markers ?? []);
 
       skippedMarkerSyncCount.current += 1;
-      marker.replaceMarkers(restoredMarkers);
+      marker.replaceMarkers(serverMarkers);
     } catch (caughtError) {
       const errorMessage =
         caughtError instanceof Error ? caughtError.message : "Unknown error";
 
       if (errorMessage === "file not found") {
         log(`No saved markers found for floorplan ${nextFloorplanId}`);
-        const localMarkerCollectionRecord = await readLocalMarkerCollectionRecord();
-        await writeLocalMarkerCollectionRecord({
-          collections: localMarkerCollectionRecord.collections.filter(
-            (collection) => collection.floorplanId !== nextFloorplanId
-          ),
-        });
         skippedMarkerSyncCount.current += 1;
         marker.replaceMarkers([]);
       } else {
@@ -353,7 +232,7 @@ export const FloorplanProvider = ({
 
   /**
    * Persists the current in-memory marker state for the selected floorplan to
-   * both the server record and the local cache.
+   * the server record.
    */
   async function persistMarkersForSelectedFloorplan(): Promise<void> {
     if (!floorplanId) {
@@ -408,9 +287,6 @@ export const FloorplanProvider = ({
       await saveFloorplanMarkerCollectionRecord({
         collections: nextCollections,
       });
-      await writeLocalMarkerCollectionRecord({
-        collections: nextCollections,
-      });
       log(`Successfully saved markers for floorplan ${floorplanId}`);
     } catch (caughtError) {
       const errorMessage =
@@ -454,28 +330,15 @@ export const FloorplanProvider = ({
     if (!result.canceled) {
       try {
         const selectedFloorplanImage = result.assets[0];
-        const imagesDirectory = new Directory(
-          Paths.document,
-          FLOORPLAN_IMAGES_DIRECTORY_NAME
-        );
-
-        if (!imagesDirectory.exists) {
-          imagesDirectory.create();
-        }
-
         const createdAt = new Date().toISOString();
         const nextFloorplanId = `floorplan-${Date.now()}`;
         const selectedFloorplanName =
           selectedFloorplanImage.fileName?.trim() ||
           `Gallery floorplan ${createdAt}`;
-        const outputUri =
-          imagesDirectory.uri + `/${nextFloorplanId}-${selectedFloorplanName}`;
-
-        const destinationFile = new File(outputUri);
-        const sourceFile = new File(selectedFloorplanImage.uri);
-        sourceFile.copy(destinationFile);
         const imageFileExtension =
           selectedFloorplanImage.fileName?.match(/\.([^.]+)$/)?.[1] ?? "jpg";
+        const imageBase64 = await new File(selectedFloorplanImage.uri).base64();
+        const imageUri = toImageDataUri(imageBase64, imageFileExtension);
 
         let floorplanImageRecord: FloorplanImageRecord = { floorplans: [] };
 
@@ -502,17 +365,16 @@ export const FloorplanProvider = ({
 
         const nextStoredFloorplan: FloorplanImage = {
           id: nextFloorplanId,
-          imageUri: outputUri,
+          imageUri,
           imageName: selectedFloorplanName,
           createdAt,
-          imageBase64: await destinationFile.base64(),
+          imageBase64,
           imageFileExtension,
         };
 
         const nextFloorplans =
           floorplanImageRecord.floorplans.concat(nextStoredFloorplan);
         await saveFloorplanImageRecord({ floorplans: nextFloorplans });
-        await writeLocalFloorplanImageRecord({ floorplans: nextFloorplans });
         log(`Successfully saved gallery floorplan ${nextFloorplanId} to API`);
 
         await refreshStoredFloorplans();
@@ -535,29 +397,16 @@ export const FloorplanProvider = ({
   };
 
   const pickFromMyFloorplan = async (storedFloorplan: FloorplanImage) => {
-    const restoredFloorplan = await restoreFloorplanImageIfNeeded(
-      storedFloorplan
-    );
     skippedMarkerSyncCount.current += 1;
-    setFloorplanId(restoredFloorplan.id);
-    setFloorplan(restoredFloorplan.imageUri);
+    setFloorplanId(storedFloorplan.id);
+    setFloorplan(storedFloorplan.imageUri);
     setSelectedMarkerId(null);
     setShowMarkerOptions(false);
     setShowTempMarker(false);
+    skippedMarkerSyncCount.current += 1;
+    marker.replaceMarkers([]);
 
-    const localMarkerCollectionRecord = await readLocalMarkerCollectionRecord();
-    const localCollection = localMarkerCollectionRecord.collections.find(
-      (collection) => collection.floorplanId === restoredFloorplan.id
-    );
-    if (localCollection) {
-      skippedMarkerSyncCount.current += 1;
-      marker.replaceMarkers(await restoreMarkerPhotos(localCollection.markers));
-    } else {
-      skippedMarkerSyncCount.current += 1;
-      marker.replaceMarkers([]);
-    }
-
-    await loadMarkersForStoredFloorplan(restoredFloorplan.id);
+    await loadMarkersForStoredFloorplan(storedFloorplan.id);
   };
 
   const deleteStoredFloorplan = async (
@@ -583,18 +432,6 @@ export const FloorplanProvider = ({
         (currentFloorplan) => currentFloorplan.id !== storedFloorplan.id
       )
     );
-    const localFloorplanImageRecord = await readLocalFloorplanImageRecord();
-    await writeLocalFloorplanImageRecord({
-      floorplans: localFloorplanImageRecord.floorplans.filter(
-        (currentFloorplan) => currentFloorplan.id !== storedFloorplan.id
-      ),
-    });
-    const localMarkerCollectionRecord = await readLocalMarkerCollectionRecord();
-    await writeLocalMarkerCollectionRecord({
-      collections: localMarkerCollectionRecord.collections.filter(
-        (collection) => collection.floorplanId !== storedFloorplan.id
-      ),
-    });
 
     if (floorplanId === storedFloorplan.id) {
       setFloorplanId(null);
@@ -604,6 +441,19 @@ export const FloorplanProvider = ({
       setShowTempMarker(false);
       marker.clearMarkers();
     }
+  };
+
+  const clearAllUserData = async (): Promise<void> => {
+    await resetUserData();
+
+    skippedMarkerSyncCount.current = 0;
+    setFloorplanId(null);
+    setFloorplan(null);
+    setStoredFloorplans([]);
+    setSelectedMarkerId(null);
+    setShowMarkerOptions(false);
+    setShowTempMarker(false);
+    marker.clearMarkers();
   };
 
   return (
@@ -617,6 +467,7 @@ export const FloorplanProvider = ({
         pickFloorplan,
         pickFromMyFloorplan,
         refreshStoredFloorplans,
+        clearAllUserData,
         deleteStoredFloorplan,
         handleCanvasPress,
         selectedMarker: selectedMarkerId
