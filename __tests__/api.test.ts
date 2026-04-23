@@ -1,6 +1,4 @@
-import {
-  FloorplanImageRecord,
-} from "../utils/types";
+import { FloorplanImageRecord } from "../utils/types";
 
 type ApiModule = typeof import("../utils/api");
 
