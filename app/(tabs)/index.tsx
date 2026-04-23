@@ -135,7 +135,7 @@ export default function HomeScreen() {
     }
     return validImages;
   }
-  async function persistPhotoUris(photoUris: string[]): Promise<string[]> {
+  async function preparePhotosForUpload(photoUris: string[]): Promise<string[]> {
     const persistedPhotoUris: string[] = [];
 
     for (const photoUri of photoUris) {
@@ -166,7 +166,7 @@ export default function HomeScreen() {
     try {
       const validImages = await getValidImages(result);
       const validPhotoUris = validImages.map((p) => p.uri);
-      const persistedPhotoUris = await persistPhotoUris(validPhotoUris);
+      const persistedPhotoUris = await preparePhotosForUpload(validPhotoUris);
 
       setShowNewMarkerOptions(false);
       setShowTempMarker(false);
@@ -186,7 +186,7 @@ export default function HomeScreen() {
     if (!tempMarker) return;
 
     cameraAction.current = (img) => {
-      persistPhotoUris([img])
+      preparePhotosForUpload([img])
         .then((persistedPhotoUris) => {
           setPendingPhotos(persistedPhotoUris);
           setShowCamera(false);
@@ -212,7 +212,7 @@ export default function HomeScreen() {
 
     try {
       const validPhotoUris = (await getValidImages(result)).map((p) => p.uri);
-      const persistedPhotoUris = await persistPhotoUris(validPhotoUris);
+      const persistedPhotoUris = await preparePhotosForUpload(validPhotoUris);
 
       setPendingPhotos(persistedPhotoUris);
       log("Successfully persisted additional marker photos from gallery");
@@ -235,7 +235,7 @@ export default function HomeScreen() {
     setShowCamera(true);
 
     cameraAction.current = (img) => {
-      persistPhotoUris([img])
+      preparePhotosForUpload([img])
         .then((persistedPhotoUris) => {
           setPendingPhotos(persistedPhotoUris);
           setShowCamera(false);
