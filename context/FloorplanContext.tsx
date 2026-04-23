@@ -23,6 +23,7 @@ import {
   saveFloorplanImageRecord,
   saveFloorplanMarkerCollectionRecord,
 } from "../utils/api";
+import { toImageDataUri } from "../utils/imageDataUri";
 import {
   FloorplanImage,
   FloorplanImageRecord,
@@ -116,18 +117,6 @@ export const FloorplanProvider = ({
       debug(`Could not persist markers for floorplan: ${errorMessage}`);
     });
   }, [floorplanId, marker.markers]);
-
-  function toImageDataUri(base64: string, fileExtension: string): string {
-    const normalizedExtension = fileExtension.toLowerCase();
-    const mimeType =
-      normalizedExtension === "jpg" || normalizedExtension === "jpeg"
-        ? "image/jpeg"
-        : normalizedExtension === "svg"
-          ? "image/svg+xml"
-          : `image/${normalizedExtension}`;
-
-    return `data:${mimeType};base64,${base64}`;
-  }
 
   function normalizeFloorplanImage(
     storedFloorplan: FloorplanImage

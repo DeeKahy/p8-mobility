@@ -16,6 +16,7 @@ import {
   saveFloorplanImageRecord,
 } from "../utils/api";
 import { calculateDistanceMeters, calculateMidPoint } from "../utils/arMath";
+import { toImageDataUri } from "../utils/imageDataUri";
 import { FloorplanImageRecord } from "../utils/types";
 
 // Type to ensure that component CreateSvg only takes type of string
@@ -27,7 +28,7 @@ export default function SvgComponent({
   pointList,
   visible,
   onClose,
-  onDelete,
+  
 }: PointProps) {
   const { rotation, startRotating, stopRotating } = useRotation();
   const viewShotRef = useRef(null);
@@ -51,16 +52,6 @@ export default function SvgComponent({
   const fontSize = roomSize * 0.05;
   const stroke = roomSize * 0.008;
   const offset = fontSize * 0.1;
-
-  function toImageDataUri(base64: string, fileExtension: string): string {
-    const normalizedExtension = fileExtension.toLowerCase();
-    const mimeType =
-      normalizedExtension === "jpg" || normalizedExtension === "jpeg"
-        ? "image/jpeg"
-        : `image/${normalizedExtension}`;
-
-    return `data:${mimeType};base64,${base64}`;
-  }
 
   //Take the captured points and turn them into string format of "x1,y1 x2,y2 ...xn,yn", because Polygon points={} needs points string in that format.
   function turnPointsToString(): string {

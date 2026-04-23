@@ -29,6 +29,7 @@ import { styles } from "../../css/indexStyle";
 import type { Marker } from "../../hooks/useMarkers";
 import { PhotoData } from "../../models/PhotoFormModel";
 import { isImageBlurry } from "../../utils/blurDetection";
+import { toImageDataUri } from "../../utils/imageDataUri";
 
 export default function HomeScreen() {
   //---------------------------------- Starts when page is rendered-------------
@@ -91,23 +92,6 @@ export default function HomeScreen() {
   useEffect(() => {
     savedPhotos.current = markers.flatMap((marker) => marker.photos);
   }, [markers]);
-  /**
-   * Builds a data URI string from raw image data.
-   * Why:
-   * - Allows images to be used directly in React Native <Image /> without relying
-   *   on a file path.
-   */
-  function toImageDataUri(base64: string, fileExtension: string): string {
-    const normalizedExtension = fileExtension.toLowerCase();
-    let mimeType: string;
-    if (normalizedExtension === "jpg" || normalizedExtension === "jpeg") {
-      mimeType = "image/jpeg";
-    } else {
-      mimeType = `image/${normalizedExtension}`;
-    }
-    const dataUri = `data:${mimeType};base64,${base64}`;
-    return dataUri;
-  }
 
   async function getValidImages(images: ImagePicker.ImagePickerAsset[]) {
     const twoWeeksAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
@@ -371,9 +355,7 @@ export default function HomeScreen() {
               let Metadata;
               if (submittedPhotoUri) {
                 Metadata = pendingPhotoMetadata.current[submittedPhotoUri];
-              } else {
-                Metadata = undefined;
-              }
+
               if (submittedPhotoUri) {
                 delete pendingPhotoMetadata.current[submittedPhotoUri];
               }
