@@ -31,25 +31,22 @@ export const CameraUI = (props: CameraUIProps) => {
 
   return (
     <View style={styles.cameraContainer}>
-      <CameraView style={styles.camera} ref={cameraRef}>
-        <View style={styles.cameraButtons}>
-          {onCancel && (
-            // Only show cancel button if onCancel is given
-            <TouchableOpacity style={styles.cancelButton} onPress={onCancel}>
-              <Text style={styles.buttonText}>Cancel</Text>
-            </TouchableOpacity>
-          )}
-
-          <TouchableOpacity
-            style={styles.captureButton}
-            onPress={handleTakePicture}
-          >
-            <View style={styles.captureButtonInner} />
+      <CameraView style={styles.camera} ref={cameraRef} />
+      <View style={styles.cameraButtons}>
+        {onCancel && (
+          // Only show cancel button if onCancel is given
+          <TouchableOpacity style={styles.cancelButton} onPress={onCancel}>
+            <Text style={styles.buttonText}>Cancel</Text>
           </TouchableOpacity>
+        )}
 
-          <View style={{ width: 70 }} />
-        </View>
-      </CameraView>
+        <TouchableOpacity
+          style={styles.captureButton}
+          onPress={handleTakePicture}
+        >
+          <View style={styles.captureButtonInner} />
+        </TouchableOpacity>
+      </View>
     </View>
   );
 };
@@ -63,8 +60,10 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   cameraButtons: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+    position: "absolute",
+    width: "100%",
+    height: "95%",
+    justifyContent: "flex-end",
     alignItems: "center",
     paddingHorizontal: 30,
     paddingBottom: 40,
@@ -72,15 +71,16 @@ const styles = StyleSheet.create({
   cancelButton: {
     position: "absolute",
     padding: 15,
+    transform: [{ translateX: "-200%" }],
   },
   captureButton: {
+    position: "absolute",
     width: 70,
     height: 70,
     borderRadius: 35,
     backgroundColor: "rgba(255,255,255,0.3)",
     alignItems: "center",
     justifyContent: "center",
-    transform: [{ translateX: "50%" }, { translateX: -35 }],
   },
   captureButtonInner: {
     width: 60,
