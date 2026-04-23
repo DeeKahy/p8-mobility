@@ -1,6 +1,18 @@
+import { File } from "expo-file-system";
+
 import { Marker } from "../hooks/useMarkers";
 import { PhotoData } from "../models/PhotoFormModel";
 import { FloorplanImage } from "./types";
+
+export interface PreparedPhotoMetadata {
+  base64: string;
+  fileExtension: string;
+}
+
+export interface PreparedPhotosForUpload {
+  preparedPhotoUris: string[];
+  photoMetadataByUri: Record<string, PreparedPhotoMetadata>;
+}
 
 /**
  * Builds a data URI string from raw image data so React Native can render the
@@ -71,4 +83,33 @@ export function normalizeMarkers(markersToNormalize: Marker[]): Marker[] {
     ...currentMarker,
     photos: currentMarker.photos.map((photo) => normalizePhoto(photo)),
   }));
+}
+
+/**
+ * Converts temporary local image URIs into data URIs and collects the metadata
+ * needed later when the photo is submitted into a marker payload.
+ */
+export async function preparePhotosForUpload(
+  photoUris: string[]
+): Promise<PreparedPhotosForUpload> {
+  const preparedPhotoUris: string[] = [];
+  const photoMetadataByUri: Record<string, PreparedPhotoMetadata> = {};
+
+  for (const photoUri of photoUris) {
+    const fileExtensionMatch = photoUri.match(/\.(\w+)(\?.*)?$/);
+    const fileExtension = fileExtensionMatch?.[1] ?? "jpg";
+    const base64 = await new File(photoUri).base64();
+    const preparedPhotoUri = toImageDataUri(base64, fileExtension);
+
+    photoMetadataByUri[preparedPhotoUri] = {
+      base64,
+      fileExtension,
+    };
+    preparedPhotoUris.push(preparedPhotoUri);
+  }
+
+  return {
+    preparedPhotoUris,
+    photoMetadataByUri,
+  };
 }

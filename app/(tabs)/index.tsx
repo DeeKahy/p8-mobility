@@ -1,5 +1,4 @@
 import { CameraView } from "expo-camera";
-import { File } from "expo-file-system";
 import * as ImagePicker from "expo-image-picker";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useRef, useState } from "react";
@@ -29,7 +28,7 @@ import { styles } from "../../css/indexStyle";
 import type { Marker } from "../../hooks/useMarkers";
 import { PhotoData } from "../../models/PhotoFormModel";
 import { isImageBlurry } from "../../utils/blurDetection";
-import { toImageDataUri } from "../../utils/imageDataHelpers";
+import { preparePhotosForUpload } from "../../utils/imageDataHelpers";
 
 export default function HomeScreen() {
   //---------------------------------- Starts when page is rendered-------------
@@ -126,26 +125,6 @@ export default function HomeScreen() {
     }
     return validImages;
   }
-  async function preparePhotosForUpload(photoUris: string[]): Promise<string[]> {
-    log("Preparing photos for upload");
-    const preparedPhotoUris: string[] = [];
-
-    for (const photoUri of photoUris) {
-      const fileExtensionMatch = photoUri.match(/\.(\w+)(\?.*)?$/);
-      const fileExtension = fileExtensionMatch?.[1] ?? "jpg";
-      const base64 = await new File(photoUri).base64();
-      const preparedPhotoUri = toImageDataUri(base64, fileExtension);
-
-      pendingPhotoMetadata.current[preparedPhotoUri] = {
-        base64,
-        fileExtension,
-      };
-      preparedPhotoUris.push(preparedPhotoUri);
-    }
-
-    return preparedPhotoUris;
-  }
-
   /**
    * Starts the new-marker gallery flow by validating selected images.
    * We also prepare the picture for upload, making them base64 for sending.
@@ -160,7 +139,11 @@ export default function HomeScreen() {
       // Validates thats its not older than x days
       const validImages = await getValidImages(result);
       const validPhotoUris = validImages.map((p) => p.uri);
-      const preparedPhotoUris = await preparePhotosForUpload(validPhotoUris);
+      log("Preparing photos for upload");
+      const { preparedPhotoUris, photoMetadataByUri } =
+        await preparePhotosForUpload(validPhotoUris);
+        // Copiere Fra curent over i  photoMetadataByUri
+      Object.assign(pendingPhotoMetadata.current, photoMetadataByUri);
 
       setShowNewMarkerOptions(false);
       setShowTempMarker(false);
@@ -180,8 +163,10 @@ export default function HomeScreen() {
     if (!tempMarker) return;
 
     cameraAction.current = (img) => {
+      log("Preparing photos for upload");
       preparePhotosForUpload([img])
-        .then((preparedPhotoUris) => {
+        .then(({ preparedPhotoUris, photoMetadataByUri }) => {
+          Object.assign(pendingPhotoMetadata.current, photoMetadataByUri);
           setPendingPhotos(preparedPhotoUris);
           setShowCamera(false);
           log("Successfully prepared new marker photo from camera");
@@ -206,7 +191,10 @@ export default function HomeScreen() {
 
     try {
       const validPhotoUris = (await getValidImages(result)).map((p) => p.uri);
-      const preparedPhotoUris = await preparePhotosForUpload(validPhotoUris);
+      log("Preparing photos for upload");
+      const { preparedPhotoUris, photoMetadataByUri } =
+        await preparePhotosForUpload(validPhotoUris);
+      Object.assign(pendingPhotoMetadata.current, photoMetadataByUri);
 
       setPendingPhotos(preparedPhotoUris);
       log("Successfully prepared additional marker photos from gallery");
@@ -229,8 +217,10 @@ export default function HomeScreen() {
     setShowCamera(true);
 
     cameraAction.current = (img) => {
+      log("Preparing photos for upload");
       preparePhotosForUpload([img])
-        .then((preparedPhotoUris) => {
+        .then(({ preparedPhotoUris, photoMetadataByUri }) => {
+          Object.assign(pendingPhotoMetadata.current, photoMetadataByUri);
           setPendingPhotos(preparedPhotoUris);
           setShowCamera(false);
           log("Successfully prepared additional marker photo from camera");
