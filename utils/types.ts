@@ -23,6 +23,19 @@ export interface FloorplanImageRecord {
   floorplans: FloorplanImage[];
 }
 
+export interface FloorplanListProps {
+  floorplans: FloorplanImage[];
+  isLoading: boolean;
+  pickFloorPlan: (storedFloorplan: FloorplanImage) => void | Promise<void>;
+  onDeleteFloorPlan: (storedFloorplan: FloorplanImage) => Promise<void> | void;
+}
+
+export interface FloorplanCardProps {
+  storedFloorplan: FloorplanImage;
+  pickFloorPlan: (storedFloorplan: FloorplanImage) => void | Promise<void>;
+  onDeleteFloorPlan: (storedFloorplan: FloorplanImage) => Promise<void> | void;
+}
+
 export interface FloorplanMarker {
   id: string;
   x: number;

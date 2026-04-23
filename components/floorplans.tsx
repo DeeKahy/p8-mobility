@@ -9,20 +9,11 @@ import {
 
 import { useToast } from "../context/ToastProvider";
 import { styles } from "../css/floorplanillustrator";
-import { FloorplanImage } from "../utils/types";
-
-interface FloorplanListProps {
-  floorplans: FloorplanImage[];
-  isLoading: boolean;
-  pickFloorPlan: (storedFloorplan: FloorplanImage) => void | Promise<void>;
-  onDeleteFloorPlan: (storedFloorplan: FloorplanImage) => Promise<void> | void;
-}
-
-interface FloorplanCardProps {
-  storedFloorplan: FloorplanImage;
-  pickFloorPlan: (storedFloorplan: FloorplanImage) => void | Promise<void>;
-  onDeleteFloorPlan: (storedFloorplan: FloorplanImage) => Promise<void> | void;
-}
+import {
+  FloorplanCardProps,
+  FloorplanImage,
+  FloorplanListProps,
+} from "../utils/types";
 
 const FloorplanCard = ({
   storedFloorplan,
