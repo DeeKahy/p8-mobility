@@ -25,7 +25,6 @@ export default function SvgComponent({
   pointList,
   visible,
   onClose,
-  
 }: PointProps) {
   const { rotation, startRotating, stopRotating } = useRotation();
   const viewShotRef = useRef(null);

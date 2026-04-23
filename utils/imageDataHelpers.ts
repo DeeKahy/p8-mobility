@@ -1,8 +1,8 @@
 import { File } from "expo-file-system";
 
+import { FloorplanImage } from "./types";
 import { Marker } from "../hooks/useMarkers";
 import { PhotoData } from "../models/PhotoFormModel";
-import { FloorplanImage } from "./types";
 
 export interface PreparedPhotoMetadata {
   base64: string;
@@ -18,10 +18,7 @@ export interface PreparedPhotosForUpload {
  * Builds a data URI string from raw image data so React Native can render the
  * image directly without depending on a local file path.
  */
-export function toImageDataUri(
-  base64: string,
-  fileExtension: string
-): string {
+export function toImageDataUri(base64: string, fileExtension: string): string {
   const normalizedExtension = fileExtension.toLowerCase();
   const mimeType =
     normalizedExtension === "jpg" || normalizedExtension === "jpeg"

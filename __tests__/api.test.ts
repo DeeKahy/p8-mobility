@@ -1,6 +1,5 @@
 import {
   FloorplanImageRecord,
-  FloorplanMarkerCollectionRecord,
 } from "../utils/types";
 
 type ApiModule = typeof import("../utils/api");
@@ -20,30 +19,6 @@ const floorplanImageRecord: FloorplanImageRecord = {
       imageUri: "file:///test/floorplan-2.png",
       imageName: "First Floor",
       createdAt: "2026-04-21T10:05:00.000Z",
-    },
-  ],
-};
-
-const floorplanMarkerCollectionRecord: FloorplanMarkerCollectionRecord = {
-  collections: [
-    {
-      floorplanId: "floorplan-1",
-      markers: [
-        {
-          id: "marker-1",
-          x: 12,
-          y: 34,
-          photos: [
-            {
-              photoUri: "file:///test/photo-1.jpg",
-              dateTaken: "2026-04-21T10:10:00.000Z",
-              pictureName: "Pipe leak",
-              areaGroup: "Basement",
-              description: "Water around the pipe",
-            },
-          ],
-        },
-      ],
     },
   ],
 };
@@ -75,14 +50,10 @@ describe("utils/api real server integration", () => {
       floorplanImageRecord
     );
 
-
-
     await api.deleteFloorplanImageRecord("floorplan-1");
 
     await expect(api.getFloorplanImageRecord()).resolves.toEqual({
       floorplans: [floorplanImageRecord.floorplans[1]],
     });
   }, 30000);
-
-
 });

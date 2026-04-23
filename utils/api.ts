@@ -2,7 +2,6 @@ import Constants from "expo-constants";
 
 import {
   ApiErrorResponse,
-  FloorplanFileListResponse,
   FloorplanImageRecord,
   FloorplanMarkerCollectionRecord,
 } from "./types";
@@ -103,10 +102,11 @@ export async function deleteFloorplanImageRecord(
 export async function saveFloorplanMarkerCollectionRecord(
   floorplanMarkerCollectionRecord: FloorplanMarkerCollectionRecord
 ): Promise<void> {
-  
   const saveFloorplanMarkerCollectionUrl = `${API_BASE_URL}/saveData/${API_USER}/${FLOORPLAN_MARKERS_FILE_NAME}`;
   const requestBody = JSON.stringify(floorplanMarkerCollectionRecord);
-  console.log("Sending photo, this takes a while because we need to sent everything all the time.")
+  console.log(
+    "Sending photo, this takes a while because we need to sent everything all the time."
+  );
   const saveFloorplanMarkerCollectionResponse = await fetch(
     saveFloorplanMarkerCollectionUrl,
     {
@@ -146,8 +146,6 @@ export async function getFloorplanMarkerCollectionRecord(): Promise<FloorplanMar
 
   return (await getFloorplanMarkerCollectionResponse.json()) as FloorplanMarkerCollectionRecord;
 }
-
-
 
 export async function deleteFloorplanMarkerCollectionsForFloorplan(
   floorplanId: string
@@ -200,7 +198,6 @@ export async function deleteFloorplanMarkerCollectionsForFloorplan(
     throw new Error(saveFloorplanMarkerCollectionError);
   }
 }
-
 
 export async function resetUserData(): Promise<void> {
   const resetUserUrl = `${API_BASE_URL}/resetUser/${API_USER}`;

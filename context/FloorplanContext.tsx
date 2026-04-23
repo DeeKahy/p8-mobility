@@ -230,15 +230,14 @@ export const FloorplanProvider = ({
       setIsSavingMarkers(true);
       log("Prepering Makers payload payload");
       const serverReadyMarkers = prepareMarkersForServer(markersToSave);
-      const floorplanCollectionIndex =
-        storedMarkerCollections.findIndex(
-          (collection) => collection.floorplanId === floorplanIdToSave
-        );
+      const floorplanCollectionIndex = storedMarkerCollections.findIndex(
+        (collection) => collection.floorplanId === floorplanIdToSave
+      );
 
       let nextCollections;
 
       if (floorplanCollectionIndex === -1) {
-        // No existing collection 
+        // No existing collection
         const newCollection = {
           floorplanId: floorplanIdToSave,
           markers: serverReadyMarkers,

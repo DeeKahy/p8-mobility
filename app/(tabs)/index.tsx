@@ -29,10 +29,7 @@ import { useToast } from "../../context/ToastProvider";
 import { styles } from "../../css/indexStyle";
 import type { Marker } from "../../hooks/useMarkers";
 import { PhotoData } from "../../models/PhotoFormModel";
-import {
-  getBlurScore,
-  IMAGE_BLUR_THRESHOLD,
-} from "../../utils/blurDetection";
+import { getBlurScore, IMAGE_BLUR_THRESHOLD } from "../../utils/blurDetection";
 import { preparePhotosForUpload } from "../../utils/imageDataHelpers";
 
 export default function HomeScreen() {
@@ -84,7 +81,7 @@ export default function HomeScreen() {
     Record<string, { base64: string; fileExtension: string }>
   >({});
   const savedPhotos = useRef<PhotoData[]>([]);
-  let currentUri = pendingPhotos[0];
+  const currentUri = pendingPhotos[0];
   // The gallery edits photos for the single marker it was opened from. Re-read
   // that marker from the latest markers array so modal actions use fresh photos.
   let photoGalleryMarker: Marker | undefined;
@@ -169,16 +166,14 @@ export default function HomeScreen() {
     if (!result || !tempMarker) return;
 
     try {
-      const { preparedPhotoUris, photoMetadataByUri } = await withLoadingOverlay(
-        "Running blur detection...",
-        async () => {
+      const { preparedPhotoUris, photoMetadataByUri } =
+        await withLoadingOverlay("Running blur detection...", async () => {
           // Validates thats its not older than x days
           const validImages = await getValidImages(result);
           const validPhotoUris = validImages.map((p) => p.uri);
           log("Preparing photos for upload");
           return preparePhotosForUpload(validPhotoUris);
-        }
-      );
+        });
       Object.assign(pendingPhotoMetadata.current, photoMetadataByUri);
 
       setShowNewMarkerOptions(false);
@@ -189,7 +184,6 @@ export default function HomeScreen() {
       const errorMessage =
         caughtError instanceof Error ? caughtError.message : "Unknown error";
       error(`Preparing new marker gallery photos failed: ${errorMessage}`);
-
     }
   };
 
@@ -201,9 +195,9 @@ export default function HomeScreen() {
     cameraAction.current = (img) => {
       withLoadingOverlay("Running blur detection...", async () => {
         await scoreAndToastBlur(img);
-          log("Preparing photos for upload");
-          return preparePhotosForUpload([img]);
-        })
+        log("Preparing photos for upload");
+        return preparePhotosForUpload([img]);
+      })
         .then(({ preparedPhotoUris, photoMetadataByUri }) => {
           Object.assign(pendingPhotoMetadata.current, photoMetadataByUri);
           setPendingPhotos(preparedPhotoUris);
@@ -229,16 +223,14 @@ export default function HomeScreen() {
     if (!result || !selectedMarkerId) return;
 
     try {
-      const { preparedPhotoUris, photoMetadataByUri } = await withLoadingOverlay(
-        "Running blur detection...",
-        async () => {
+      const { preparedPhotoUris, photoMetadataByUri } =
+        await withLoadingOverlay("Running blur detection...", async () => {
           const validPhotoUris = (await getValidImages(result)).map(
             (photo) => photo.uri
           );
           log("Preparing photos for upload");
           return preparePhotosForUpload(validPhotoUris);
-        }
-      );
+        });
       Object.assign(pendingPhotoMetadata.current, photoMetadataByUri);
 
       setPendingPhotos(preparedPhotoUris);
@@ -264,9 +256,9 @@ export default function HomeScreen() {
     cameraAction.current = (img) => {
       withLoadingOverlay("Running blur detection...", async () => {
         await scoreAndToastBlur(img);
-          log("Preparing photos for upload");
-          return preparePhotosForUpload([img]);
-        })
+        log("Preparing photos for upload");
+        return preparePhotosForUpload([img]);
+      })
         .then(({ preparedPhotoUris, photoMetadataByUri }) => {
           Object.assign(pendingPhotoMetadata.current, photoMetadataByUri);
           setPendingPhotos(preparedPhotoUris);
@@ -550,9 +542,7 @@ export default function HomeScreen() {
           Tap on the floor plan to place a marker
         </Text>
         {(loadingText || isSavingMarkers) && (
-          <LoadingOverlay
-            text={loadingText ?? "Saving marker..."}
-          />
+          <LoadingOverlay text={loadingText ?? "Saving marker..."} />
         )}
       </View>
     </GestureHandlerRootView>

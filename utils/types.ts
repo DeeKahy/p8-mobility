@@ -4,10 +4,6 @@ export interface ApiErrorResponse {
   error: string;
 }
 
-export interface FloorplanFileListResponse {
-  files: string[];
-}
-
 export interface FloorplanImage {
   id: string;
   imageUri: string;
