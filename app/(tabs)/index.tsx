@@ -7,6 +7,7 @@ import {
   GestureDetector,
   GestureHandlerRootView,
 } from "react-native-gesture-handler";
+import { useSharedValue } from "react-native-reanimated";
 import {
   ResumableZoom,
   useTransformationState,
@@ -55,10 +56,14 @@ export default function HomeScreen() {
     showMarkerOptions,
     setShowMarkerOptions,
     selectedMarker, //Reference, use with caution
+    imageToPlace, // When this is truthy, block all marker interactions and listen for a confirmation instead
+    setImageToPlace, // Use to set "" when imageToPlace has been moved to pendingPhotos via confirmation
   } = useFloorplan();
 
   const { onUpdate: onResumableUpdate, state: resumableState } =
     useTransformationState("resumable");
+  const resumableElementCenterX = useSharedValue(1);
+  const resumableElementCenterY = useSharedValue(1);
 
   const { error, log } = useLogger();
   const { showToast } = useToast();
@@ -409,12 +414,25 @@ export default function HomeScreen() {
         <ResumableZoom
           extendGestures // This should be used with extendBorders or it might act weird.
           extendBorders // extendBorders is our own addition. Don't forget to apply the patch!
-          onUpdate={onResumableUpdate}
-          onLongPress={(event) => {
+          onUpdate={(state) => {
+            "worklet";
+            onResumableUpdate(state);
             const rect = getVisibleRectFromState(resumableState);
-            const centerX = rect.x + rect.width / 2;
-            const centerY = rect.y + rect.height / 2;
-            console.info(centerX, centerY);
+            // Update coordinates for ResumableZoom viewport center.
+            // Note that dividing by 2 with extendGestures = True returns element-space coordinates, which we want.
+            resumableElementCenterX.value = rect.x + rect.width / 2;
+            resumableElementCenterY.value = rect.y + rect.height / 2;
+          }}
+          onLongPress={(event) => {
+            // Find the point currently at the center of the screen.
+            const rect = getVisibleRectFromState(resumableState);
+            resumableElementCenterX.value = rect.x + rect.width / 2;
+            resumableElementCenterY.value = rect.y + rect.height / 2;
+            console.info(
+              resumableElementCenterX.value,
+              resumableElementCenterY.value
+            );
+            setImageToPlace("");
           }}
         >
           <GestureDetector
@@ -422,7 +440,7 @@ export default function HomeScreen() {
               .maxDuration(250)
               .numberOfTaps(1)
               .runOnJS(true)
-              .onEnd(handleCanvasPress)}
+              .onEnd(imageToPlace ? () => { } : handleCanvasPress)} // Disable gesture (but still eat inputs!) if an image must be placed first
           >
             <View style={styles.canvas}>
               <Image
@@ -439,6 +457,15 @@ export default function HomeScreen() {
                   scale={resumableState.scale}
                 />
               ))}
+
+              {/* Preview of marker to camera-first create */}
+              {imageToPlace !== "" ? (
+                <MarkerElement
+                  x={resumableElementCenterX}
+                  y={resumableElementCenterY}
+                  scale={resumableState.scale}
+                />
+              ) : null}
 
               {/* New marker popup */}
               {showTempMarker && tempMarker && (

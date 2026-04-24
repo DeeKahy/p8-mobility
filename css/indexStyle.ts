@@ -70,6 +70,7 @@ export const styles = StyleSheet.create({
     height: 30,
     alignItems: "center",
     justifyContent: "center",
+    transformOrigin: "center",
   },
   markerCount: {
     position: "absolute",

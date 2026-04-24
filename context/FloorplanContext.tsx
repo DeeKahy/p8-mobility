@@ -62,6 +62,9 @@ interface FloorplanContextReturn {
   showMarkerOptions: boolean;
   setShowMarkerOptions: Dispatch<SetStateAction<boolean>>;
   selectedMarker: Marker | undefined;
+
+  setImageToPlace: Dispatch<SetStateAction<string>>;
+  imageToPlace: string;
 }
 
 interface TempMarker {
@@ -423,6 +426,7 @@ export const FloorplanProvider = ({
         setIsSavingMarkers(false);
       });
   }
+  const [imageToPlace, setImageToPlace] = useState<string>(""); // Note that empty strings are falsy
 
   const handleCanvasPress = (event: TapGestureEvent) => {
     if (!floorplan) {
@@ -578,6 +582,8 @@ export const FloorplanProvider = ({
         setShowTempMarker,
         showMarkerOptions,
         setShowMarkerOptions,
+        imageToPlace,
+        setImageToPlace,
       }}
     >
       {children}

@@ -62,16 +62,15 @@ const styles = StyleSheet.create({
   cameraButtons: {
     position: "absolute",
     width: "100%",
-    height: "95%",
+    height: "97.5%",
     justifyContent: "flex-end",
-    alignItems: "center",
     paddingHorizontal: 30,
     paddingBottom: 40,
   },
   cancelButton: {
     position: "absolute",
     padding: 15,
-    transform: [{ translateX: "-200%" }],
+    alignSelf: "flex-start",
   },
   captureButton: {
     position: "absolute",
@@ -79,6 +78,7 @@ const styles = StyleSheet.create({
     height: 70,
     borderRadius: 35,
     backgroundColor: "rgba(255,255,255,0.3)",
+    alignSelf: "center",
     alignItems: "center",
     justifyContent: "center",
   },

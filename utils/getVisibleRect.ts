@@ -45,6 +45,7 @@ const getVisibleRect = (options: Options): Rect => {
 };
 
 // Adapter to use it with a CommonZoomState
+// NOTE that in order to properly update an animatedStyle, we can't just pass the state itself
 export const getVisibleRectFromState = ({
   scale,
   childSize,
@@ -52,6 +53,7 @@ export const getVisibleRectFromState = ({
   translateX,
   translateY,
 }: CommonZoomState<SharedValue<number>>): Rect => {
+  "worklet";
   return getVisibleRect({
     scale: scale.value,
     itemSize: {
