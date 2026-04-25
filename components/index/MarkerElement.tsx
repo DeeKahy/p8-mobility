@@ -48,20 +48,24 @@ export const MarkerElement = (
     hashedColors.forEach((n: number, c: string) => {
       series.push({ value: n, color: c });
     });
+  } else {
+    series.push({ value: 1, color: "#ffffff" });
   }
 
   const animatedStyle = useAnimatedStyle(() => {
     return props.marker
       ? {
-        /* (x,y) should be the center of the marker */
-        left: props.marker.x - styles.marker.width / 2,
-        top: props.marker.y - styles.marker.height / 2,
-      }
+          /* (x,y) should be the center of the marker */
+          left: props.marker.x - styles.marker.width / 2,
+          top: props.marker.y - styles.marker.height / 2,
+        }
       : {
-        /* If no marker is given, use the x and y-values shared with us */
-        left: props.x.value - styles.marker.width / 2,
-        top: props.y.value - styles.marker.height / 2,
-      };
+          /* If no marker is given, use the x and y-values shared with us */
+          transform: [
+            { translateX: props.x.value },
+            { translateY: props.y.value },
+          ],
+        };
   });
 
   return (
@@ -73,15 +77,13 @@ export const MarkerElement = (
             backgroundColor: "#ffffff",
           }}
         >
-          {props.marker ? (
-            <PieChart
-              widthAndHeight={(styles.marker.width * 2) / 3}
-              series={series}
-              style={{ transform: [{ scale: 0.9 }] }}
-              cover={{ radius: 0.4 }} // This fraction of the radius is transparent
-              padAngle={0.1} // Slices are separated by this much
-            />
-          ) : null}
+          <PieChart
+            widthAndHeight={(styles.marker.width * 2) / 3}
+            series={series}
+            style={{ transform: [{ scale: 0.9 }] }}
+            cover={{ radius: 0.4 }} // This fraction of the radius is transparent
+            padAngle={0.1} // Slices are separated by this much
+          />
         </View>
         {props.marker ? (
           <Text style={styles.markerCount}>{series.length}</Text>

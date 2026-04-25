@@ -50,6 +50,7 @@ export default function HomeScreen() {
     removePhoto,
     addMarker,
     tempMarker,
+    setTempMarker,
     showTempMarker,
     setSelectedMarkerId,
     setShowTempMarker,
@@ -432,6 +433,11 @@ export default function HomeScreen() {
               resumableElementCenterX.value,
               resumableElementCenterY.value
             );
+            setTempMarker({
+              x: resumableElementCenterX.value,
+              y: resumableElementCenterY.value,
+            });
+            setPendingPhotos([imageToPlace]);
             setImageToPlace("");
           }}
         >
@@ -440,7 +446,7 @@ export default function HomeScreen() {
               .maxDuration(250)
               .numberOfTaps(1)
               .runOnJS(true)
-              .onEnd(imageToPlace ? () => { } : handleCanvasPress)} // Disable gesture (but still eat inputs!) if an image must be placed first
+              .onEnd(imageToPlace ? () => {} : handleCanvasPress)} // Disable gesture (but still eat inputs!) if an image must be placed first
           >
             <View style={styles.canvas}>
               <Image
@@ -459,7 +465,7 @@ export default function HomeScreen() {
               ))}
 
               {/* Preview of marker to camera-first create */}
-              {imageToPlace !== "" ? (
+              {imageToPlace ? (
                 <MarkerElement
                   x={resumableElementCenterX}
                   y={resumableElementCenterY}
