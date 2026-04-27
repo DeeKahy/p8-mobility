@@ -14,7 +14,6 @@ const USE_LOCAL_API = false;
 // For you may need to change it.  run ipconfig to se your adress
 const LOCAL_API_BASE_URL = "http://10.27.48.86:5000/api";
 
-
 const PROD_API_BASE_URL = "http://130.225.39.166:5000/api";
 
 const API_BASE_URL =

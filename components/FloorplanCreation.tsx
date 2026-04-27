@@ -67,6 +67,7 @@ export default function SvgComponent({
         quality: 1,
       });
 
+      // For creating the id for the floorplan
       const createdAt = new Date().toISOString();
       const nextFloorplanId = `floorplan-${Date.now()}`;
       const imageBase64 = await new File(capturedUri).base64();
