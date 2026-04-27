@@ -104,10 +104,10 @@ export const useMarkers = () => {
     });
   };
 
-  const tryGetMarker = (x: number, y: number) => {
+  const tryGetMarker = (x: number, y: number, scale: number = 1) => {
     const TOLERANCE = 30;
     let nearMarkers = markers.filter(
-      (m) => Math.abs(m.x - x) + Math.abs(m.y - y) < TOLERANCE
+      (m) => Math.abs(m.x - x) + Math.abs(m.y - y) < TOLERANCE / scale
     ); // Check if any markers are within tolerance (Manhattan Distance)
     if (nearMarkers.length === 0) return null;
 

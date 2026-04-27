@@ -1,4 +1,3 @@
-import { SharedValue } from "react-native-reanimated";
 import {
   SizeVector,
   Vector,
@@ -52,18 +51,18 @@ export const getVisibleRectFromState = ({
   containerSize: rootSize,
   translateX,
   translateY,
-}: CommonZoomState<SharedValue<number>>): Rect => {
+}: CommonZoomState<number>): Rect => {
   "worklet";
   return getVisibleRect({
-    scale: scale.value,
+    scale,
     itemSize: {
-      width: childSize.width.value,
-      height: childSize.height.value,
+      width: childSize.width,
+      height: childSize.height,
     },
     containerSize: {
-      width: rootSize.width.value,
-      height: rootSize.height.value,
+      width: rootSize.width,
+      height: rootSize.height,
     },
-    translation: { x: translateX.value, y: translateY.value },
+    translation: { x: translateX, y: translateY },
   });
 };

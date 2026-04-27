@@ -8,10 +8,7 @@ import {
   GestureHandlerRootView,
 } from "react-native-gesture-handler";
 import { useSharedValue } from "react-native-reanimated";
-import {
-  ResumableZoom,
-  useTransformationState,
-} from "react-native-zoom-toolkit";
+import { ResumableZoom } from "react-native-zoom-toolkit";
 
 import { CameraUI } from "../../components/CameraUI";
 import LoadingOverlay from "../../components/LoadingOverlay";
@@ -59,10 +56,11 @@ export default function HomeScreen() {
     selectedMarker, //Reference, use with caution
     imageToPlace, // When this is truthy, block all marker interactions and listen for a confirmation instead
     setImageToPlace, // Use to set "" when imageToPlace has been moved to pendingPhotos via confirmation
+    resumableState, // Persistent CommonZoomState updated by onResumableUpdate
+    onResumableUpdate, // Pass to ResumableZoom's onUpdate-callback
+    withMarkerAt,
   } = useFloorplan();
 
-  const { onUpdate: onResumableUpdate, state: resumableState } =
-    useTransformationState("resumable");
   const resumableElementCenterX = useSharedValue(1);
   const resumableElementCenterY = useSharedValue(1);
 
@@ -320,6 +318,27 @@ export default function HomeScreen() {
     setShowTempMarker(false);
   };
 
+  // Try to find a marker at the element center and select it, for when we're trying to place an image
+  // TODO: The selected marker should be highlighted in some way!
+  const findImagePlacementTarget = () =>
+    withMarkerAt(
+      resumableElementCenterX.value,
+      resumableElementCenterY.value,
+      ({ id }, x, y) => {
+        // Found a marker: Select it for now
+        setSelectedMarkerId(id);
+        console.info(`Image going to Marker ${id} near (${x},${y})`);
+      },
+      (x, y) => {
+        // Found no marker: Unselect if needed and move tempMarker
+        setSelectedMarkerId(null);
+        setTempMarker({ x, y });
+        console.info(`Image going to new Marker at (${x},${y})`);
+      }
+    );
+
+  if (imageToPlace) findImagePlacementTarget();
+
   if (showCamera) {
     return (
       <View style={{ flex: 1 }}>
@@ -418,27 +437,24 @@ export default function HomeScreen() {
           onUpdate={(state) => {
             "worklet";
             onResumableUpdate(state);
-            const rect = getVisibleRectFromState(resumableState);
-            // Update coordinates for ResumableZoom viewport center.
-            // Note that dividing by 2 with extendGestures = True returns element-space coordinates, which we want.
+            const rect = getVisibleRectFromState(state);
+            // Update coordinates for ResumableZoom viewport center i.e. the center of the screen.
+            // Note that dividing by 2 with extendGestures = True returns element-space coordinates, which we want, instead of container-space coordinates.
             resumableElementCenterX.value = rect.x + rect.width / 2;
             resumableElementCenterY.value = rect.y + rect.height / 2;
           }}
           onLongPress={(event) => {
-            // Find the point currently at the center of the screen.
-            const rect = getVisibleRectFromState(resumableState);
-            resumableElementCenterX.value = rect.x + rect.width / 2;
-            resumableElementCenterY.value = rect.y + rect.height / 2;
-            console.info(
-              resumableElementCenterX.value,
-              resumableElementCenterY.value
-            );
-            setTempMarker({
-              x: resumableElementCenterX.value,
-              y: resumableElementCenterY.value,
-            });
-            setPendingPhotos([imageToPlace]);
-            setImageToPlace("");
+            if (imageToPlace) {
+              // Confirm the image placement if one is ongoing
+              console.info(`Confirming image placement via long press..`);
+              setPendingPhotos([imageToPlace]);
+              setImageToPlace("");
+            }
+          }}
+          onGestureEnd={() => {
+            if (imageToPlace) {
+              findImagePlacementTarget();
+            }
           }}
         >
           <GestureDetector
@@ -446,7 +462,14 @@ export default function HomeScreen() {
               .maxDuration(250)
               .numberOfTaps(1)
               .runOnJS(true)
-              .onEnd(imageToPlace ? () => {} : handleCanvasPress)} // Disable gesture (but still eat inputs!) if an image must be placed first
+              .onEnd((event) => {
+                if (imageToPlace) {
+                  // TODO: setTransformState to the position of the tap for quick navigation
+                } else {
+                  // Bring up the menu to edit or create a marker
+                  handleCanvasPress(event);
+                }
+              })}
           >
             <View style={styles.canvas}>
               <Image

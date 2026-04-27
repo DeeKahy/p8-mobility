@@ -8,7 +8,12 @@ import {
   useEffect,
   useState,
 } from "react";
-import { TapGestureEvent } from "react-native-zoom-toolkit";
+import { SharedValue } from "react-native-reanimated";
+import {
+  CommonZoomState,
+  TapGestureEvent,
+  useTransformationState,
+} from "react-native-zoom-toolkit";
 
 import { useLogger } from "./LoggerContext";
 import { Marker, useMarkers } from "../hooks/useMarkers";
@@ -65,12 +70,26 @@ interface FloorplanContextReturn {
 
   setImageToPlace: Dispatch<SetStateAction<string>>;
   imageToPlace: string;
+
+  resumableState: CommonZoomState<SharedValue<number>>;
+  onResumableUpdate: (state: CommonZoomState<number>) => void;
+
+  withMarkerAt: withMarkerAtType;
 }
 
 interface TempMarker {
   x: number;
   y: number;
 }
+
+type MarkerFoundCallback = (marker: Marker, x: number, y: number) => void;
+type MarkerNotFoundCallback = (x: number, y: number) => void;
+type withMarkerAtType = (
+  x: number,
+  y: number,
+  success: MarkerFoundCallback,
+  failure: MarkerNotFoundCallback
+) => void;
 
 const FloorplanContext = createContext<FloorplanContextReturn | undefined>(
   undefined
@@ -428,26 +447,48 @@ export const FloorplanProvider = ({
   }
   const [imageToPlace, setImageToPlace] = useState<string>(""); // Note that empty strings are falsy
 
+  const { onUpdate: onResumableUpdate, state: resumableState } =
+    useTransformationState("resumable");
+
+  // Utility function that performs one of two callbacks depending on if a marker can be found near (x,y)
+  const withMarkerAt: withMarkerAtType = (x, y, success, failure) => {
+    const existingMarker = marker.tryGetMarker(
+      x,
+      y,
+      resumableState.scale.value // Selection area is scaled down when zoomed in to keep its relative size on screen
+    );
+    if (existingMarker) {
+      success(existingMarker, x, y);
+    } else {
+      failure(x, y);
+    }
+  };
+
   const handleCanvasPress = (event: TapGestureEvent) => {
+    // TODO: This function should be defined where it is used because withMarkerAt is a more general solution
     if (!floorplan) {
       debug("No Floorplan");
       return;
     }
 
     const { x, y } = event;
-    const existingMarker = marker.tryGetMarker(x, y);
-
-    if (existingMarker) {
-      setSelectedMarkerId(existingMarker.id);
-      setShowMarkerOptions(true);
-      setShowTempMarker(false);
-      debug(`Trying to select existing Marker near (${x},${y})`);
-    } else {
-      // Create new marker position
-      setTempMarker({ x, y });
-      setShowTempMarker(true);
-      debug(`Trying to set temp Marker at (${x},${y})`);
-    }
+    withMarkerAt(
+      x,
+      y,
+      (existingMarker, x, y) => {
+        setSelectedMarkerId(existingMarker.id);
+        setShowMarkerOptions(true);
+        setShowTempMarker(false);
+        debug(`Trying to select existing Marker near (${x},${y})`);
+      },
+      (x, y) => {
+        // Create new marker position
+        setSelectedMarkerId(null);
+        setTempMarker({ x, y });
+        setShowTempMarker(true);
+        debug(`Trying to set temp Marker at (${x},${y})`);
+      }
+    );
   };
 
   const pickFloorplan = async () => {
@@ -584,6 +625,9 @@ export const FloorplanProvider = ({
         setShowMarkerOptions,
         imageToPlace,
         setImageToPlace,
+        resumableState,
+        onResumableUpdate,
+        withMarkerAt,
       }}
     >
       {children}
