@@ -12,7 +12,7 @@ import { useRotation } from "../app/hooks/useRotation";
 import { useFloorplan } from "../context/FloorplanContext";
 import { useLogger } from "../context/LoggerContext";
 import { PointProps } from "../models/PointProps";
-import { saveFloorplanImageRecord } from "../utils/api";
+import { createFloorplanImage } from "../utils/api";
 import { calculateDistanceMeters, calculateMidPoint } from "../utils/arMath";
 import { toImageDataUri } from "../utils/imageDataHelpers";
 
@@ -32,7 +32,7 @@ export default function SvgComponent({
   const router = useRouter();
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [isSavingFloorplan, setIsSavingFloorplan] = useState(false);
-  const { refreshStoredFloorplans, storedFloorplans } = useFloorplan();
+  const { refreshStoredFloorplans } = useFloorplan();
   const { error, log } = useLogger();
 
   /*Issue with smaller polygons not being visible on screen and too large can overtake screen, so we want to take min and max and give it to viewbox.
@@ -74,15 +74,13 @@ export default function SvgComponent({
         name.trim().length > 0 ? name.trim() : `Floorplan ${createdAt}`;
 
       // Save it to the server
-      await saveFloorplanImageRecord({
-        floorplans: storedFloorplans.concat({
-          id: nextFloorplanId,
-          imageUri: toImageDataUri(imageBase64, "png"),
-          imageName: nextFloorplanName,
-          createdAt,
-          imageBase64,
-          imageFileExtension: "png",
-        }),
+      await createFloorplanImage({
+        id: nextFloorplanId,
+        imageUri: toImageDataUri(imageBase64, "png"),
+        imageName: nextFloorplanName,
+        createdAt,
+        imageBase64,
+        imageFileExtension: "png",
       });
       log(`Successfully saved floorplan ${nextFloorplanId} to API`);
 

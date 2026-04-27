@@ -6,7 +6,6 @@ import {
   SetStateAction,
   useContext,
   useEffect,
-  useRef,
   useState,
 } from "react";
 import { TapGestureEvent } from "react-native-zoom-toolkit";
@@ -15,13 +14,15 @@ import { useLogger } from "./LoggerContext";
 import { Marker, useMarkers } from "../hooks/useMarkers";
 import { PhotoData } from "../models/PhotoFormModel";
 import {
+  createFloorplanImage,
+  createFloorplanMarker,
   deleteFloorplanImageRecord,
-  deleteFloorplanMarkerCollectionsForFloorplan,
+  deleteFloorplanMarker,
   getFloorplanImageRecord,
-  getFloorplanMarkerCollectionRecord,
+  getFloorplanMarkers,
+  replaceFloorplanMarker,
   resetUserData,
-  saveFloorplanImageRecord,
-  saveFloorplanMarkerCollectionRecord,
+  updateFloorplanMarkerCoordinates,
 } from "../utils/api";
 import {
   normalizeFloorplanImage,
@@ -29,11 +30,7 @@ import {
   prepareMarkersForServer,
   toImageDataUri,
 } from "../utils/imageDataHelpers";
-import {
-  FloorplanImage,
-  FloorplanImageRecord,
-  FloorplanMarkerCollectionRecord,
-} from "../utils/types";
+import { FloorplanImage } from "../utils/types";
 
 interface FloorplanContextReturn {
   floorplanId: string | null;
@@ -86,15 +83,11 @@ export const FloorplanProvider = ({
   const [storedFloorplans, setStoredFloorplans] = useState<FloorplanImage[]>(
     []
   );
-  const [storedMarkerCollections, setStoredMarkerCollections] = useState<
-    FloorplanMarkerCollectionRecord["collections"]
-  >([]);
   const [isLoadingStoredFloorplans, setIsLoadingStoredFloorplans] =
     useState(true);
   const [isSavingMarkers, setIsSavingMarkers] = useState(false);
   const marker = useMarkers();
   const { debug, error, log } = useLogger();
-  const isApplyingSystemMarkerUpdate = useRef(false);
 
   const [showMarkerOptions, setShowMarkerOptions] = useState(false);
 
@@ -111,34 +104,11 @@ export const FloorplanProvider = ({
     });
   }, []);
 
-  useEffect(() => {
-    if (isApplyingSystemMarkerUpdate.current) {
-      log("Marker sync step: skipping save for system-applied marker update");
-      isApplyingSystemMarkerUpdate.current = false;
-      return;
-    }
-
-    if (!floorplanId) {
-      return;
-    }
-
-    log("Marker save step: detected marker change, starting save");
-    persistMarkersForFloorplan(floorplanId, marker.markers).catch(
-      (caughtError: unknown) => {
-        const errorMessage =
-          caughtError instanceof Error ? caughtError.message : "Unknown error";
-        debug(`Could not persist markers for floorplan: ${errorMessage}`);
-      }
-    );
-  }, [marker.markers]);
-
   function replaceMarkersFromSystem(nextMarkers: Marker[]): void {
-    isApplyingSystemMarkerUpdate.current = true;
     marker.replaceMarkers(nextMarkers);
   }
 
   function clearMarkersFromSystem(): void {
-    isApplyingSystemMarkerUpdate.current = true;
     marker.clearMarkers();
   }
 
@@ -178,23 +148,9 @@ export const FloorplanProvider = ({
     nextFloorplanId: string
   ): Promise<void> {
     try {
-      // Vi henter alle markers fra alle pt. Kunne laves til global stadie, vis performence isue senere hen
-      const floorplanMarkerCollectionRecord =
-        await getFloorplanMarkerCollectionRecord();
-      setStoredMarkerCollections(floorplanMarkerCollectionRecord.collections);
+      const floorplanMarkers = await getFloorplanMarkers(nextFloorplanId);
       log(`Successfully fetched markers for floorplan ${nextFloorplanId}`);
-      const selectedCollection =
-        floorplanMarkerCollectionRecord.collections.find(
-          (collection) => collection.floorplanId === nextFloorplanId
-        );
-
-      let markers: Marker[];
-      if (selectedCollection && selectedCollection.markers) {
-        markers = selectedCollection.markers;
-      } else {
-        markers = [];
-      }
-      const serverMarkers = normalizeMarkers(markers);
+      const serverMarkers = normalizeMarkers(floorplanMarkers);
 
       replaceMarkersFromSystem(serverMarkers);
     } catch (caughtError) {
@@ -203,7 +159,6 @@ export const FloorplanProvider = ({
 
       if (errorMessage === "file not found") {
         log(`No saved markers found for floorplan ${nextFloorplanId}`);
-        setStoredMarkerCollections([]);
         replaceMarkersFromSystem([]);
       } else {
         error(
@@ -214,67 +169,185 @@ export const FloorplanProvider = ({
     }
   }
 
-  /**
-  Function to save the markers, to the currently selected floorplan
-   */
-  async function persistMarkersForFloorplan(
-    floorplanIdToSave: string,
-    markersToSave: Marker[]
+  function markerForServer(currentMarker: Marker): Marker {
+    return prepareMarkersForServer([currentMarker])[0];
+  }
+
+  async function withMarkerSavingState(
+    action: () => Promise<void>
   ): Promise<void> {
-    if (!floorplanIdToSave) {
+    try {
+      setIsSavingMarkers(true);
+      await action();
+    } finally {
+      setIsSavingMarkers(false);
+    }
+  }
+
+  function runAtomicMarkerAction(action: () => Promise<void>): void {
+    withMarkerSavingState(action).catch((caughtError: unknown) => {
+      const errorMessage =
+        caughtError instanceof Error ? caughtError.message : "Unknown error";
+      error(errorMessage);
+    });
+  }
+
+  function addMarkerAtomically(
+    x: number,
+    y: number,
+    photos: PhotoData[]
+  ): void {
+    if (!floorplanId) {
       error("No id for the selected floorplan");
       return;
     }
 
+    const newMarker: Marker = {
+      id: Date.now().toString(),
+      photos,
+      x,
+      y,
+    };
+
+    runAtomicMarkerAction(async () => {
+      await createFloorplanMarker(floorplanId, markerForServer(newMarker));
+      marker.replaceMarkers(marker.markers.concat(newMarker));
+      log(`Successfully created marker ${newMarker.id}`);
+    });
+  }
+
+  function editMarkerAtomically(
+    id: string,
+    editorFnc: (old: Marker) => Marker
+  ): void {
+    if (!floorplanId) {
+      error("No id for the selected floorplan");
+      return;
+    }
+
+    const existingMarker = marker.markers.find(
+      (currentMarker) => currentMarker.id === id
+    );
+    if (!existingMarker) {
+      error(`Marker ${id} not found`);
+      return;
+    }
+
+    let nextMarker: Marker;
+
     try {
-      setIsSavingMarkers(true);
-      log("Prepering Makers payload payload");
-      const serverReadyMarkers = prepareMarkersForServer(markersToSave);
-      const floorplanCollectionIndex = storedMarkerCollections.findIndex(
-        (collection) => collection.floorplanId === floorplanIdToSave
-      );
+      nextMarker = editorFnc(existingMarker);
+    } catch (caughtError) {
+      throw caughtError;
+    }
 
-      let nextCollections;
+    runAtomicMarkerAction(async () => {
+      const coordinatesChanged =
+        existingMarker.x !== nextMarker.x || existingMarker.y !== nextMarker.y;
+      const otherFieldsChanged =
+        JSON.stringify({ ...existingMarker, x: undefined, y: undefined }) !==
+        JSON.stringify({ ...nextMarker, x: undefined, y: undefined });
 
-      if (floorplanCollectionIndex === -1) {
-        // No existing collection
-        const newCollection = {
-          floorplanId: floorplanIdToSave,
-          markers: serverReadyMarkers,
-        };
-
-        nextCollections = storedMarkerCollections.concat(newCollection);
-      } else {
-        // Existing collection
-        nextCollections = storedMarkerCollections.map((collection, index) => {
-          if (index === floorplanCollectionIndex) {
-            return {
-              ...collection,
-              markers: serverReadyMarkers,
-            };
-          }
-
-          return collection;
-        });
+      if (coordinatesChanged && !otherFieldsChanged) {
+        await updateFloorplanMarkerCoordinates(
+          floorplanId,
+          markerForServer(nextMarker)
+        );
+      } else if (
+        JSON.stringify(existingMarker) !== JSON.stringify(nextMarker)
+      ) {
+        await replaceFloorplanMarker(floorplanId, markerForServer(nextMarker));
       }
 
-      log("Marker save step 2: sending marker collections to server");
-      await saveFloorplanMarkerCollectionRecord({
-        collections: nextCollections,
-      });
-      log("Marker save step 3: updating client marker collection state");
-      setStoredMarkerCollections(nextCollections);
-      log(`Successfully saved markers for floorplan ${floorplanIdToSave}`);
-    } catch (caughtError) {
-      const errorMessage =
-        caughtError instanceof Error ? caughtError.message : "Unknown error";
-      error(
-        `Saving markers for floorplan ${floorplanIdToSave} failed: ${errorMessage}`
-      );
-      debug(`Could not save markers for floorplan: ${errorMessage}`);
-    } finally {
-      setIsSavingMarkers(false);
+      marker.editMarker(id, () => nextMarker);
+      log(`Successfully updated marker ${id}`);
+    });
+  }
+
+  function addPhotosAtomically(id: string, photos: PhotoData[]): void {
+    if (!floorplanId) {
+      error("No id for the selected floorplan");
+      return;
     }
+
+    const existingMarker = marker.markers.find(
+      (currentMarker) => currentMarker.id === id
+    );
+    if (!existingMarker) {
+      error(`Marker ${id} not found`);
+      return;
+    }
+
+    const filteredPhotos = photos.filter(
+      (photoToAdd) =>
+        existingMarker.photos.findIndex(
+          (existingPhoto) => existingPhoto.photoUri === photoToAdd.photoUri
+        ) === -1
+    );
+    const nextMarker: Marker = {
+      ...existingMarker,
+      photos: existingMarker.photos.concat(filteredPhotos),
+    };
+
+    runAtomicMarkerAction(async () => {
+      await replaceFloorplanMarker(floorplanId, markerForServer(nextMarker));
+      marker.addPhotos(id, filteredPhotos);
+      log(`Successfully added photos to marker ${id}`);
+    });
+  }
+
+  function removePhotoAtomically(id: string, photo: PhotoData): void {
+    if (!floorplanId) {
+      error("No id for the selected floorplan");
+      return;
+    }
+
+    const existingMarker = marker.markers.find(
+      (currentMarker) => currentMarker.id === id
+    );
+    if (!existingMarker) {
+      error(`Marker ${id} not found`);
+      return;
+    }
+
+    const photoIndex = existingMarker.photos.indexOf(photo);
+    if (photoIndex === -1) {
+      error(`Photo not found in marker ${id}`);
+      return;
+    }
+
+    runAtomicMarkerAction(async () => {
+      if (existingMarker.photos.length < 2) {
+        await deleteFloorplanMarker(floorplanId, id);
+        marker.deleteMarker(id);
+        log(`Successfully deleted marker ${id} after last photo removal`);
+        return;
+      }
+
+      const nextMarker: Marker = {
+        ...existingMarker,
+        photos: existingMarker.photos.filter(
+          (_, index) => index !== photoIndex
+        ),
+      };
+
+      await replaceFloorplanMarker(floorplanId, markerForServer(nextMarker));
+      marker.removePhoto(id, photo);
+      log(`Successfully removed photo from marker ${id}`);
+    });
+  }
+
+  function deleteMarkerAtomically(id: string): void {
+    if (!floorplanId) {
+      error("No id for the selected floorplan");
+      return;
+    }
+
+    runAtomicMarkerAction(async () => {
+      await deleteFloorplanMarker(floorplanId, id);
+      marker.deleteMarker(id);
+      log(`Successfully deleted marker ${id}`);
+    });
   }
 
   const handleCanvasPress = (event: TapGestureEvent) => {
@@ -319,29 +392,6 @@ export const FloorplanProvider = ({
         const imageBase64 = await new File(selectedFloorplanImage.uri).base64();
         const imageUri = toImageDataUri(imageBase64, imageFileExtension);
 
-        let floorplanImageRecord: FloorplanImageRecord = { floorplans: [] };
-
-        try {
-          floorplanImageRecord = await getFloorplanImageRecord();
-          log(
-            "Successfully fetched floorplan image record before gallery save"
-          );
-        } catch (caughtError) {
-          const errorMessage =
-            caughtError instanceof Error
-              ? caughtError.message
-              : "Unknown error";
-
-          if (errorMessage !== "file not found") {
-            error(
-              `Fetching floorplan image record before gallery save failed: ${errorMessage}`
-            );
-            throw caughtError;
-          }
-
-          log("No existing floorplan image record found before gallery save");
-        }
-
         const nextStoredFloorplan: FloorplanImage = {
           id: nextFloorplanId,
           imageUri,
@@ -350,10 +400,7 @@ export const FloorplanProvider = ({
           imageBase64,
           imageFileExtension,
         };
-        // Vi overskriver faktisk bare hele den eksisterende liste af floorplans hver gang
-        const nextFloorplans =
-          floorplanImageRecord.floorplans.concat(nextStoredFloorplan);
-        await saveFloorplanImageRecord({ floorplans: nextFloorplans });
+        await createFloorplanImage(nextStoredFloorplan);
         log(`Successfully saved gallery floorplan ${nextFloorplanId} to API`);
 
         await refreshStoredFloorplans();
@@ -391,11 +438,6 @@ export const FloorplanProvider = ({
     try {
       await deleteFloorplanImageRecord(storedFloorplan.id);
       log(`Successfully deleted floorplan ${storedFloorplan.id} from API`);
-
-      await deleteFloorplanMarkerCollectionsForFloorplan(storedFloorplan.id);
-      log(
-        `Successfully deleted marker collection for floorplan ${storedFloorplan.id} from API`
-      );
     } catch (caughtError) {
       const errorMessage =
         caughtError instanceof Error ? caughtError.message : "Unknown error";
@@ -406,11 +448,6 @@ export const FloorplanProvider = ({
     setStoredFloorplans((currentFloorplans) =>
       currentFloorplans.filter(
         (currentFloorplan) => currentFloorplan.id !== storedFloorplan.id
-      )
-    );
-    setStoredMarkerCollections((currentCollections) =>
-      currentCollections.filter(
-        (collection) => collection.floorplanId !== storedFloorplan.id
       )
     );
 
@@ -430,7 +467,6 @@ export const FloorplanProvider = ({
     setFloorplanId(null);
     setFloorplan(null);
     setStoredFloorplans([]);
-    setStoredMarkerCollections([]);
     setSelectedMarkerId(null);
     setShowMarkerOptions(false);
     setShowTempMarker(false);
@@ -452,6 +488,11 @@ export const FloorplanProvider = ({
         clearAllUserData,
         deleteStoredFloorplan,
         handleCanvasPress,
+        addMarker: addMarkerAtomically,
+        editMarker: editMarkerAtomically,
+        addPhotos: addPhotosAtomically,
+        removePhoto: removePhotoAtomically,
+        deleteMarker: deleteMarkerAtomically,
         selectedMarker: selectedMarkerId
           ? marker.markers.find((m) => m.id === selectedMarkerId)
           : undefined,

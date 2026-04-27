@@ -54,3 +54,8 @@ result-*
 .maestro/screenshots/
 maestro-*.mp4
 maestro-*.png
+/server/Lib
+/server/Scripts
+server/pyvenv.cfg
+/server/__pycache__
+/server/data

@@ -23,7 +23,7 @@ app = Flask(__name__)
 
 @app.route("/api/users/<username>/floorplans", methods=["GET"])
 def list_floorplans(username):
-    """Return all floorplans for one user."""
+    """Return all floorplans for the given username."""
     try:
         username = safe_name(username)
     except ValueError:
@@ -51,17 +51,22 @@ def list_floorplans(username):
     return jsonify({"floorplans": floorplans})
 
 
-@app.route("/api/users/<username>/floorplans/<floorplan_name>/markers", methods=["GET"])
-def list_markers(username, floorplan_name):
-    """Return all markers for one floorplan."""
+@app.route("/api/users/<username>/floorplans/<floorplan_id>/markers", methods=["GET"])
+def list_markers(username, floorplan_id):
+    """Return all markers for one floorplan.
+
+    The username input selects the user folder, and floorplan_id selects the
+    floorplan folder inside that user. The route checks that the floorplan
+    exists, then reads every marker JSON file from markers/ and returns them.
+    """
     try:
         username = safe_name(username)
-        floorplan_name = safe_name(floorplan_name)
+        floorplan_id = safe_name(floorplan_id)
     except ValueError:
         return api_error("invalid name", 400)
 
-    floorplan_json_path = floorplan_file_path(username, floorplan_name)
-    marker_dir = markers_path(username, floorplan_name)
+    floorplan_json_path = floorplan_file_path(username, floorplan_id)
+    marker_dir = markers_path(username, floorplan_id)
 
     if not os.path.isfile(floorplan_json_path):
         return api_error("floorplan not found", 404)
@@ -88,24 +93,31 @@ def list_markers(username, floorplan_name):
 
 @app.route("/api/users/<username>/floorplans", methods=["POST"])
 def create_floorplan(username):
-    """Append a new floorplan for one user."""
+    """Create one new floorplan for the given user.
+
+    The username path input decides which user folder to write to. The JSON body
+    must contain an id field, and that id is used as the floorplan folder name.
+    The logic only appends new data: it creates floorplan.json and markers/
+    once, adds createdAt metadata, and rejects the request if the floorplan
+    already exists.
+    """
     try:
         username = safe_name(username)
         body = json_body()
     except ValueError as error:
         return api_error(str(error).lower(), 400)
 
-    floorplan_name = body.get("name")
+    floorplan_id = body.get("id")
     try:
-        floorplan_name = safe_name(floorplan_name)
+        floorplan_id = safe_name(floorplan_id)
     except ValueError:
         return api_error("invalid name", 400)
 
-    floorplan_json_path = floorplan_file_path(username, floorplan_name)
+    floorplan_json_path = floorplan_file_path(username, floorplan_id)
     floorplan_data = add_created_metadata(body)
 
     try:
-        os.makedirs(markers_path(username, floorplan_name), exist_ok=True)
+        os.makedirs(markers_path(username, floorplan_id), exist_ok=True)
         write_new_json_file(floorplan_json_path, floorplan_data)
     except FileExistsError:
         return api_error("floorplan already exists", 409)
@@ -115,26 +127,32 @@ def create_floorplan(username):
     return jsonify({"status": "created", "floorplan": floorplan_data}), 201
 
 
-@app.route("/api/users/<username>/floorplans/<floorplan_name>/markers", methods=["POST"])
-def create_marker(username, floorplan_name):
-    """Append a new marker to one floorplan."""
+@app.route("/api/users/<username>/floorplans/<floorplan_id>/markers", methods=["POST"])
+def create_marker(username, floorplan_id):
+    """Create one new marker inside one floorplan.
+
+    The username and floorplan_id path inputs are used to find the floorplan
+    folder. The JSON body must contain an id field, and that id becomes the
+    marker file name inside markers/. The logic is append-only: it adds
+    createdAt metadata and fails if the marker file already exists.
+    """
     try:
         username = safe_name(username)
-        floorplan_name = safe_name(floorplan_name)
+        floorplan_id = safe_name(floorplan_id)
         body = json_body()
     except ValueError as error:
         return api_error(str(error).lower(), 400)
 
-    marker_name = body.get("name") or body.get("id")
+    marker_id = body.get("id")
     try:
-        marker_name = safe_name(marker_name)
+        marker_id = safe_name(marker_id)
     except ValueError:
         return api_error("invalid name", 400)
 
-    if not os.path.isfile(floorplan_file_path(username, floorplan_name)):
+    if not os.path.isfile(floorplan_file_path(username, floorplan_id)):
         return api_error("floorplan not found", 404)
 
-    marker_json_path = marker_file_path(username, floorplan_name, marker_name)
+    marker_json_path = marker_file_path(username, floorplan_id, marker_id)
     marker_data = add_created_metadata(body)
 
     try:
@@ -147,16 +165,21 @@ def create_marker(username, floorplan_name):
     return jsonify({"status": "created", "marker": marker_data}), 201
 
 
-@app.route("/api/users/<username>/floorplans/<floorplan_name>", methods=["DELETE"])
-def delete_floorplan(username, floorplan_name):
-    """Delete one floorplan and all its markers."""
+@app.route("/api/users/<username>/floorplans/<floorplan_id>", methods=["DELETE"])
+def delete_floorplan(username, floorplan_id):
+    """Delete one floorplan and everything stored inside it.
+
+    The username input selects the user folder, and floorplan_id selects the
+    floorplan folder to remove. The logic deletes the whole floorplan directory,
+    which also removes floorplan.json and all marker files in markers/.
+    """
     try:
         username = safe_name(username)
-        floorplan_name = safe_name(floorplan_name)
+        floorplan_id = safe_name(floorplan_id)
     except ValueError:
         return api_error("invalid name", 400)
 
-    target_dir = floorplan_path(username, floorplan_name)
+    target_dir = floorplan_path(username, floorplan_id)
     if not os.path.isdir(target_dir):
         return api_error("floorplan not found", 404)
 
@@ -168,17 +191,22 @@ def delete_floorplan(username, floorplan_name):
     return jsonify({"status": "deleted"})
 
 
-@app.route("/api/users/<username>/floorplans/<floorplan_name>/markers/<marker_name>", methods=["DELETE"])
-def delete_marker(username, floorplan_name, marker_name):
-    """Delete one marker from one floorplan."""
+@app.route("/api/users/<username>/floorplans/<floorplan_id>/markers/<marker_id>", methods=["DELETE"])
+def delete_marker(username, floorplan_id, marker_id):
+    """Delete one marker file from one floorplan.
+
+    The username, floorplan_id, and marker_id path inputs are used to build the
+    exact marker JSON file path. The logic only removes that single marker file
+    and leaves the rest of the floorplan data unchanged.
+    """
     try:
         username = safe_name(username)
-        floorplan_name = safe_name(floorplan_name)
-        marker_name = safe_name(marker_name)
+        floorplan_id = safe_name(floorplan_id)
+        marker_id = safe_name(marker_id)
     except ValueError:
         return api_error("invalid name", 400)
 
-    target_file = marker_file_path(username, floorplan_name, marker_name)
+    target_file = marker_file_path(username, floorplan_id, marker_id)
     if not os.path.isfile(target_file):
         return api_error("marker not found", 404)
 
@@ -191,21 +219,27 @@ def delete_marker(username, floorplan_name, marker_name):
 
 
 @app.route(
-    "/api/users/<username>/floorplans/<floorplan_name>/markers/<marker_name>/coordinates",
+    "/api/users/<username>/floorplans/<floorplan_id>/markers/<marker_id>/coordinates",
     methods=["PATCH"],
 )
-def update_marker_coordinates(username, floorplan_name, marker_name):
-    """Overwrite only the coordinates for one marker."""
+def update_marker_coordinates(username, floorplan_id, marker_id):
+    """Update only the coordinates for one existing marker.
+
+    The path inputs identify the exact marker file to update. The JSON body is
+    only used for coordinate values, either as a coordinates object or x/y/z
+    fields. The logic reads the existing marker, overwrites only the coordinate
+    fields, and writes the marker back without replacing the rest of the data.
+    """
     try:
         username = safe_name(username)
-        floorplan_name = safe_name(floorplan_name)
-        marker_name = safe_name(marker_name)
+        floorplan_id = safe_name(floorplan_id)
+        marker_id = safe_name(marker_id)
         body = json_body()
         new_coordinates = marker_coordinates_from_body(body)
     except ValueError as error:
         return api_error(str(error).lower(), 400)
 
-    target_file = marker_file_path(username, floorplan_name, marker_name)
+    target_file = marker_file_path(username, floorplan_id, marker_id)
     if not os.path.isfile(target_file):
         return api_error("marker not found", 404)
 
@@ -223,7 +257,12 @@ def update_marker_coordinates(username, floorplan_name, marker_name):
 
 @app.route("/api/resetUser/<username>", methods=["DELETE"])
 def reset_user(username):
-    """Delete all data for one user."""
+    """Delete all saved data for one user.
+
+    The username path input selects the user folder inside data/. The logic
+    removes that whole directory so every floorplan and marker for that user is
+    deleted in one operation.
+    """
     try:
         username = safe_name(username)
     except ValueError:
