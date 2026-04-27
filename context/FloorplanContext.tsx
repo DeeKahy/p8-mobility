@@ -104,10 +104,16 @@ export const FloorplanProvider = ({
     });
   }, []);
 
+  /**
+   * Replace the local marker state with marker data that came from the server.
+   */
   function replaceMarkersFromSystem(nextMarkers: Marker[]): void {
     marker.replaceMarkers(nextMarkers);
   }
 
+  /**
+   * Clear the local marker state when the selected floorplan changes or resets.
+   */
   function clearMarkersFromSystem(): void {
     marker.clearMarkers();
   }
@@ -169,29 +175,16 @@ export const FloorplanProvider = ({
     }
   }
 
+  /**
+   * Prepare one marker for server storage by stripping duplicated image payloads. URI AND BASE WE ONLY NEED ONE
+   */
   function markerForServer(currentMarker: Marker): Marker {
     return prepareMarkersForServer([currentMarker])[0];
   }
 
-  async function withMarkerSavingState(
-    action: () => Promise<void>
-  ): Promise<void> {
-    try {
-      setIsSavingMarkers(true);
-      await action();
-    } finally {
-      setIsSavingMarkers(false);
-    }
-  }
-
-  function runAtomicMarkerAction(action: () => Promise<void>): void {
-    withMarkerSavingState(action).catch((caughtError: unknown) => {
-      const errorMessage =
-        caughtError instanceof Error ? caughtError.message : "Unknown error";
-      error(errorMessage);
-    });
-  }
-
+  /**
+   * Create one new marker locally and on the server with a single POST request.
+   */
   function addMarkerAtomically(
     x: number,
     y: number,
@@ -209,13 +202,29 @@ export const FloorplanProvider = ({
       y,
     };
 
-    runAtomicMarkerAction(async () => {
-      await createFloorplanMarker(floorplanId, markerForServer(newMarker));
-      marker.replaceMarkers(marker.markers.concat(newMarker));
-      log(`Successfully created marker ${newMarker.id}`);
-    });
+    setIsSavingMarkers(true);
+    createFloorplanMarker(floorplanId, markerForServer(newMarker))
+      .then(() => {
+        marker.replaceMarkers(marker.markers.concat(newMarker));
+        log(`Successfully created marker ${newMarker.id}`);
+      })
+      .catch((caughtError: unknown) => {
+        const errorMessage =
+          caughtError instanceof Error ? caughtError.message : "Unknown error";
+        error(errorMessage);
+      })
+      .finally(() => {
+        setIsSavingMarkers(false);
+      });
   }
 
+  /**
+   * Update one marker through the most specific server call we can use.
+   *
+   * If only coordinates changed we use PATCH. If other fields changed we
+   * replace the marker with delete+create because the server does not allow
+   * general overwrite.
+   */
   function editMarkerAtomically(
     id: string,
     editorFnc: (old: Marker) => Marker
@@ -241,29 +250,48 @@ export const FloorplanProvider = ({
       throw caughtError;
     }
 
-    runAtomicMarkerAction(async () => {
-      const coordinatesChanged =
-        existingMarker.x !== nextMarker.x || existingMarker.y !== nextMarker.y;
-      const otherFieldsChanged =
-        JSON.stringify({ ...existingMarker, x: undefined, y: undefined }) !==
-        JSON.stringify({ ...nextMarker, x: undefined, y: undefined });
+    const coordinatesChanged =
+      existingMarker.x !== nextMarker.x || existingMarker.y !== nextMarker.y;
+    const otherFieldsChanged =
+      JSON.stringify({ ...existingMarker, x: undefined, y: undefined }) !==
+      JSON.stringify({ ...nextMarker, x: undefined, y: undefined });
 
-      if (coordinatesChanged && !otherFieldsChanged) {
-        await updateFloorplanMarkerCoordinates(
-          floorplanId,
-          markerForServer(nextMarker)
-        );
-      } else if (
-        JSON.stringify(existingMarker) !== JSON.stringify(nextMarker)
-      ) {
-        await replaceFloorplanMarker(floorplanId, markerForServer(nextMarker));
-      }
+    let markerRequest: Promise<void> = Promise.resolve();
 
-      marker.editMarker(id, () => nextMarker);
-      log(`Successfully updated marker ${id}`);
-    });
+    if (coordinatesChanged && !otherFieldsChanged) {
+      markerRequest = updateFloorplanMarkerCoordinates(
+        floorplanId,
+        markerForServer(nextMarker)
+      );
+    } else if (JSON.stringify(existingMarker) !== JSON.stringify(nextMarker)) {
+      markerRequest = replaceFloorplanMarker(
+        floorplanId,
+        markerForServer(nextMarker)
+      );
+    }
+
+    setIsSavingMarkers(true);
+    markerRequest
+      .then(() => {
+        marker.editMarker(id, () => nextMarker);
+        log(`Successfully updated marker ${id}`);
+      })
+      .catch((caughtError: unknown) => {
+        const errorMessage =
+          caughtError instanceof Error ? caughtError.message : "Unknown error";
+        error(errorMessage);
+      })
+      .finally(() => {
+        setIsSavingMarkers(false);
+      });
   }
 
+  /**
+   * Add photos to one marker by replacing the full marker payload on the server.
+   *
+   * Photo changes are not coordinate-only updates, so they must use the
+   * replace flow instead of PATCH.
+   */
   function addPhotosAtomically(id: string, photos: PhotoData[]): void {
     if (!floorplanId) {
       error("No id for the selected floorplan");
@@ -289,13 +317,28 @@ export const FloorplanProvider = ({
       photos: existingMarker.photos.concat(filteredPhotos),
     };
 
-    runAtomicMarkerAction(async () => {
-      await replaceFloorplanMarker(floorplanId, markerForServer(nextMarker));
-      marker.addPhotos(id, filteredPhotos);
-      log(`Successfully added photos to marker ${id}`);
-    });
+    setIsSavingMarkers(true);
+    replaceFloorplanMarker(floorplanId, markerForServer(nextMarker))
+      .then(() => {
+        marker.addPhotos(id, filteredPhotos);
+        log(`Successfully added photos to marker ${id}`);
+      })
+      .catch((caughtError: unknown) => {
+        const errorMessage =
+          caughtError instanceof Error ? caughtError.message : "Unknown error";
+        error(errorMessage);
+      })
+      .finally(() => {
+        setIsSavingMarkers(false);
+      });
   }
 
+  /**
+   * Remove one photo from one marker and keep the server in sync.
+   *
+   * If the last photo is removed, the whole marker is deleted. Otherwise the
+   * marker is replaced with an updated photo list.
+   */
   function removePhotoAtomically(id: string, photo: PhotoData): void {
     if (!floorplanId) {
       error("No id for the selected floorplan");
@@ -316,14 +359,11 @@ export const FloorplanProvider = ({
       return;
     }
 
-    runAtomicMarkerAction(async () => {
-      if (existingMarker.photos.length < 2) {
-        await deleteFloorplanMarker(floorplanId, id);
-        marker.deleteMarker(id);
-        log(`Successfully deleted marker ${id} after last photo removal`);
-        return;
-      }
+    let markerRequest: Promise<void>;
 
+    if (existingMarker.photos.length < 2) {
+      markerRequest = deleteFloorplanMarker(floorplanId, id);
+    } else {
       const nextMarker: Marker = {
         ...existingMarker,
         photos: existingMarker.photos.filter(
@@ -331,23 +371,57 @@ export const FloorplanProvider = ({
         ),
       };
 
-      await replaceFloorplanMarker(floorplanId, markerForServer(nextMarker));
-      marker.removePhoto(id, photo);
-      log(`Successfully removed photo from marker ${id}`);
-    });
+      markerRequest = replaceFloorplanMarker(
+        floorplanId,
+        markerForServer(nextMarker)
+      );
+    }
+
+    setIsSavingMarkers(true);
+    markerRequest
+      .then(() => {
+        if (existingMarker.photos.length < 2) {
+          marker.deleteMarker(id);
+          log(`Successfully deleted marker ${id} after last photo removal`);
+          return;
+        }
+
+        marker.removePhoto(id, photo);
+        log(`Successfully removed photo from marker ${id}`);
+      })
+      .catch((caughtError: unknown) => {
+        const errorMessage =
+          caughtError instanceof Error ? caughtError.message : "Unknown error";
+        error(errorMessage);
+      })
+      .finally(() => {
+        setIsSavingMarkers(false);
+      });
   }
 
+  /**
+   * Delete one marker locally and on the server with a single DELETE request.
+   */
   function deleteMarkerAtomically(id: string): void {
     if (!floorplanId) {
       error("No id for the selected floorplan");
       return;
     }
 
-    runAtomicMarkerAction(async () => {
-      await deleteFloorplanMarker(floorplanId, id);
-      marker.deleteMarker(id);
-      log(`Successfully deleted marker ${id}`);
-    });
+    setIsSavingMarkers(true);
+    deleteFloorplanMarker(floorplanId, id)
+      .then(() => {
+        marker.deleteMarker(id);
+        log(`Successfully deleted marker ${id}`);
+      })
+      .catch((caughtError: unknown) => {
+        const errorMessage =
+          caughtError instanceof Error ? caughtError.message : "Unknown error";
+        error(errorMessage);
+      })
+      .finally(() => {
+        setIsSavingMarkers(false);
+      });
   }
 
   const handleCanvasPress = (event: TapGestureEvent) => {
