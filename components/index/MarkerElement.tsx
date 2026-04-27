@@ -62,8 +62,8 @@ export const MarkerElement = (
       : {
           /* If no marker is given, use the x and y-values shared with us */
           transform: [
-            { translateX: props.x.value },
-            { translateY: props.y.value },
+            { translateX: props.x.value - styles.marker.width / 2 },
+            { translateY: props.y.value - styles.marker.height / 2 },
           ],
         };
   });

@@ -337,7 +337,10 @@ export default function HomeScreen() {
       }
     );
 
-  if (imageToPlace) findImagePlacementTarget();
+  useEffect(() => {
+    // Run the first time the tab is loaded
+    if (imageToPlace) findImagePlacementTarget();
+  }, []);
 
   if (showCamera) {
     return (
