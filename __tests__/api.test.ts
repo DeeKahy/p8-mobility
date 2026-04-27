@@ -1,7 +1,4 @@
-import {
-  FloorplanImageRecord,
-  FloorplanMarkerCollectionRecord,
-} from "../utils/types";
+import { FloorplanImageRecord } from "../utils/types";
 
 type ApiModule = typeof import("../utils/api");
 
@@ -30,27 +27,20 @@ const floorplanImageRecord: FloorplanImageRecord = {
   ],
 };
 
-const floorplanMarkerCollectionRecord: FloorplanMarkerCollectionRecord = {
-  collections: [
-    {
-      floorplanId: "floorplan-1",
-      markers: [
-        {
-          id: "marker-1",
-          x: 10,
-          y: 20,
-          photos: [],
-        },
-        {
-          id: "marker-2",
-          x: 30,
-          y: 40,
-          photos: [],
-        },
-      ],
-    },
-  ],
-};
+const floorplanMarkers = [
+  {
+    id: "marker-1",
+    x: 10,
+    y: 20,
+    photos: [],
+  },
+  {
+    id: "marker-2",
+    x: 30,
+    y: 40,
+    photos: [],
+  },
+];
 
 function expectCreatedAt(value: unknown): void {
   expect(typeof value).toBe("string");
@@ -82,7 +72,8 @@ describe("utils/api real server integration", () => {
   });
 
   it("posts, gets and deletes one floorplan on the real server", async () => {
-    await api.saveFloorplanImageRecord(floorplanImageRecord);
+    await api.createFloorplanImage(floorplanImageRecord.floorplans[0]);
+    await api.createFloorplanImage(floorplanImageRecord.floorplans[1]);
 
     const savedFloorplanRecord = await api.getFloorplanImageRecord();
 
@@ -114,100 +105,83 @@ describe("utils/api real server integration", () => {
   }, 30000);
 
   it("posts, gets and deletes markers for one floorplan on the real server", async () => {
-    await api.saveFloorplanImageRecord({
-      floorplans: [floorplanImageRecord.floorplans[0]],
-    });
+    await api.createFloorplanImage(floorplanImageRecord.floorplans[0]);
+    await api.createFloorplanMarker("floorplan-1", floorplanMarkers[0]);
+    await api.createFloorplanMarker("floorplan-1", floorplanMarkers[1]);
 
-    await api.saveFloorplanMarkerCollectionRecord(
-      floorplanMarkerCollectionRecord
-    );
+    const savedMarkers = await api.getFloorplanMarkers("floorplan-1");
 
-    const savedMarkerRecord = await api.getFloorplanMarkerCollectionRecord();
-
-    expect(savedMarkerRecord.collections).toHaveLength(1);
-    expect(savedMarkerRecord.collections[0].floorplanId).toBe("floorplan-1");
-    expect(savedMarkerRecord.collections[0].markers).toHaveLength(2);
-    expect(savedMarkerRecord.collections[0].markers[0]).toMatchObject({
+    expect(savedMarkers).toHaveLength(2);
+    expect(savedMarkers[0]).toMatchObject({
       id: "marker-1",
       x: 10,
       y: 20,
       photos: [],
     });
-    expect(savedMarkerRecord.collections[0].markers[1]).toMatchObject({
+    expect(savedMarkers[1]).toMatchObject({
       id: "marker-2",
       x: 30,
       y: 40,
       photos: [],
     });
-    expectCreatedAt(
-      markerCreatedAt(savedMarkerRecord.collections[0].markers[0])
-    );
-    expectCreatedAt(
-      markerCreatedAt(savedMarkerRecord.collections[0].markers[1])
-    );
+    expectCreatedAt(markerCreatedAt(savedMarkers[0]));
+    expectCreatedAt(markerCreatedAt(savedMarkers[1]));
 
-    await api.deleteFloorplanMarkerCollectionsForFloorplan("floorplan-1");
+    await api.deleteFloorplanMarker("floorplan-1", "marker-1");
 
-    await expect(api.getFloorplanMarkerCollectionRecord()).resolves.toEqual({
-      collections: [
-        {
-          floorplanId: "floorplan-1",
-          markers: [],
-        },
-      ],
+    await expect(api.getFloorplanMarkers("floorplan-1")).resolves.toEqual([
+      expect.objectContaining({
+        id: "marker-2",
+        x: 30,
+        y: 40,
+        photos: [],
+      }),
+    ]);
+  }, 30000);
+
+  it("deletes all markers when the floorplan is deleted", async () => {
+    await api.createFloorplanImage(floorplanImageRecord.floorplans[0]);
+    await api.createFloorplanMarker("floorplan-1", floorplanMarkers[0]);
+
+    await api.deleteFloorplanImageRecord("floorplan-1");
+
+    await expect(api.getFloorplanImageRecord()).resolves.toEqual({
+      floorplans: [],
     });
+
+    await expect(api.getFloorplanMarkers("floorplan-1")).rejects.toThrow(
+      "floorplan not found"
+    );
   }, 30000);
 
   it("updates only marker coordinates on the real server", async () => {
-    await api.saveFloorplanImageRecord({
-      floorplans: [floorplanImageRecord.floorplans[0]],
-    });
+    await api.createFloorplanImage(floorplanImageRecord.floorplans[0]);
+    await api.createFloorplanMarker("floorplan-1", floorplanMarkers[0]);
+    await api.createFloorplanMarker("floorplan-1", floorplanMarkers[1]);
 
-    await api.saveFloorplanMarkerCollectionRecord(
-      floorplanMarkerCollectionRecord
-    );
-
-    const updatedMarkerCollections: FloorplanMarkerCollectionRecord = {
-      collections: [
-        {
-          floorplanId: "floorplan-1",
-          markers: [
-            {
-              id: "marker-1",
-              x: 99,
-              y: 88,
-              photos: [],
-            },
-            floorplanMarkerCollectionRecord.collections[0].markers[1],
-          ],
-        },
-      ],
-    };
-
-    await api.saveFloorplanMarkerCollectionRecord(updatedMarkerCollections);
-
-    const savedMarkerRecord = await api.getFloorplanMarkerCollectionRecord();
-
-    expect(savedMarkerRecord.collections).toHaveLength(1);
-    expect(savedMarkerRecord.collections[0].floorplanId).toBe("floorplan-1");
-    expect(savedMarkerRecord.collections[0].markers).toHaveLength(2);
-    expect(savedMarkerRecord.collections[0].markers[0]).toMatchObject({
+    await api.updateFloorplanMarkerCoordinates("floorplan-1", {
       id: "marker-1",
       x: 99,
       y: 88,
       photos: [],
     });
-    expect(savedMarkerRecord.collections[0].markers[1]).toMatchObject({
+
+    const savedMarkers = await api.getFloorplanMarkers("floorplan-1");
+
+    expect(savedMarkers).toHaveLength(2);
+    expect(savedMarkers[0]).toMatchObject({
+      id: "marker-1",
+      x: 99,
+      y: 88,
+      photos: [],
+    });
+    expect(savedMarkers[1]).toMatchObject({
       id: "marker-2",
       x: 30,
       y: 40,
       photos: [],
     });
-    expectCreatedAt(
-      markerCreatedAt(savedMarkerRecord.collections[0].markers[0])
-    );
-    expectCreatedAt(
-      markerCreatedAt(savedMarkerRecord.collections[0].markers[1])
-    );
+    expectCreatedAt(markerCreatedAt(savedMarkers[0]));
+    expectCreatedAt(markerCreatedAt(savedMarkers[1]));
   }, 30000);
 });

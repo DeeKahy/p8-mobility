@@ -3,10 +3,8 @@ import Constants from "expo-constants";
 import {
   ApiErrorResponse,
   FloorplanImage,
-  FloorplanImageRecord,
   FloorplanMarker,
-  FloorplanMarkerCollection,
-  FloorplanMarkerCollectionRecord,
+  FloorplanImageRecord,
 } from "./types";
 // Should be False, whenever you are not testing locally
 const USE_LOCAL_API = false;
@@ -243,64 +241,6 @@ export async function replaceFloorplanMarker(
 }
 
 /**
- * Make the server floorplan list match the provided floorplan record.
- *
- * The function compares the current server state with floorplanImageRecord,
- * deletes removed floorplans, appends new ones, and replaces changed ones by
- * delete+create because the server does not allow generic overwrite.
- */
-export async function saveFloorplanImageRecord(
-  floorplanImageRecord: FloorplanImageRecord
-): Promise<void> {
-  let remoteFloorplans: FloorplanImage[] = [];
-
-  try {
-    remoteFloorplans = await getRemoteFloorplans();
-  } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : "Unknown error";
-    if (errorMessage !== "file not found") {
-      throw error;
-    }
-  }
-
-  const remoteFloorplanById = new Map(
-    remoteFloorplans.map((floorplan) => [floorplan.id, floorplan])
-  );
-  const nextFloorplanIds = new Set(
-    floorplanImageRecord.floorplans.map((floorplan) => floorplan.id)
-  );
-
-  for (const remoteFloorplan of remoteFloorplans) {
-    if (!nextFloorplanIds.has(remoteFloorplan.id)) {
-      await deleteOrThrow(
-        floorplanUrl(remoteFloorplan.id),
-        `Deleting floorplan image failed`
-      );
-    }
-  }
-
-  for (const nextFloorplan of floorplanImageRecord.floorplans) {
-    const remoteFloorplan = remoteFloorplanById.get(nextFloorplan.id);
-
-    if (!remoteFloorplan) {
-      await createFloorplanImage(nextFloorplan);
-      continue;
-    }
-
-    if (JSON.stringify(remoteFloorplan) === JSON.stringify(nextFloorplan)) {
-      continue;
-    }
-
-    await deleteOrThrow(
-      floorplanUrl(nextFloorplan.id),
-      `Deleting floorplan image failed`
-    );
-    await createFloorplanImage(nextFloorplan);
-  }
-}
-
-/**
  * Fetch all saved floorplans for the current API user.
  */
 export async function getFloorplanImageRecord(): Promise<FloorplanImageRecord> {
@@ -329,128 +269,6 @@ export async function deleteFloorplanImageRecord(
     floorplanUrl(floorplanId),
     `Deleting floorplan image failed`
   );
-}
-
-/**
- * Make the server marker collections match the provided record.
- *
- * Each collection is synced against its floorplan individually. Collections for
- * floorplans that now have no local collection are synced to an empty marker
- * list so stale markers are removed from the server.
- */
-export async function saveFloorplanMarkerCollectionRecord(
-  floorplanMarkerCollectionRecord: FloorplanMarkerCollectionRecord
-): Promise<void> {
-  const remoteFloorplans = await getRemoteFloorplans();
-  const remoteFloorplanIds = new Set(
-    remoteFloorplans.map((floorplan) => floorplan.id)
-  );
-
-  for (const collection of floorplanMarkerCollectionRecord.collections) {
-    if (!remoteFloorplanIds.has(collection.floorplanId)) {
-      continue;
-    }
-
-    const remoteMarkers = await getRemoteMarkersForFloorplan(
-      collection.floorplanId
-    );
-    const remoteMarkerById = new Map(
-      remoteMarkers.map((marker) => [marker.id, marker])
-    );
-    const nextMarkerIds = new Set(
-      collection.markers.map((marker) => marker.id)
-    );
-
-    for (const remoteMarker of remoteMarkers) {
-      if (!nextMarkerIds.has(remoteMarker.id)) {
-        await deleteOrThrow(
-          markerUrl(collection.floorplanId, remoteMarker.id),
-          `Deleting floorplan marker failed`
-        );
-      }
-    }
-
-    for (const nextMarker of collection.markers) {
-      const remoteMarker = remoteMarkerById.get(nextMarker.id);
-
-      if (!remoteMarker) {
-        await createFloorplanMarker(collection.floorplanId, nextMarker);
-        continue;
-      }
-
-      if (JSON.stringify(remoteMarker) === JSON.stringify(nextMarker)) {
-        continue;
-      }
-
-      const coordinatesChanged =
-        remoteMarker.x !== nextMarker.x || remoteMarker.y !== nextMarker.y;
-      const otherFieldsChanged =
-        JSON.stringify({ ...remoteMarker, x: undefined, y: undefined }) !==
-        JSON.stringify({ ...nextMarker, x: undefined, y: undefined });
-
-      if (coordinatesChanged && !otherFieldsChanged) {
-        await updateFloorplanMarkerCoordinates(
-          collection.floorplanId,
-          nextMarker
-        );
-        continue;
-      }
-
-      await replaceFloorplanMarker(collection.floorplanId, nextMarker);
-    }
-  }
-
-  for (const remoteFloorplan of remoteFloorplans) {
-    const stillExists = floorplanMarkerCollectionRecord.collections.some(
-      (collection) => collection.floorplanId === remoteFloorplan.id
-    );
-
-    if (!stillExists) {
-      const remoteMarkers = await getRemoteMarkersForFloorplan(
-        remoteFloorplan.id
-      );
-      for (const remoteMarker of remoteMarkers) {
-        await deleteOrThrow(
-          markerUrl(remoteFloorplan.id, remoteMarker.id),
-          `Deleting floorplan marker failed`
-        );
-      }
-    }
-  }
-}
-
-/**
- * Fetch markers for every saved floorplan and return them as one record.
- */
-export async function getFloorplanMarkerCollectionRecord(): Promise<FloorplanMarkerCollectionRecord> {
-  const floorplans = await getRemoteFloorplans();
-  const collections: FloorplanMarkerCollection[] = [];
-
-  for (const floorplan of floorplans) {
-    const markers = await getRemoteMarkersForFloorplan(floorplan.id);
-    collections.push({
-      floorplanId: floorplan.id,
-      markers,
-    });
-  }
-
-  return { collections };
-}
-
-/**
- * Delete all markers for one floorplan by syncing it to an empty list.
- */
-export async function deleteFloorplanMarkerCollectionsForFloorplan(
-  floorplanId: string
-): Promise<void> {
-  const markers = await getRemoteMarkersForFloorplan(floorplanId);
-
-  for (const marker of markers) {
-    await deleteOrThrow(
-      markerUrl(floorplanId, marker.id),
-      `Deleting floorplan marker failed`
-    );
-  }
 }
 
 /**
