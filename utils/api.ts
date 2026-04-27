@@ -9,7 +9,7 @@ import {
   FloorplanMarkerCollectionRecord,
 } from "./types";
 // Should be False, whenever you are not testing locally
-const USE_LOCAL_API = true;
+const USE_LOCAL_API = false;
 // THIS IS FOR TESTING ONLY.  this was my local IPv4 Address
 // For you may need to change it.  run ipconfig to se your adress
 const LOCAL_API_BASE_URL = "http://10.27.48.86:5000/api";
