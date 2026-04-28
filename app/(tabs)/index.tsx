@@ -238,7 +238,6 @@ export default function HomeScreen() {
               describedPhotos.current.push(photoData);
               savedPhotos.current.push(photoData);
               console.info(savedPhotos);
-              setPendingPhotos(pendingPhotos);
               if (tempMarker && describedPhotos.current.length > 0) {
                 // If we've gotten submissions for something and nothing is pending, create or update a marker.
                 if (selectedMarkerId) {
