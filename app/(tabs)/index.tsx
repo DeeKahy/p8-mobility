@@ -2,13 +2,9 @@ import * as ImagePicker from "expo-image-picker";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useRef, useState } from "react";
 import { Alert, Image, Text, TouchableOpacity, View } from "react-native";
-import {
-  Gesture,
-  GestureDetector,
-  GestureHandlerRootView,
-} from "react-native-gesture-handler";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useSharedValue } from "react-native-reanimated";
-import { ResumableZoom } from "react-native-zoom-toolkit";
+import { ResumableZoom, ResumableZoomRefType } from "react-native-zoom-toolkit";
 
 import { CameraUI } from "../../components/CameraUI";
 import LoadingOverlay from "../../components/LoadingOverlay";
@@ -78,6 +74,7 @@ export default function HomeScreen() {
     string | null
   >(null);
 
+  const resumableRef = useRef<ResumableZoomRefType>(null);
   const describedPhotos = useRef<PhotoData[]>([]);
   const cameraAction = useRef<((uri: string) => void) | undefined>(undefined);
   const pendingPhotoMetadata = useRef<
@@ -319,27 +316,28 @@ export default function HomeScreen() {
   };
 
   // Try to find a marker at the element center and select it, for when we're trying to place an image
-  // TODO: The selected marker should be highlighted in some way!
-  const findImagePlacementTarget = () =>
+  const findImagePlacementTarget = (x: number, y: number) =>
     withMarkerAt(
-      resumableElementCenterX.value,
-      resumableElementCenterY.value,
-      ({ id }, x, y) => {
+      x,
+      y,
+      ({ id }) => {
         // Found a marker: Select it for now
         setSelectedMarkerId(id);
-        console.info(`Image going to Marker ${id} near (${x},${y})`);
       },
-      (x, y) => {
+      () => {
         // Found no marker: Unselect if needed and move tempMarker
         setSelectedMarkerId(null);
         setTempMarker({ x, y });
-        console.info(`Image going to new Marker at (${x},${y})`);
       }
     );
 
   useEffect(() => {
     // Run whenever a new imageToPlace is assigned (but not unassigned)
-    if (imageToPlace) findImagePlacementTarget();
+    if (imageToPlace)
+      findImagePlacementTarget(
+        resumableElementCenterX.value,
+        resumableElementCenterY.value
+      );
   }, [imageToPlace]);
 
   if (showCamera) {
@@ -435,6 +433,7 @@ export default function HomeScreen() {
 
         {/* Floor plan with markers. */}
         <ResumableZoom
+          ref={resumableRef}
           extendGestures // This should be used with extendBorders or it might act weird.
           extendBorders // extendBorders is our own addition. Don't forget to apply the patch!
           onUpdate={(state) => {
@@ -454,67 +453,76 @@ export default function HomeScreen() {
               setImageToPlace("");
             }
           }}
+          onTap={(event) => {
+            if (resumableRef.current) {
+              const { scale, containerSize, childSize } =
+                resumableRef.current.getState();
+              // Adjust event coordinates to be in the child element's coordinate space
+              event.x += -(containerSize.width / 2);
+              event.y +=
+                -(containerSize.height / 2) -
+                (containerSize.height - childSize.height) / 2;
+
+              if (imageToPlace) {
+                // Move to the position of the tap for quick navigation
+                resumableRef.current.zoom(scale, { x: event.x, y: event.y });
+                // Check if a marker was hit and select it
+                findImagePlacementTarget(event.x, event.y);
+              } else {
+                // Bring up the menu to edit or create a marker
+                handleCanvasPress(event);
+              }
+            }
+          }}
           onGestureEnd={() => {
             if (imageToPlace) {
-              findImagePlacementTarget();
+              findImagePlacementTarget(
+                resumableElementCenterX.value,
+                resumableElementCenterY.value
+              );
             }
           }}
         >
-          <GestureDetector
-            gesture={Gesture.Tap() // Copying ResumableZoom's tap gesture parameters to have taps registered on the inside of it.
-              .maxDuration(250)
-              .numberOfTaps(1)
-              .runOnJS(true)
-              .onEnd((event) => {
-                if (imageToPlace) {
-                  // TODO: setTransformState to the position of the tap for quick navigation
-                } else {
-                  // Bring up the menu to edit or create a marker
-                  handleCanvasPress(event);
-                }
-              })}
-          >
-            <View style={styles.canvas}>
-              <Image
-                source={{ uri: floorplan }}
-                style={styles.floorPlanImage}
-                resizeMode="contain"
+          <View style={styles.canvas}>
+            <Image
+              source={{ uri: floorplan }}
+              style={styles.floorPlanImage}
+              resizeMode="contain"
+            />
+
+            {/* Render markers */}
+            {markers.map((marker) => (
+              <MarkerElement
+                marker={marker}
+                key={marker.id}
+                highlight={selectedMarkerId === marker.id}
+                scale={resumableState.scale}
               />
+            ))}
 
-              {/* Render markers */}
-              {markers.map((marker) => (
-                <MarkerElement
-                  marker={marker}
-                  key={marker.id}
-                  highlight={selectedMarkerId === marker.id}
-                  scale={resumableState.scale}
-                />
-              ))}
+            {/* Preview of marker to camera-first create */}
+            {imageToPlace ? (
+              <MarkerElement
+                x={resumableElementCenterX}
+                y={resumableElementCenterY}
+                scale={resumableState.scale}
+              />
+            ) : null}
 
-              {/* Preview of marker to camera-first create */}
-              {imageToPlace ? (
-                <MarkerElement
-                  x={resumableElementCenterX}
-                  y={resumableElementCenterY}
-                  scale={resumableState.scale}
-                />
-              ) : null}
-
-              {/* New marker popup */}
-              {showTempMarker && tempMarker && (
-                <EditMarkerModal
-                  tempMarker={tempMarker}
-                  onCancel={() => {
-                    setShowTempMarker(false);
-                  }}
-                  onAddPicture={() => {
-                    setShowNewMarkerOptions(true);
-                  }}
-                  scale={resumableState.scale}
-                />
-              )}
-            </View>
-          </GestureDetector>
+            {/* New marker popup */}
+            {showTempMarker && tempMarker && (
+              <EditMarkerModal
+                tempMarker={tempMarker}
+                onCancel={() => {
+                  setShowTempMarker(false);
+                }}
+                onAddPicture={() => {
+                  setShowNewMarkerOptions(true);
+                }}
+                scale={resumableState.scale}
+              />
+            )}
+          </View>
         </ResumableZoom>
         {/* New marker options modal */}
         <NewMarkerOptionsModal
