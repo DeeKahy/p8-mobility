@@ -338,9 +338,9 @@ export default function HomeScreen() {
     );
 
   useEffect(() => {
-    // Run the first time the tab is loaded
+    // Run whenever a new imageToPlace is assigned (but not unassigned)
     if (imageToPlace) findImagePlacementTarget();
-  }, []);
+  }, [imageToPlace]);
 
   if (showCamera) {
     return (
@@ -486,6 +486,7 @@ export default function HomeScreen() {
                 <MarkerElement
                   marker={marker}
                   key={marker.id}
+                  highlight={selectedMarkerId === marker.id}
                   scale={resumableState.scale}
                 />
               ))}
