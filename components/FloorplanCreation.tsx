@@ -1,15 +1,20 @@
-import { Directory, File, Paths } from "expo-file-system";
+import { File } from "expo-file-system";
 import { useRouter } from "expo-router";
 import { useRef, useState } from "react";
 import { Modal, Text, TextInput, TouchableOpacity, View } from "react-native";
 import Svg, { G, Polygon, Text as SvgText } from "react-native-svg";
 import ViewShot, { captureRef } from "react-native-view-shot";
 
+import LoadingOverlay from "./LoadingOverlay";
 import { RotationControls } from "./RotationControls";
 import { SaveFormModal } from "./SaveModal";
 import { useRotation } from "../app/hooks/useRotation";
+import { useFloorplan } from "../context/FloorplanContext";
+import { useLogger } from "../context/LoggerContext";
 import { PointProps } from "../models/PointProps";
+import { createFloorplanImage } from "../utils/api";
 import { calculateDistanceMeters, calculateMidPoint } from "../utils/arMath";
+import { toImageDataUri } from "../utils/imageDataHelpers";
 
 // Type to ensure that component CreateSvg only takes type of string
 type CreateSvgProps = {
@@ -20,13 +25,15 @@ export default function SvgComponent({
   pointList,
   visible,
   onClose,
-  onDelete,
 }: PointProps) {
   const { rotation, startRotating, stopRotating } = useRotation();
   const viewShotRef = useRef(null);
   const [name, setName] = useState<string>("");
   const router = useRouter();
   const [showSaveModal, setShowSaveModal] = useState(false);
+  const [isSavingFloorplan, setIsSavingFloorplan] = useState(false);
+  const { refreshStoredFloorplans } = useFloorplan();
+  const { error, log } = useLogger();
 
   /*Issue with smaller polygons not being visible on screen and too large can overtake screen, so we want to take min and max and give it to viewbox.
   Viewbox has  viewBox="x y maxHeight maxWidth".
@@ -54,25 +61,39 @@ export default function SvgComponent({
 
   async function saveToList() {
     try {
-      //Creates a path for a new directory in the local storage
-      const imagesDirectory = new Directory(Paths.document, "floorplan-images");
-      //Checks if the directory already exists
-      if (!imagesDirectory.exists) {
-        imagesDirectory.create();
-      }
-
+      setIsSavingFloorplan(true);
       const capturedUri = await captureRef(viewShotRef, {
         format: "png",
         quality: 1,
       });
 
-      console.log("capturedUri:", capturedUri);
-      const outputUri = imagesDirectory.uri + `/floorplan-${Date.now()}.png`;
-      const destFile = new File(outputUri);
-      const sourceFile = new File(capturedUri);
-      sourceFile.copy(destFile);
-    } catch (error) {
-      throw new Error("Couldn't save picture to list" + error);
+      // For creating the id for the floorplan
+      const createdAt = new Date().toISOString();
+      const nextFloorplanId = `floorplan-${Date.now()}`;
+      const imageBase64 = await new File(capturedUri).base64();
+      const nextFloorplanName =
+        name.trim().length > 0 ? name.trim() : `Floorplan ${createdAt}`;
+
+      // Save it to the server
+      await createFloorplanImage({
+        id: nextFloorplanId,
+        imageUri: toImageDataUri(imageBase64, "png"),
+        imageName: nextFloorplanName,
+        createdAt,
+        imageBase64,
+        imageFileExtension: "png",
+      });
+      log(`Successfully saved floorplan ${nextFloorplanId} to API`);
+
+      await refreshStoredFloorplans();
+      log("Successfully refreshed stored floorplans after save");
+    } catch (caughtError) {
+      const errorMessage =
+        caughtError instanceof Error ? caughtError.message : "Unknown error";
+      error(`Saving floorplan failed: ${errorMessage}`);
+      throw new Error("Couldn't save picture to list" + caughtError);
+    } finally {
+      setIsSavingFloorplan(false);
     }
   }
 
@@ -148,6 +169,7 @@ export default function SvgComponent({
 
   return (
     <Modal visible={visible} onRequestClose={onClose}>
+      {isSavingFloorplan && <LoadingOverlay text="Saving floorplan..." />}
       <SaveFormModal
         visible={showSaveModal}
         onClose={() => setShowSaveModal(false)}

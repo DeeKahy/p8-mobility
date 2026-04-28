@@ -57,3 +57,8 @@ maestro-*.png
 
 # IDE settings
 .vscode
+/server/Lib
+/server/Scripts
+server/pyvenv.cfg
+/server/__pycache__
+/server/data

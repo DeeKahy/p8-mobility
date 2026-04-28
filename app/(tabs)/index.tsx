@@ -1,7 +1,7 @@
 import { CameraView } from "expo-camera";
 import * as ImagePicker from "expo-image-picker";
 import { StatusBar } from "expo-status-bar";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Alert, Image, Text, TouchableOpacity, View } from "react-native";
 import {
   Gesture,
@@ -14,6 +14,7 @@ import {
 } from "react-native-zoom-toolkit";
 
 import { CameraUI } from "../../components/CameraUI";
+import LoadingOverlay from "../../components/LoadingOverlay";
 import MyFloorPlans from "../../components/floorplans";
 import { EditMarkerModal } from "../../components/index/EditMarkerModal";
 import { MarkerElement } from "../../components/index/MarkerElement";
@@ -24,17 +25,25 @@ import { PhotoFormModal } from "../../components/photoForm";
 import { PhotoList } from "../../components/photos_list";
 import { useFloorplan } from "../../context/FloorplanContext";
 import { useLogger } from "../../context/LoggerContext";
+import { useToast } from "../../context/ToastProvider";
 import { styles } from "../../css/indexStyle";
+import type { Marker } from "../../hooks/useMarkers";
 import { PhotoData } from "../../models/PhotoFormModel";
-import { isImageBlurry } from "../../utils/blurDetection";
+import { getBlurScore, IMAGE_BLUR_THRESHOLD } from "../../utils/blurDetection";
+import { preparePhotosForUpload } from "../../utils/imageDataHelpers";
 
 export default function HomeScreen() {
+  //---------------------------------- Starts when page is rendered-------------
   const {
     markers,
+    storedFloorplans,
+    isLoadingStoredFloorplans,
+    isSavingMarkers,
     floorplan,
     selectedMarkerId,
     pickFloorplan,
     pickFromMyFloorplan,
+    deleteStoredFloorplan,
     handleCanvasPress,
     addPhotos,
     removePhoto,
@@ -51,18 +60,71 @@ export default function HomeScreen() {
   const { onUpdate: onResumableUpdate, state: resumableState } =
     useTransformationState("resumable");
 
-  const { log } = useLogger();
+  const { error, log } = useLogger();
+  const { showToast } = useToast();
 
   const [showPhotos, setShowPhotos] = useState(false);
   const [showCamera, setShowCamera] = useState(false);
   const [showNewMarkerOptions, setShowNewMarkerOptions] = useState(false);
   const [pendingPhotos, setPendingPhotos] = useState<string[]>([]);
   const [showPhotoListView, setShowPhotoListView] = useState<boolean>(false);
+  const [loadingText, setLoadingText] = useState<string | null>(null);
+  // Keep the gallery tied to the marker it opened for while selection/modal state changes.
+  const [photoGalleryMarkerId, setPhotoGalleryMarkerId] = useState<
+    string | null
+  >(null);
 
   const describedPhotos = useRef<PhotoData[]>([]);
   const cameraAction = useRef<((uri: string) => void) | undefined>(undefined);
   const cameraRef = useRef<CameraView>(null);
+  const pendingPhotoMetadata = useRef<
+    Record<string, { base64: string; fileExtension: string }>
+  >({});
   const savedPhotos = useRef<PhotoData[]>([]);
+  const currentUri = pendingPhotos[0];
+  // The gallery edits photos for the single marker it was opened from. Re-read
+  // that marker from the latest markers array so modal actions use fresh photos.
+  let photoGalleryMarker: Marker | undefined;
+  if (photoGalleryMarkerId) {
+    photoGalleryMarker = markers.find(
+      (marker) => marker.id === photoGalleryMarkerId
+    );
+  } else {
+    photoGalleryMarker = undefined;
+  }
+
+  useEffect(() => {
+    savedPhotos.current = markers.flatMap((marker) => marker.photos);
+  }, [markers]);
+
+  async function scoreAndToastBlur(uri: string): Promise<number> {
+    const score = await getBlurScore(uri);
+    const isBlurry = score < IMAGE_BLUR_THRESHOLD;
+    const roundedScore = Math.round(score);
+
+    showToast(
+      `Blur score: ${roundedScore} (${isBlurry ? "blurry" : "sharp"})`,
+      isBlurry ? "Error" : "Info"
+    );
+    log(
+      `Blur detection result | score: ${score} | threshold: ${IMAGE_BLUR_THRESHOLD} | blurry: ${isBlurry}`
+    );
+
+    return score;
+  }
+
+  async function withLoadingOverlay<T>(
+    text: string,
+    action: () => Promise<T>
+  ): Promise<T> {
+    setLoadingText(text);
+
+    try {
+      return await action();
+    } finally {
+      setLoadingText(null);
+    }
+  }
 
   async function getValidImages(images: ImagePicker.ImagePickerAsset[]) {
     const twoWeeksAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
@@ -88,26 +150,41 @@ export default function HomeScreen() {
         continue;
       }
 
-      const isBlurry = await isImageBlurry(image.uri, log);
-      if (isBlurry) {
-        Alert.alert("Image is too blurry. Please choose another.");
-        continue;
-      }
+      await scoreAndToastBlur(image.uri);
       validImages.push(image);
     }
     return validImages;
   }
+  /**
+   * Starts the new-marker gallery flow by validating selected images.
+   * We also prepare the picture for upload, making them base64 for sending.
 
+   */
   const handleNewMarkerFromCameraRoll = async () => {
-    console.info("handleNewMarkerFromCameraRoll");
     setShowNewMarkerOptions(false);
     const result = await pickPhotoFromLibrary(0);
     if (!result || !tempMarker) return;
 
-    setShowNewMarkerOptions(false);
-    setShowTempMarker(false);
-    // setShowPhotoForm(true);
-    setPendingPhotos((await getValidImages(result)).map((p) => p.uri));
+    try {
+      const { preparedPhotoUris, photoMetadataByUri } =
+        await withLoadingOverlay("Running blur detection...", async () => {
+          // Validates thats its not older than x days
+          const validImages = await getValidImages(result);
+          const validPhotoUris = validImages.map((p) => p.uri);
+          log("Preparing photos for upload");
+          return preparePhotosForUpload(validPhotoUris);
+        });
+      Object.assign(pendingPhotoMetadata.current, photoMetadataByUri);
+
+      setShowNewMarkerOptions(false);
+      setShowTempMarker(false);
+      setPendingPhotos(preparedPhotoUris);
+      log("Successfully prepared new marker photos from gallery");
+    } catch (caughtError) {
+      const errorMessage =
+        caughtError instanceof Error ? caughtError.message : "Unknown error";
+      error(`Preparing new marker gallery photos failed: ${errorMessage}`);
+    }
   };
 
   const handleNewMarkerFromPicture = async () => {
@@ -116,8 +193,25 @@ export default function HomeScreen() {
     if (!tempMarker) return;
 
     cameraAction.current = (img) => {
-      setPendingPhotos([img]);
-      setShowCamera(false);
+      withLoadingOverlay("Running blur detection...", async () => {
+        await scoreAndToastBlur(img);
+        log("Preparing photos for upload");
+        return preparePhotosForUpload([img]);
+      })
+        .then(({ preparedPhotoUris, photoMetadataByUri }) => {
+          Object.assign(pendingPhotoMetadata.current, photoMetadataByUri);
+          setPendingPhotos(preparedPhotoUris);
+          setShowCamera(false);
+          log("Successfully prepared new marker photo from camera");
+        })
+        .catch((caughtError: unknown) => {
+          const errorMessage =
+            caughtError instanceof Error
+              ? caughtError.message
+              : "Unknown error";
+          error(`Preparing new marker camera photo failed: ${errorMessage}`);
+          throw caughtError;
+        });
     };
     setShowNewMarkerOptions(false);
     setShowTempMarker(false);
@@ -127,26 +221,72 @@ export default function HomeScreen() {
     setShowNewMarkerOptions(false);
     const result = await pickPhotoFromLibrary(0);
     if (!result || !selectedMarkerId) return;
-    // setShowPhotoForm(true);
-    setPendingPhotos((await getValidImages(result)).map((p) => p.uri));
-  };
 
+    try {
+      const { preparedPhotoUris, photoMetadataByUri } =
+        await withLoadingOverlay("Running blur detection...", async () => {
+          const validPhotoUris = (await getValidImages(result)).map(
+            (photo) => photo.uri
+          );
+          log("Preparing photos for upload");
+          return preparePhotosForUpload(validPhotoUris);
+        });
+      Object.assign(pendingPhotoMetadata.current, photoMetadataByUri);
+
+      setPendingPhotos(preparedPhotoUris);
+      log("Successfully prepared additional marker photos from gallery");
+    } catch (caughtError) {
+      const errorMessage =
+        caughtError instanceof Error ? caughtError.message : "Unknown error";
+      error(
+        `Preparing additional marker gallery photos failed: ${errorMessage}`
+      );
+      throw caughtError;
+    }
+  };
+  /**
+   * Starts the add-to-marker camera flow, prepares the captured photo,
+   * and queues it for the selected marker's photo form.
+   */
   const handleAddFromPictureToMarker = async () => {
     if (!selectedMarkerId) return;
     setShowNewMarkerOptions(false);
     setShowCamera(true);
 
     cameraAction.current = (img) => {
-      setPendingPhotos([img]);
-      setShowCamera(false);
+      withLoadingOverlay("Running blur detection...", async () => {
+        await scoreAndToastBlur(img);
+        log("Preparing photos for upload");
+        return preparePhotosForUpload([img]);
+      })
+        .then(({ preparedPhotoUris, photoMetadataByUri }) => {
+          Object.assign(pendingPhotoMetadata.current, photoMetadataByUri);
+          setPendingPhotos(preparedPhotoUris);
+          setShowCamera(false);
+          log("Successfully prepared additional marker photo from camera");
+        })
+        .catch((caughtError: unknown) => {
+          const errorMessage =
+            caughtError instanceof Error
+              ? caughtError.message
+              : "Unknown error";
+          error(
+            `Preparing additional marker camera photo failed: ${errorMessage}`
+          );
+          throw caughtError;
+        });
     };
   };
 
   const handleDeletePhoto = (photo: PhotoData) => {
-    if (!selectedMarkerId) return;
-    removePhoto(selectedMarkerId, photo);
-  };
+    const markerIdToUpdate = photoGalleryMarkerId ?? selectedMarkerId;
 
+    if (!markerIdToUpdate) return;
+    removePhoto(markerIdToUpdate, photo);
+  };
+  /**
+   * Opens the device image library and returns the selected image assets.
+   */
   const pickPhotoFromLibrary = async (selectionLimit = 1) => {
     const res = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ["images"],
@@ -160,6 +300,9 @@ export default function HomeScreen() {
   };
 
   const handleShowPhotos = () => {
+    if (selectedMarkerId) {
+      setPhotoGalleryMarkerId(selectedMarkerId);
+    }
     setShowMarkerOptions(false);
     setShowPhotos(true);
   };
@@ -167,6 +310,7 @@ export default function HomeScreen() {
   const closeAllModals = () => {
     setShowCamera(false);
     setShowPhotos(false);
+    setPhotoGalleryMarkerId(null);
     setSelectedMarkerId(null);
     setShowMarkerOptions(false);
     setShowTempMarker(false);
@@ -174,11 +318,14 @@ export default function HomeScreen() {
 
   if (showCamera) {
     return (
-      <CameraUI
-        onPictureTaken={cameraAction.current}
-        cameraRef={cameraRef}
-        onCancel={() => setShowCamera(false)}
-      />
+      <View style={{ flex: 1 }}>
+        <CameraUI
+          onPictureTaken={cameraAction.current}
+          cameraRef={cameraRef}
+          onCancel={() => setShowCamera(false)}
+        />
+        {loadingText && <LoadingOverlay text={loadingText} />}
+      </View>
     );
   }
 
@@ -195,11 +342,10 @@ export default function HomeScreen() {
           <Text style={styles.pickButtonText}>Add from gallery</Text>
         </TouchableOpacity>
         <MyFloorPlans
+          floorplans={storedFloorplans}
+          isLoading={isLoadingStoredFloorplans}
           pickFloorPlan={pickFromMyFloorplan}
-          photoUri=""
-          onDelete={function (uri: string): void {
-            throw new Error("Function not implemented.");
-          }}
+          onDeleteFloorPlan={deleteStoredFloorplan}
         />
       </View>
     );
@@ -328,7 +474,7 @@ export default function HomeScreen() {
 
         <PhotoGalleryModal
           showModal={showPhotos}
-          marker={selectedMarker}
+          marker={photoGalleryMarker}
           handleDeletePhoto={handleDeletePhoto}
           closeAllModals={closeAllModals}
         />
@@ -350,6 +496,9 @@ export default function HomeScreen() {
         <Text style={styles.instructions}>
           Tap on the floor plan to place a marker
         </Text>
+        {(loadingText || isSavingMarkers) && (
+          <LoadingOverlay text={loadingText ?? "Saving marker..."} />
+        )}
       </View>
     </GestureHandlerRootView>
   );

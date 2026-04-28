@@ -1,6 +1,14 @@
 import { useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  Alert,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 
+import { useFloorplan } from "../../context/FloorplanContext";
 import { type LogEntry, useLogger } from "../../context/LoggerContext";
 
 type GroupedLogs = Record<string, LogEntry[]>;
@@ -86,7 +94,8 @@ function renderGroups(
 }
 
 export default function Debug() {
-  const { logs, clearLogs } = useLogger();
+  const { logs, clearLogs, log, error } = useLogger();
+  const { clearAllUserData } = useFloorplan();
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
 
   const logsGroupedByGroup = groupLogsByGroup(logs);
@@ -99,6 +108,32 @@ export default function Debug() {
     });
   };
 
+  const confirmClearAllUserData = () => {
+    Alert.alert(
+      "Clear all user data",
+      "This will delete all saved floorplans and markers for the current user on the server.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Clear",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await clearAllUserData();
+              log("Cleared all user data from the server");
+            } catch (caughtError) {
+              const errorMessage =
+                caughtError instanceof Error
+                  ? caughtError.message
+                  : "Unknown error";
+              error(`Clearing all user data failed: ${errorMessage}`);
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const page = (
     <View style={styles.container}>
       <Text style={styles.title}>Debugger</Text>
@@ -109,6 +144,14 @@ export default function Debug() {
         nativeID="Button-to-clear-logs"
       >
         <Text style={styles.clearText}>Clear Logs</Text>
+      </Pressable>
+
+      <Pressable
+        style={styles.deleteButton}
+        onPress={confirmClearAllUserData}
+        nativeID="Button-to-clear-all-user-data"
+      >
+        <Text style={styles.clearText}>Clear All User Data</Text>
       </Pressable>
 
       <ScrollView style={styles.logContainer} nativeID="Log group container">
@@ -135,6 +178,14 @@ const styles = StyleSheet.create({
 
   clearButton: {
     backgroundColor: "#ff4444",
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+    marginBottom: 12,
+  },
+
+  deleteButton: {
+    backgroundColor: "#8b0000",
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 8,
