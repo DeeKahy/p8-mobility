@@ -81,7 +81,6 @@ export default function HomeScreen() {
     Record<string, { base64: string; fileExtension: string }>
   >({});
   const savedPhotos = useRef<PhotoData[]>([]);
-  const currentUri = pendingPhotos[0];
   // The gallery edits photos for the single marker it was opened from. Re-read
   // that marker from the latest markers array so modal actions use fresh photos.
   let photoGalleryMarker: Marker | undefined;
