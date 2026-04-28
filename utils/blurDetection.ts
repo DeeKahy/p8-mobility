@@ -28,7 +28,7 @@ type BlurLogger = (message: string) => void;
  */
 // I chose this number based on testing on a few images. The higer the value the less blury the picture is.
 // The blurry picture i took was 16, and the "sharp" was 116. I dont have a good camera, so i think this value fits. (ish)
-const IMAGE_BLUR_THRESHOLD = 100;
+export const IMAGE_BLUR_THRESHOLD = 100;
 
 // All of the following is async, as the image manipulating tools we use are async.
 /**

@@ -1,44 +1,48 @@
-import { Directory, Paths, File } from "expo-file-system";
-import { useState } from "react";
 import {
-  Text,
-  View,
+  Alert,
   FlatList,
   Image,
+  Text,
   TouchableOpacity,
-  Alert,
+  View,
 } from "react-native";
 
 import { useToast } from "../context/ToastProvider";
 import { styles } from "../css/floorplanillustrator";
+import {
+  FloorplanCardProps,
+  FloorplanImage,
+  FloorplanListProps,
+} from "../utils/types";
 
-type PickPlan = {
-  photoUri: string;
-  pickFloorPlan: (photoUri: string) => void;
-  onDelete: (uri: string) => void;
-  name?: string;
-};
-
-const Item = ({ photoUri, pickFloorPlan, onDelete, name }: PickPlan) => (
+const FloorplanCard = ({
+  storedFloorplan,
+  pickFloorPlan,
+  onDeleteFloorPlan,
+}: FloorplanCardProps) => (
   <View style={styles.card}>
     <Image
-      source={{ uri: photoUri }}
+      source={{ uri: storedFloorplan.imageUri }}
       style={styles.image}
       resizeMode="contain"
     />
     <Text style={styles.label} numberOfLines={1} ellipsizeMode="tail">
-      {name || photoUri}
+      {storedFloorplan.imageName}
     </Text>
     <View style={styles.buttonRow}>
       <TouchableOpacity
-        onPress={() => pickFloorPlan(photoUri)}
+        onPress={() => {
+          void pickFloorPlan(storedFloorplan);
+        }}
         style={styles.rowButton}
       >
         <Text style={styles.buttonText}>Use Floor Plan</Text>
       </TouchableOpacity>
 
       <TouchableOpacity
-        onPress={() => onDelete(photoUri)}
+        onPress={() => {
+          void onDeleteFloorPlan(storedFloorplan);
+        }}
         style={[styles.rowButton, styles.deleteButton]}
       >
         <Text style={styles.buttonText}>Delete</Text>
@@ -47,35 +51,43 @@ const Item = ({ photoUri, pickFloorPlan, onDelete, name }: PickPlan) => (
   </View>
 );
 
-export default (props: PickPlan) => {
+export default function FloorplanList({
+  floorplans,
+  isLoading,
+  pickFloorPlan,
+  onDeleteFloorPlan,
+}: FloorplanListProps) {
   const { showToast } = useToast();
-  const imagesDirectory = new Directory(Paths.document, "floorplan-images");
 
-  const getFloorplanNameFromUri = (photoUri: string) => {
-    try {
-      const fileName = photoUri.split("/").pop() || "";
-      const match = fileName.match(/^floorplan-\d+-(.+)\.png$/);
-      if (!match) {
-        return "Unnamed Floorplan";
-      }
-
-      return decodeURIComponent(match[1]).replace(/_/g, " ");
-    } catch {
-      return "Unnamed Floorplan";
-    }
+  const confirmDeleteFloorplan = (storedFloorplan: FloorplanImage) => {
+    Alert.alert("Delete Image", "Are you sure you want to delete this image?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await onDeleteFloorPlan(storedFloorplan);
+            showToast("Image has been deleted", "Success");
+          } catch (error) {
+            showToast("Image could not be deleted", "Error");
+            throw new Error(`Could not delete floorplan: ${String(error)}`);
+          }
+        },
+      },
+    ]);
   };
 
-  const getImagesFromCache = () => {
-    if (!imagesDirectory.exists) return;
-    return imagesDirectory.list().map((file) => file.uri);
-  };
+  if (isLoading) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.header}>Floor Plans</Text>
+        <Text style={styles.empty}>Loading floor plans...</Text>
+      </View>
+    );
+  }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [images, setImages] = useState<string[] | undefined>(
-    getImagesFromCache
-  );
-
-  if (getImagesFromCache()?.length === 0) {
+  if (floorplans.length === 0) {
     return (
       <View style={styles.container}>
         <Text style={styles.header}>Floor Plans</Text>
@@ -86,51 +98,21 @@ export default (props: PickPlan) => {
     );
   }
 
-  const onDelete = (photoUri: string) => {
-    Alert.alert(
-      "Delete Floor Plan",
-      "Are you sure you want to delete this floorplan?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: () => onConfirmDelete(photoUri),
-        },
-      ]
-    );
-  };
-
-  const onConfirmDelete = (photoUri: string) => {
-    try {
-      const uriFile = new File(photoUri);
-      if (uriFile) {
-        uriFile.delete();
-        setImages((uris) => uris?.filter((uri) => uri !== photoUri));
-        showToast("Image has been deleted", "Success");
-      }
-    } catch (error) {
-      showToast("Image could not be deleted", "Error");
-      throw new Error("Could not delete" + error);
-    }
-  };
-
   return (
     <View style={styles.container}>
       <Text style={styles.header}>Floor Plans</Text>
       <FlatList
-        data={getImagesFromCache()}
-        keyExtractor={(item, index) => index.toString()}
+        data={floorplans}
+        keyExtractor={(storedFloorplan) => storedFloorplan.id}
         renderItem={({ item }) => (
-          <Item
-            photoUri={item}
-            pickFloorPlan={props.pickFloorPlan}
-            onDelete={onDelete}
-            name={getFloorplanNameFromUri(item)}
+          <FloorplanCard
+            storedFloorplan={item}
+            pickFloorPlan={pickFloorPlan}
+            onDeleteFloorPlan={confirmDeleteFloorplan}
           />
         )}
         contentContainerStyle={styles.list}
       />
     </View>
   );
-};
+}

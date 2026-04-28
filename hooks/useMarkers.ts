@@ -26,6 +26,10 @@ export const useMarkers = () => {
     setMarkers([]);
   };
 
+  const replaceMarkers = (nextMarkers: Marker[]) => {
+    setMarkers(nextMarkers);
+  };
+
   const addMarker = (x: number, y: number, photos: PhotoData[]) => {
     const newMarker: Marker = {
       id: Date.now().toString(),
@@ -119,6 +123,7 @@ export const useMarkers = () => {
 
   return {
     markers,
+    replaceMarkers,
     addMarker,
     deleteMarker,
     clearMarkers,
