@@ -106,19 +106,17 @@ export const useMarkers = () => {
 
   const tryGetMarker = (x: number, y: number, scale: number = 1) => {
     const TOLERANCE = 30;
-    let nearMarkers = markers.filter(
-      (m) => Math.abs(m.x - x) + Math.abs(m.y - y) < TOLERANCE / scale
-    ); // Check if any markers are within tolerance (Manhattan Distance)
-    if (nearMarkers.length === 0) return null;
-
-    if (nearMarkers.length === 1) return nearMarkers[0];
-    nearMarkers = nearMarkers.sort((a, b) =>
-      Math.abs(a.x - x) + Math.abs(a.y - y) <
-      Math.abs(b.x - x) + Math.abs(b.y - y)
-        ? -1
-        : 1
-    );
-    return nearMarkers[0];
+    let closestMarker = null;
+    let minDistance = Infinity;
+    markers.forEach((m) => {
+      // Compute Manhattan distance from given point and replace closestMarker if distance is smaller
+      const distance = Math.abs(m.x - x) + Math.abs(m.y - y);
+      if (distance < TOLERANCE / scale && distance < minDistance) {
+        closestMarker = m;
+        minDistance = distance;
+      }
+    });
+    return closestMarker;
   };
 
   return {
