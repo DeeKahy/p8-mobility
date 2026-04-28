@@ -81,7 +81,6 @@ export default function HomeScreen() {
     Record<string, { base64: string; fileExtension: string }>
   >({});
   const savedPhotos = useRef<PhotoData[]>([]);
-  const currentUri = pendingPhotos[0];
   // The gallery edits photos for the single marker it was opened from. Re-read
   // that marker from the latest markers array so modal actions use fresh photos.
   let photoGalleryMarker: Marker | undefined;
@@ -356,93 +355,48 @@ export default function HomeScreen() {
       <View style={styles.container}>
         <StatusBar style="auto" />
 
-        {currentUri && (
+        {pendingPhotos.length > 0 && (
           <PhotoFormModal
-            visible
             onSkip={() => {
-              setPendingPhotos((currentPendingPhotos) => {
-                const nextPendingPhotos = currentPendingPhotos.slice(1);
-                const skippedPhotoUri = currentPendingPhotos[0];
-
-                if (skippedPhotoUri) {
-                  delete pendingPhotoMetadata.current[skippedPhotoUri];
+              setPendingPhotos((photos) => photos.slice(0, -1));
+              if (tempMarker && describedPhotos.current.length > 0) {
+                // If we've gotten submissions for something and nothing is pending, create or update a marker.
+                if (selectedMarkerId) {
+                  addPhotos(selectedMarkerId, describedPhotos.current);
+                } else {
+                  addMarker(
+                    tempMarker.x,
+                    tempMarker.y,
+                    describedPhotos.current
+                  );
                 }
-
-                if (
-                  nextPendingPhotos.length === 0 &&
-                  tempMarker &&
-                  describedPhotos.current.length > 0
-                ) {
-                  if (selectedMarkerId) {
-                    log(
-                      "Marker flow step: photo form complete, adding photos to existing marker"
-                    );
-                    addPhotos(selectedMarkerId, describedPhotos.current);
-                  } else {
-                    log(
-                      "Marker flow step: photo form complete, creating new marker"
-                    );
-                    addMarker(
-                      tempMarker.x,
-                      tempMarker.y,
-                      describedPhotos.current
-                    );
-                  }
-                  describedPhotos.current = [];
-                }
-
-                return nextPendingPhotos;
-              });
+                describedPhotos.current = []; // Prep for next marker creation.
+              }
+              //setShowPhotoForm(false);
             }} // Skip one URI on close.
-            photoUri={currentUri}
+            photoUri={pendingPhotos[0]}
             date="2026-01-01"
             onSubmit={(photoData) => {
-              setPendingPhotos((currentPendingPhotos) => {
-                const nextPendingPhotos = currentPendingPhotos.slice(1);
-                const submittedPhotoUri = currentPendingPhotos[0];
-                const submittedPhotoMetadata = submittedPhotoUri
-                  ? pendingPhotoMetadata.current[submittedPhotoUri]
-                  : undefined;
-
-                if (submittedPhotoUri) {
-                  delete pendingPhotoMetadata.current[submittedPhotoUri];
+              setPendingPhotos((photos) => photos.slice(0, -1));
+              // Store data on submit of photo data.
+              describedPhotos.current.push(photoData);
+              savedPhotos.current.push(photoData);
+              console.info(savedPhotos);
+              if (tempMarker && describedPhotos.current.length > 0) {
+                // If we've gotten submissions for something and nothing is pending, create or update a marker.
+                if (selectedMarkerId) {
+                  addPhotos(selectedMarkerId, describedPhotos.current);
+                } else {
+                  addMarker(
+                    tempMarker.x,
+                    tempMarker.y,
+                    describedPhotos.current
+                  );
                 }
-
-                const preparedPhotoData: PhotoData = {
-                  ...photoData,
-                  photoBase64: submittedPhotoMetadata?.base64,
-                  photoFileExtension: submittedPhotoMetadata?.fileExtension,
-                };
-
-                describedPhotos.current.push(preparedPhotoData);
-                savedPhotos.current.push(preparedPhotoData);
-
-                if (
-                  nextPendingPhotos.length === 0 &&
-                  tempMarker &&
-                  describedPhotos.current.length > 0
-                ) {
-                  if (selectedMarkerId) {
-                    log(
-                      "Marker flow step: photo form complete, adding photos to existing marker"
-                    );
-                    addPhotos(selectedMarkerId, describedPhotos.current);
-                  } else {
-                    log(
-                      "Marker flow step: photo form complete, creating new marker"
-                    );
-                    addMarker(
-                      tempMarker.x,
-                      tempMarker.y,
-                      describedPhotos.current
-                    );
-                  }
-                  describedPhotos.current = [];
-                }
-
-                return nextPendingPhotos;
-              });
+                describedPhotos.current = []; // Prep for next marker creation.
+              }
             }}
+            visible={false}
           />
         )}
 

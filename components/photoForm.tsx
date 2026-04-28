@@ -2,7 +2,17 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import { useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 //Expected photo data format to make it easier to pass over including only the most necessary. Also works in unison with yup validator.
-import { View, Image, TextInput, Button, Text, Modal } from "react-native";
+import {
+  View,
+  Image,
+  TextInput,
+  Button,
+  Text,
+  Modal,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+} from "react-native";
 import DropDownPicker, { ItemType } from "react-native-dropdown-picker";
 import * as yup from "yup";
 
@@ -25,7 +35,7 @@ const schema = yup
     areaGroup: yup.string().required("Area group is required"),
     pictureName: yup.string().required("Picture name is required"),
     dateTaken: yup.string().required("Date is required"),
-    description: yup.string().required(),
+    description: yup.string().default(""),
   })
   .required();
 
@@ -42,7 +52,6 @@ const generateIcon = (s: string) => (
 );
 
 export const PhotoFormModal = ({
-  visible,
   onSkip,
   photoUri,
   date,
@@ -88,128 +97,138 @@ export const PhotoFormModal = ({
   });
 
   return (
-    <Modal animationType="slide" transparent visible={visible}>
-      <View style={[styles.container, styles.fullscreenOverlay]}>
-        <View style={styles.formCard}>
-          <Text>Picture:</Text>
-          <View style={styles.imageContainer}>
-            <Image source={{ uri: photoUri }} style={styles.image} />
-          </View>
-          {errors.photoUri && (
-            <Text style={styles.error}>{errors.photoUri.message}</Text>
-          )}
+    <Modal animationType="slide" transparent visible>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
+        <ScrollView style={[styles.container, styles.fullscreenOverlay]}>
+          <View>
+            <View style={styles.formCard}>
+              <Text>Picture:</Text>
+              <View style={styles.imageContainer}>
+                <Image source={{ uri: photoUri }} style={styles.image} />
+              </View>
+              {errors.photoUri && (
+                <Text style={styles.error}>{errors.photoUri.message}</Text>
+              )}
 
-          <Text>Picture name:</Text>
-          {/* Tracking input using control for the form  */}
-          <Controller
-            control={control}
-            name="pictureName"
-            render={({ field: { onChange, value } }) => (
-              <TextInput
-                style={styles.input}
-                placeholder="Picture name..."
-                value={value}
-                onChangeText={onChange}
-              />
-            )}
-          />
-          {errors.pictureName && (
-            <Text style={styles.error}>{errors.pictureName.message}</Text>
-          )}
-
-          <Text>Area group:</Text>
-          <Controller
-            control={control}
-            name="areaGroup"
-            render={({ field: { onChange, value } }) => (
-              <View>
-                <DropDownPicker
-                  open={open}
-                  value={value}
-                  items={items}
-                  setOpen={setOpen}
-                  setValue={(currentValue) => {
-                    const newValue = currentValue(value);
-                    setShowOtherInputForm(newValue === "Other");
-                    onChange(newValue);
-                  }}
-                  placeholder="Select area group"
-                />
-                {showOtherInputForm && (
+              <Text>Picture name:</Text>
+              {/* Tracking input using control for the form  */}
+              <Controller
+                control={control}
+                name="pictureName"
+                render={({ field: { onChange, value } }) => (
                   <TextInput
                     style={styles.input}
-                    placeholder="Other..."
+                    placeholder="Picture name..."
+                    value={value}
                     onChangeText={onChange}
                   />
                 )}
-              </View>
-            )}
-          />
-          {errors.areaGroup && (
-            <Text style={styles.error}>{errors.areaGroup.message}</Text>
-          )}
-          <Text>Description:</Text>
-          <Controller
-            control={control}
-            name="description"
-            render={({ field: { value, onChange } }) => (
-              <TextInput
-                multiline
-                numberOfLines={5}
-                style={styles.textarea}
-                value={value}
-                onChangeText={onChange}
               />
-            )}
-          />
-          <Text>Date:</Text>
-          <Controller
-            control={control}
-            name="dateTaken"
-            render={({ field: { value } }) => (
-              <TextInput
-                style={styles.dateInput}
-                value={date}
-                placeholder="YYYY-MM-DD"
-                editable={false}
-              />
-            )}
-          />
-          {errors.dateTaken && (
-            <Text style={styles.error}>{errors.dateTaken.message}</Text>
-          )}
-        </View>
+              {errors.pictureName && (
+                <Text style={styles.error}>{errors.pictureName.message}</Text>
+              )}
 
-        <View style={styles.buttonContainer}>
-          <Button
-            title="Done"
-            disabled={isLoading}
-            onPress={handleSubmit((data) => {
-              onSubmit(data);
-              reset({
-                photoUri,
-                dateTaken: date,
-                pictureName: "",
-                areaGroup: "",
-                description: "",
-              });
-            })}
-          />
-          <Button
-            title="Cancel"
-            onPress={() => {
-              onSkip();
-              reset({
-                photoUri: "",
-                dateTaken: "",
-                pictureName: "",
-                areaGroup: "",
-                description: "",
-              });
-            }}
-          />
-        </View>
-      </View>
+              <Text>Area group:</Text>
+              <Controller
+                control={control}
+                name="areaGroup"
+                render={({ field: { onChange, value } }) => (
+                  <View>
+                    <DropDownPicker
+                      open={open}
+                      value={value}
+                      items={items}
+                      listMode="SCROLLVIEW"
+                      setOpen={setOpen}
+                      setValue={(currentValue) => {
+                        const newValue = currentValue(value);
+                        setShowOtherInputForm(newValue === "Other");
+                        onChange(newValue);
+                      }}
+                      placeholder="Select area group"
+                    />
+                    {showOtherInputForm && (
+                      <TextInput
+                        style={styles.input}
+                        placeholder="Picture name..."
+                        value={value}
+                        onChangeText={onChange}
+                      />
+                    )}
+                  </View>
+                )}
+              />
+              {errors.pictureName && (
+                <Text style={styles.error}>{errors.pictureName.message}</Text>
+              )}
+
+              <Text>Description:</Text>
+              <Controller
+                control={control}
+                name="description"
+                render={({ field: { value, onChange } }) => (
+                  <TextInput
+                    multiline
+                    numberOfLines={5}
+                    style={styles.textarea}
+                    value={value}
+                    onChangeText={onChange}
+                  />
+                )}
+              />
+              <Text>Date:</Text>
+              <Controller
+                control={control}
+                name="dateTaken"
+                render={({ field: { value } }) => (
+                  <TextInput
+                    style={styles.dateInput}
+                    value={date}
+                    placeholder="YYYY-MM-DD"
+                    editable={false}
+                  />
+                )}
+              />
+              {errors.dateTaken && (
+                <Text style={styles.error}>{errors.dateTaken.message}</Text>
+              )}
+            </View>
+
+            <View style={styles.buttonContainer}>
+              <Button
+                title="Done"
+                disabled={isLoading}
+                onPress={handleSubmit((data) => {
+                  onSubmit(data);
+                  reset({
+                    photoUri,
+                    dateTaken: date,
+                    pictureName: "",
+                    areaGroup: "",
+                    description: "",
+                  });
+                })}
+              />
+              <Button
+                title="Cancel"
+                onPress={() => {
+                  onSkip();
+                  reset({
+                    photoUri,
+                    dateTaken: date,
+                    pictureName: "",
+                    areaGroup: "",
+                    description: "",
+                  });
+                }}
+              />
+            </View>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </Modal>
   );
 };
