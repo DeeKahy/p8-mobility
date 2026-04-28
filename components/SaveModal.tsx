@@ -96,7 +96,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   primaryButton: {
-    backgroundColor: "#0B57D0",
+    backgroundColor: "#2196F3",
   },
   secondaryButton: {
     backgroundColor: "#F3F4F6",

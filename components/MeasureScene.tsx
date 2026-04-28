@@ -48,15 +48,6 @@ type HitTransform = {
   position: Point3D;
 };
 
-type ARHitTestResult = {
-  type: string;
-  transform?: {
-    position?: Point3D;
-    rotation?: number[];
-    scale?: number[];
-  };
-};
-
 type HitResult = {
   type: string;
   transform?: HitTransform;
@@ -107,7 +98,7 @@ function logDistanceCm(firstPoint: Point3D, secondPoint: Point3D) {
 
 export default function MeasureScene(props: any) {
   const [points, setPoints] = useState<Point3D[]>([]);
-  const { isMeasuring = true, onPointAdded } = props;
+  const { onPointAdded } = props;
   const [firstPoint, setFirstPoint] = useState<Point3D | null>(null);
   const [secondPoint, setSecondPoint] = useState<Point3D | null>(null);
   const arSceneRef = useRef<ViroARScene | null>(null);
@@ -123,7 +114,6 @@ export default function MeasureScene(props: any) {
   }, [points]);
 
   const handleSceneClick = async (tapPosition: Point3D) => {
-    if (!isMeasuring) return;
     if (!arSceneRef.current) return;
 
     try {
@@ -136,12 +126,15 @@ export default function MeasureScene(props: any) {
         const centerY =
           (Dimensions.get("window").height * PixelRatio.get()) / 2;
 
-        const result: ARHitTestResult =
-          await arSceneRef.current.performARHitTestWithPoint(centerX, centerY);
-        console.log("AR hit test results:", result); // <-- log everything
+        const result = await arSceneRef.current.performARHitTestWithPoint(
+          centerX,
+          centerY
+        );
+        const resultCount = Array.isArray(result) ? result.length : 0;
+        custom(`AR hit test returned ${resultCount} result(s)`, "Ar");
         hitPosition = extractHitPosition(result);
         if (!hitPosition) {
-          console.log("No valid surface detected at tap.");
+          custom("No valid surface detected at tap.", "Ar");
         }
       }
 

@@ -29,22 +29,25 @@ const FloorplanCard = ({
     <Text style={styles.label} numberOfLines={1} ellipsizeMode="tail">
       {storedFloorplan.imageName}
     </Text>
-    <TouchableOpacity
-      onPress={() => {
-        pickFloorPlan(storedFloorplan);
-      }}
-      style={[styles.button]}
-    >
-      <Text>Use Floor Plan</Text>
-    </TouchableOpacity>
-    <TouchableOpacity
-      onPress={() => {
-        onDeleteFloorPlan(storedFloorplan);
-      }}
-      style={[styles.button]}
-    >
-      <Text>Delete Floor Plan</Text>
-    </TouchableOpacity>
+    <View style={styles.buttonRow}>
+      <TouchableOpacity
+        onPress={() => {
+          pickFloorPlan(storedFloorplan);
+        }}
+        style={styles.rowButton}
+      >
+        <Text style={styles.buttonText}>Use Floor Plan</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        onPress={() => {
+          onDeleteFloorPlan(storedFloorplan);
+        }}
+        style={[styles.rowButton, styles.deleteButton]}
+      >
+        <Text style={styles.buttonText}>Delete</Text>
+      </TouchableOpacity>
+    </View>
   </View>
 );
 

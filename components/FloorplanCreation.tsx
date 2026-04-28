@@ -8,7 +8,7 @@ import ViewShot, { captureRef } from "react-native-view-shot";
 import LoadingOverlay from "./LoadingOverlay";
 import { RotationControls } from "./RotationControls";
 import { SaveFormModal } from "./SaveModal";
-import { useRotation } from "../app/hooks/useRotation";
+import useRotation from "../app/hooks/useRotation";
 import { useFloorplan } from "../context/FloorplanContext";
 import { useLogger } from "../context/LoggerContext";
 import { PointProps } from "../models/PointProps";
