@@ -32,7 +32,7 @@ const FloorplanCard = ({
     <View style={styles.buttonRow}>
       <TouchableOpacity
         onPress={() => {
-          void pickFloorPlan(storedFloorplan);
+          pickFloorPlan(storedFloorplan);
         }}
         style={styles.rowButton}
       >
@@ -41,7 +41,7 @@ const FloorplanCard = ({
 
       <TouchableOpacity
         onPress={() => {
-          void onDeleteFloorPlan(storedFloorplan);
+          onDeleteFloorPlan(storedFloorplan);
         }}
         style={[styles.rowButton, styles.deleteButton]}
       >

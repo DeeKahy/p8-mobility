@@ -48,15 +48,6 @@ type HitTransform = {
   position: Point3D;
 };
 
-type ARHitTestResult = {
-  type: string;
-  transform?: {
-    position?: Point3D;
-    rotation?: number[];
-    scale?: number[];
-  };
-};
-
 type HitResult = {
   type: string;
   transform?: HitTransform;
@@ -135,12 +126,15 @@ export default function MeasureScene(props: any) {
         const centerY =
           (Dimensions.get("window").height * PixelRatio.get()) / 2;
 
-        const result: ARHitTestResult =
-          await arSceneRef.current.performARHitTestWithPoint(centerX, centerY);
-        console.log("AR hit test results:", result); // <-- log everything
+        const result = await arSceneRef.current.performARHitTestWithPoint(
+          centerX,
+          centerY
+        );
+        const resultCount = Array.isArray(result) ? result.length : 0;
+        custom(`AR hit test returned ${resultCount} result(s)`, "Ar");
         hitPosition = extractHitPosition(result);
         if (!hitPosition) {
-          console.log("No valid surface detected at tap.");
+          custom("No valid surface detected at tap.", "Ar");
         }
       }
 

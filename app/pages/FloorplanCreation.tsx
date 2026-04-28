@@ -1,4 +1,4 @@
-import { Directory, File, Paths } from "expo-file-system";
+import { File } from "expo-file-system";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useMemo, useRef, useState } from "react";
 import {
@@ -12,16 +12,20 @@ import {
 import Svg, { G, Polygon, Text as SvgText } from "react-native-svg";
 import ViewShot, { captureRef } from "react-native-view-shot";
 
+import LoadingOverlay from "../../components/LoadingOverlay";
 import { RotationControls } from "../../components/RotationControls";
 import { SaveFormModal } from "../../components/SaveModal";
+import { useFloorplan } from "../../context/FloorplanContext";
+import { useLogger } from "../../context/LoggerContext";
 import { useToast } from "../../context/ToastProvider";
 import { Point3D } from "../../models/3Dpoints";
-import { PointProps } from "../../models/PointProps";
+import { createFloorplanImage } from "../../utils/api";
 import {
   calculateDistanceMeters,
   calculateMidPoint,
   isValidPoint,
 } from "../../utils/arMath";
+import { toImageDataUri } from "../../utils/imageDataHelpers";
 import useRotation from "../hooks/useRotation";
 
 // Type to ensure that component CreateSvg only takes type of string
@@ -29,16 +33,14 @@ type CreateSvgProps = {
   inputString: string;
 };
 
-export default function SvgComponent({
-  visible,
-  onClose,
-  onDelete,
-}: PointProps) {
+export default function SvgComponent() {
   const { points: rawPointList } = useLocalSearchParams<{
     points?: string | string[];
   }>();
   const router = useRouter();
   const { showToast } = useToast();
+  const { refreshStoredFloorplans } = useFloorplan();
+  const { error, log } = useLogger();
 
   const pointList: Point3D[] = useMemo(() => {
     const value = Array.isArray(rawPointList) ? rawPointList[0] : rawPointList;
@@ -59,6 +61,7 @@ export default function SvgComponent({
   const viewShotRef = useRef(null);
   const [name, setName] = useState<string>("");
   const [showSaveModal, setShowSaveModal] = useState(false);
+  const [isSavingFloorplan, setIsSavingFloorplan] = useState(false);
 
   /*Issue with smaller polygons not being visible on screen and too large can overtake screen, so we want to take min and max and give it to viewbox.
   Viewbox has  viewBox="x y maxHeight maxWidth".
@@ -84,57 +87,79 @@ export default function SvgComponent({
     return output;
   }
 
-  async function saveToList() {
+  async function saveToServer() {
     try {
-      //Creates a path for a new directory in the local storage
-      const imagesDirectory = new Directory(Paths.document, "floorplan-images");
-      //Checks if the directory already exists
-      if (!imagesDirectory.exists) {
-        imagesDirectory.create();
-      }
+      setIsSavingFloorplan(true);
 
       const capturedUri = await captureRef(viewShotRef, {
         format: "png",
         quality: 1,
       });
 
-      const normalizedName = name.trim() || "Unnamed Floorplan";
-      //Removes spaces and special characters from the name
-      const safeName = encodeURIComponent(normalizedName.replace(/\s+/g, "_"));
-      const outputUri =
-        imagesDirectory.uri + `/floorplan-${Date.now()}-${safeName}.png`;
-      const destFile = new File(outputUri);
-      const sourceFile = new File(capturedUri);
-      sourceFile.copy(destFile);
-    } catch (error) {
-      throw new Error("Couldn't save picture to list" + error);
+      const createdAt = new Date().toISOString();
+      const nextFloorplanId = `floorplan-${Date.now()}`;
+      const imageBase64 = await new File(capturedUri).base64();
+      const nextFloorplanName =
+        name.trim().length > 0 ? name.trim() : `Floorplan ${createdAt}`;
+
+      await createFloorplanImage({
+        id: nextFloorplanId,
+        imageUri: toImageDataUri(imageBase64, "png"),
+        imageName: nextFloorplanName,
+        createdAt,
+        imageBase64,
+        imageFileExtension: "png",
+      });
+      log(`Successfully saved ARCore floorplan ${nextFloorplanId} to API`);
+
+      await refreshStoredFloorplans();
+      log("Successfully refreshed stored floorplans after ARCore save");
+    } catch (caughtError) {
+      const errorMessage =
+        caughtError instanceof Error ? caughtError.message : "Unknown error";
+      error(`Saving ARCore floorplan failed: ${errorMessage}`);
+      throw caughtError;
+    } finally {
+      setIsSavingFloorplan(false);
     }
   }
 
   async function handleSaveOnly() {
-    await saveToList();
-    setShowSaveModal(false);
-    showToast(
-      "Floorplan saved! You can find it under Floorplan page!",
-      "Success"
-    );
-    router.push({
-      pathname: "/",
-    });
+    try {
+      await saveToServer();
+      setShowSaveModal(false);
+      showToast(
+        "Floorplan uploaded! You can find it under Floorplan page!",
+        "Success"
+      );
+      router.push({
+        pathname: "/",
+      });
+    } catch {
+      showToast("Floorplan upload failed. Please try again.", "Error");
+    }
   }
 
   async function handleSaveAndNext() {
-    await saveToList();
-    setShowSaveModal(false);
-    showToast("Floorplan saved!", "Success");
-    router.push({
-      pathname: "/ar",
-    });
+    try {
+      await saveToServer();
+      setShowSaveModal(false);
+      showToast("Floorplan uploaded!", "Success");
+      router.push({
+        pathname: "/ar",
+      });
+    } catch {
+      showToast("Floorplan upload failed. Please try again.", "Error");
+    }
   }
 
   if (pointList.length <= 2) {
     return (
-      <Modal visible={visible} onRequestClose={onClose} animationType="slide">
+      <Modal
+        visible
+        onRequestClose={() => router.push("/ar")}
+        animationType="slide"
+      >
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyTitle}>No valid points found</Text>
 
@@ -216,17 +241,14 @@ export default function SvgComponent({
   );
 
   return (
-    <Modal visible={visible} onRequestClose={onClose}>
+    <Modal visible onRequestClose={() => router.push("/ar")}>
       <View style={styles.container}>
+        {isSavingFloorplan && <LoadingOverlay text="Uploading floorplan..." />}
         <SaveFormModal
           visible={showSaveModal}
           onClose={() => setShowSaveModal(false)}
-          onSave={() => {
-            handleSaveOnly();
-          }}
-          onSaveNext={() => {
-            handleSaveAndNext();
-          }}
+          onSave={handleSaveOnly}
+          onSaveNext={handleSaveAndNext}
         />
         <View style={styles.header}>
           <Text style={styles.title}>Floorplan Preview</Text>
@@ -254,6 +276,7 @@ export default function SvgComponent({
         <View style={styles.footer}>
           <TouchableOpacity
             onPress={() => setShowSaveModal(true)}
+            disabled={isSavingFloorplan}
             style={styles.saveButton}
           >
             <Text style={styles.buttonText}>Save</Text>
