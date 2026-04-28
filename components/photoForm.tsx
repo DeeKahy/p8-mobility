@@ -97,7 +97,7 @@ export const PhotoFormModal = ({
   });
 
   return (
-    <Modal animationType="slide" transparent visible={true}>
+    <Modal animationType="slide" transparent visible>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}

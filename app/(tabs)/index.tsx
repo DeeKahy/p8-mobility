@@ -57,7 +57,6 @@ export default function HomeScreen() {
   const [showCamera, setShowCamera] = useState(false);
   const [showNewMarkerOptions, setShowNewMarkerOptions] = useState(false);
   const [pendingPhotos, setPendingPhotos] = useState<string[]>([]);
-  const [showPhotoForm, setShowPhotoForm] = useState(false);
   const [showPhotoListView, setShowPhotoListView] = useState<boolean>(false);
 
   const describedPhotos = useRef<PhotoData[]>([]);
@@ -251,7 +250,9 @@ export default function HomeScreen() {
                 }
                 describedPhotos.current = []; // Prep for next marker creation.
               }
-            }} visible={false} />
+            }}
+            visible={false}
+          />
         )}
 
         {/* Header with change floor plan option */}
