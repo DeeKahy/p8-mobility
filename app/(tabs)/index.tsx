@@ -64,7 +64,6 @@ export default function HomeScreen() {
   const cameraAction = useRef<((uri: string) => void) | undefined>(undefined);
   const cameraRef = useRef<CameraView>(null);
   const savedPhotos = useRef<PhotoData[]>([]);
-  let currentUri = pendingPhotos[0];
 
   async function getValidImages(images: ImagePicker.ImagePickerAsset[]) {
     const twoWeeksAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
@@ -108,7 +107,7 @@ export default function HomeScreen() {
 
     setShowNewMarkerOptions(false);
     setShowTempMarker(false);
-    setShowPhotoForm(true);
+    // setShowPhotoForm(true);
     setPendingPhotos((await getValidImages(result)).map((p) => p.uri));
   };
 
@@ -129,7 +128,7 @@ export default function HomeScreen() {
     setShowNewMarkerOptions(false);
     const result = await pickPhotoFromLibrary(0);
     if (!result || !selectedMarkerId) return;
-    setShowPhotoForm(true);
+    // setShowPhotoForm(true);
     setPendingPhotos((await getValidImages(result)).map((p) => p.uri));
   };
 
@@ -212,12 +211,10 @@ export default function HomeScreen() {
       <View style={styles.container}>
         <StatusBar style="auto" />
 
-        {currentUri && (
+        {pendingPhotos.length > 0 && (
           <PhotoFormModal
-            visible={showPhotoForm}
             onSkip={() => {
-              pendingPhotos.pop();
-              setPendingPhotos(pendingPhotos);
+              setPendingPhotos((photos) => photos.slice(0, -1));
               if (tempMarker && describedPhotos.current.length > 0) {
                 // If we've gotten submissions for something and nothing is pending, create or update a marker.
                 if (selectedMarkerId) {
@@ -231,13 +228,12 @@ export default function HomeScreen() {
                 }
                 describedPhotos.current = []; // Prep for next marker creation.
               }
-              currentUri = pendingPhotos[0];
-              setShowPhotoForm(false);
+              //setShowPhotoForm(false);
             }} // Skip one URI on close.
-            photoUri={currentUri}
+            photoUri={pendingPhotos[0]}
             date="2026-01-01"
             onSubmit={(photoData) => {
-              pendingPhotos.pop();
+              setPendingPhotos((photos) => photos.slice(0, -1));
               // Store data on submit of photo data.
               describedPhotos.current.push(photoData);
               savedPhotos.current.push(photoData);
@@ -256,9 +252,7 @@ export default function HomeScreen() {
                 }
                 describedPhotos.current = []; // Prep for next marker creation.
               }
-              currentUri = pendingPhotos[0];
-            }}
-          />
+            }} visible={false} />
         )}
 
         {/* Header with change floor plan option */}

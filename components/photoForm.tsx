@@ -52,7 +52,6 @@ const generateIcon = (s: string) => (
 );
 
 export const PhotoFormModal = ({
-  visible,
   onSkip,
   photoUri,
   date,
@@ -98,7 +97,7 @@ export const PhotoFormModal = ({
   });
 
   return (
-    <Modal animationType="slide" transparent visible={visible}>
+    <Modal animationType="slide" transparent visible={true}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
