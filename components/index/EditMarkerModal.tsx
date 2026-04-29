@@ -30,7 +30,7 @@ export const EditMarkerModal = (props: EditMarkerModalProps) => {
         style={{
           ...styles.popup,
 
-          left: tempMarker.x - 82,
+          left: tempMarker.x - styles.popup.width / 2,
           top: tempMarker.y - 120,
           transformOrigin: "bottom",
         }}
