@@ -22,8 +22,8 @@ import { styles } from "../../css/indexStyle";
 import type { Marker } from "../../hooks/useMarkers";
 import { PhotoData } from "../../models/PhotoFormModel";
 import { getBlurScore, IMAGE_BLUR_THRESHOLD } from "../../utils/blurDetection";
-import { preparePhotosForUpload } from "../../utils/imageDataHelpers";
 import { getVisibleRectFromState } from "../../utils/getVisibleRect";
+import { preparePhotosForUpload } from "../../utils/imageDataHelpers";
 
 export default function HomeScreen() {
   //---------------------------------- Starts when page is rendered-------------
@@ -437,13 +437,13 @@ export default function HomeScreen() {
           onUpdate={
             imageToPlace
               ? (state) => {
-                "worklet";
-                onResumableUpdate(state);
-                const { x, y, width, height } =
-                  getVisibleRectFromState(state);
-                previewMarker.x.value = x + width / 2;
-                previewMarker.y.value = y + height / 2;
-              }
+                  "worklet";
+                  onResumableUpdate(state);
+                  const { x, y, width, height } =
+                    getVisibleRectFromState(state);
+                  previewMarker.x.value = x + width / 2;
+                  previewMarker.y.value = y + height / 2;
+                }
               : onResumableUpdate
           }
           onLongPress={(event) => {
