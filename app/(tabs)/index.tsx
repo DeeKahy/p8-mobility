@@ -3,7 +3,6 @@ import { StatusBar } from "expo-status-bar";
 import { useEffect, useRef, useState } from "react";
 import { Alert, Image, Text, TouchableOpacity, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { useSharedValue } from "react-native-reanimated";
 import { ResumableZoom, ResumableZoomRefType } from "react-native-zoom-toolkit";
 
 import { CameraUI } from "../../components/CameraUI";
@@ -42,8 +41,7 @@ export default function HomeScreen() {
     addPhotos,
     removePhoto,
     addMarker,
-    tempMarker,
-    setTempMarker,
+    previewMarker,
     showTempMarker,
     setSelectedMarkerId,
     setShowTempMarker,
@@ -56,9 +54,6 @@ export default function HomeScreen() {
     onResumableUpdate, // Pass to ResumableZoom's onUpdate-callback
     withMarkerAt,
   } = useFloorplan();
-
-  const resumableElementCenterX = useSharedValue(1);
-  const resumableElementCenterY = useSharedValue(1);
 
   const { error, log } = useLogger();
   const { showToast } = useToast();
@@ -162,7 +157,7 @@ export default function HomeScreen() {
   const handleNewMarkerFromCameraRoll = async () => {
     setShowNewMarkerOptions(false);
     const result = await pickPhotoFromLibrary(0);
-    if (!result || !tempMarker) return;
+    if (!result) return;
 
     try {
       const { preparedPhotoUris, photoMetadataByUri } =
@@ -189,7 +184,6 @@ export default function HomeScreen() {
   const handleNewMarkerFromPicture = async () => {
     setShowNewMarkerOptions(false);
     setShowCamera(true);
-    if (!tempMarker) return;
 
     cameraAction.current = (img) => {
       withLoadingOverlay("Running blur detection...", async () => {
@@ -327,17 +321,21 @@ export default function HomeScreen() {
       () => {
         // Found no marker: Unselect if needed and move tempMarker
         setSelectedMarkerId(null);
-        setTempMarker({ x, y });
+        previewMarker.x.value = x;
+        previewMarker.y.value = y;
       }
     );
 
   useEffect(() => {
     // Run whenever a new imageToPlace is assigned (but not unassigned)
-    if (imageToPlace)
-      findImagePlacementTarget(
-        resumableElementCenterX.value,
-        resumableElementCenterY.value
-      );
+    if (imageToPlace && resumableRef.current) {
+      const { x, y, width, height } = resumableRef.current.getVisibleRect();
+      // Change the preview marker coordinates to the center of the (element in) ResumableZoom
+      // Note that dividing by 2 with extendBorders = True returns element-space coordinates instead of container-space coordinates.
+      previewMarker.x.value = x + width / 2;
+      previewMarker.y.value = y + height / 2;
+      findImagePlacementTarget(previewMarker.x.value, previewMarker.y.value);
+    }
   }, [imageToPlace]);
 
   if (showCamera) {
@@ -383,14 +381,14 @@ export default function HomeScreen() {
           <PhotoFormModal
             onSkip={() => {
               setPendingPhotos((photos) => photos.slice(0, -1));
-              if (tempMarker && describedPhotos.current.length > 0) {
+              if (describedPhotos.current.length > 0) {
                 // If we've gotten submissions for something and nothing is pending, create or update a marker.
                 if (selectedMarkerId) {
                   addPhotos(selectedMarkerId, describedPhotos.current);
                 } else {
                   addMarker(
-                    tempMarker.x,
-                    tempMarker.y,
+                    previewMarker.x.value,
+                    previewMarker.y.value,
                     describedPhotos.current
                   );
                 }
@@ -405,14 +403,14 @@ export default function HomeScreen() {
               // Store data on submit of photo data.
               describedPhotos.current.push(photoData);
               savedPhotos.current.push(photoData);
-              if (tempMarker && describedPhotos.current.length > 0) {
+              if (describedPhotos.current.length > 0) {
                 // If we've gotten submissions for something and nothing is pending, create or update a marker.
                 if (selectedMarkerId) {
                   addPhotos(selectedMarkerId, describedPhotos.current);
                 } else {
                   addMarker(
-                    tempMarker.x,
-                    tempMarker.y,
+                    previewMarker.x.value,
+                    previewMarker.y.value,
                     describedPhotos.current
                   );
                 }
@@ -436,15 +434,18 @@ export default function HomeScreen() {
           ref={resumableRef}
           extendGestures // This should be used with extendBorders or it might act weird.
           extendBorders // extendBorders is our own addition. Don't forget to apply the patch!
-          onUpdate={(state) => {
-            "worklet";
-            onResumableUpdate(state);
-            const rect = getVisibleRectFromState(state);
-            // Update coordinates for ResumableZoom viewport center i.e. the center of the screen.
-            // Note that dividing by 2 with extendGestures = True returns element-space coordinates, which we want, instead of container-space coordinates.
-            resumableElementCenterX.value = rect.x + rect.width / 2;
-            resumableElementCenterY.value = rect.y + rect.height / 2;
-          }}
+          onUpdate={
+            imageToPlace
+              ? (state) => {
+                "worklet";
+                onResumableUpdate(state);
+                const { x, y, width, height } =
+                  getVisibleRectFromState(state);
+                previewMarker.x.value = x + width / 2;
+                previewMarker.y.value = y + height / 2;
+              }
+              : onResumableUpdate
+          }
           onLongPress={(event) => {
             if (imageToPlace) {
               // Confirm the image placement if one is ongoing
@@ -477,8 +478,8 @@ export default function HomeScreen() {
           onGestureEnd={() => {
             if (imageToPlace) {
               findImagePlacementTarget(
-                resumableElementCenterX.value,
-                resumableElementCenterY.value
+                previewMarker.x.value,
+                previewMarker.y.value
               );
             }
           }}
@@ -501,18 +502,22 @@ export default function HomeScreen() {
             ))}
 
             {/* Preview of marker to camera-first create */}
-            {imageToPlace ? (
+            {imageToPlace || showTempMarker ? (
               <MarkerElement
-                x={resumableElementCenterX}
-                y={resumableElementCenterY}
+                x={previewMarker.x}
+                y={previewMarker.y}
+                highlight={showTempMarker}
                 scale={resumableState.scale}
               />
             ) : null}
 
             {/* New marker popup */}
-            {showTempMarker && tempMarker && (
+            {showTempMarker && (
               <EditMarkerModal
-                tempMarker={tempMarker}
+                tempMarker={{
+                  x: previewMarker.x,
+                  y: previewMarker.y,
+                }}
                 onCancel={() => {
                   setShowTempMarker(false);
                 }}

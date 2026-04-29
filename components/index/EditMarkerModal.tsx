@@ -1,15 +1,17 @@
-import { Text, TouchableOpacity, View } from "react-native";
+import { Text, TouchableOpacity } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import { SharedValue, useSharedValue } from "react-native-reanimated";
+import Animated, {
+  SharedValue,
+  useAnimatedStyle,
+  useSharedValue,
+} from "react-native-reanimated";
 
 import Downscale from "./Downscale";
+import { Point } from "../../context/FloorplanContext";
 import { styles } from "../../css/indexStyle";
 
 interface EditMarkerModalProps {
-  tempMarker: {
-    x: number;
-    y: number;
-  };
+  tempMarker: Point<SharedValue<number>>;
   onCancel: () => void;
   onAddPicture: () => void;
   scale?: SharedValue<number>;
@@ -23,26 +25,31 @@ export const EditMarkerModal = (props: EditMarkerModalProps) => {
   const DEFAULT_SCALE = useSharedValue(1); // Don't transform if scale isn't given.
   const { tempMarker, onCancel, onAddPicture, scale = DEFAULT_SCALE } = props;
 
-  return (
-    <GestureDetector gesture={consumeTap}>
-      <Downscale
-        scale={scale}
-        style={{
-          ...styles.popup,
+  // Dynamic repositioning
+  const animatedStyle = useAnimatedStyle(() => ({
+    left: tempMarker.x.value - styles.popup.width / 2,
+    top: tempMarker.y.value - 120,
+  }));
 
-          left: tempMarker.x - styles.popup.width / 2,
-          top: tempMarker.y - 120,
-          transformOrigin: "bottom",
-        }}
-      >
-        <TouchableOpacity style={styles.popupButton} onPress={onAddPicture}>
-          <Text style={styles.popupText}>Add picture for this space?</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.popupCancel} onPress={onCancel}>
-          <Text style={styles.popupCancelText}>Cancel</Text>
-        </TouchableOpacity>
-        <View style={styles.popupArrow} />
-      </Downscale>
-    </GestureDetector>
+  return (
+    <Animated.View style={[{ position: "absolute" }, animatedStyle]}>
+      <GestureDetector gesture={consumeTap}>
+        <Downscale
+          scale={scale}
+          style={{
+            ...styles.popup,
+
+            transformOrigin: "bottom",
+          }}
+        >
+          <TouchableOpacity style={styles.popupButton} onPress={onAddPicture}>
+            <Text style={styles.popupText}>Add picture for this space?</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.popupCancel} onPress={onCancel}>
+            <Text style={styles.popupCancelText}>Cancel</Text>
+          </TouchableOpacity>
+        </Downscale>
+      </GestureDetector>
+    </Animated.View>
   );
 };
