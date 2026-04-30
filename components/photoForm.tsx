@@ -71,7 +71,7 @@ export const PhotoFormModal = ({
     // Specififying what our form is gonna look like
     defaultValues: {
       photoUri,
-      dateTaken: "2026-01-01",
+      dateTaken: date,
       pictureName: "",
       areaGroup: "",
       description: "",
@@ -153,7 +153,7 @@ export const PhotoFormModal = ({
                     {showOtherInputForm && (
                       <TextInput
                         style={styles.input}
-                        placeholder="Picture name..."
+                        placeholder="Enter area group..."
                         value={value}
                         onChangeText={onChange}
                       />
@@ -161,8 +161,8 @@ export const PhotoFormModal = ({
                   </View>
                 )}
               />
-              {errors.pictureName && (
-                <Text style={styles.error}>{errors.pictureName.message}</Text>
+              {errors.areaGroup && (
+                <Text style={styles.error}>{errors.areaGroup.message}</Text>
               )}
 
               <Text>Description:</Text>
@@ -198,33 +198,40 @@ export const PhotoFormModal = ({
             </View>
 
             <View style={styles.buttonContainer}>
-              <Button
-                title="Done"
-                disabled={isLoading}
-                onPress={handleSubmit((data) => {
-                  onSubmit(data);
-                  reset({
-                    photoUri,
-                    dateTaken: date,
-                    pictureName: "",
-                    areaGroup: "",
-                    description: "",
-                  });
-                })}
-              />
-              <Button
-                title="Cancel"
-                onPress={() => {
-                  onSkip();
-                  reset({
-                    photoUri,
-                    dateTaken: date,
-                    pictureName: "",
-                    areaGroup: "",
-                    description: "",
-                  });
-                }}
-              />
+              <View style={styles.buttonRow}>
+                <View style={styles.buttonWrapper}>
+                  <Button
+                    title="Done"
+                    disabled={isLoading}
+                    onPress={handleSubmit((data) => {
+                      onSubmit(data);
+                      reset({
+                        photoUri,
+                        dateTaken: date,
+                        pictureName: "",
+                        areaGroup: "",
+                        description: "",
+                      });
+                    })}
+                  />
+                </View>
+
+                <View style={styles.buttonWrapper}>
+                  <Button
+                    title="Cancel"
+                    onPress={() => {
+                      onSkip();
+                      reset({
+                        photoUri,
+                        dateTaken: date,
+                        pictureName: "",
+                        areaGroup: "",
+                        description: "",
+                      });
+                    }}
+                  />
+                </View>
+              </View>
             </View>
           </View>
         </ScrollView>

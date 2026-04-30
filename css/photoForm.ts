@@ -59,12 +59,16 @@ export const styles = StyleSheet.create({
     marginBottom: 5,
   },
   fullscreenOverlay: {
-    position: "absolute",
-    top: "10%",
-    width: "100%",
-    height: "90%",
-    bottom: "10%",
+    flex: 1,
     backgroundColor: "#fff",
-    zIndex: 5,
+  },
+  buttonRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 10,
+  },
+
+  buttonWrapper: {
+    flex: 1,
   },
 });

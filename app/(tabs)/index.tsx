@@ -29,6 +29,7 @@ import { useToast } from "../../context/ToastProvider";
 import { styles } from "../../css/indexStyle";
 import type { Marker } from "../../hooks/useMarkers";
 import { PhotoData } from "../../models/PhotoFormModel";
+import { PendingPhoto } from "../../models/PendingPhotos";
 import { getBlurScore, IMAGE_BLUR_THRESHOLD } from "../../utils/blurDetection";
 import { preparePhotosForUpload } from "../../utils/imageDataHelpers";
 
@@ -66,7 +67,7 @@ export default function HomeScreen() {
   const [showPhotos, setShowPhotos] = useState(false);
   const [showCamera, setShowCamera] = useState(false);
   const [showNewMarkerOptions, setShowNewMarkerOptions] = useState(false);
-  const [pendingPhotos, setPendingPhotos] = useState<string[]>([]);
+  const [pendingPhotos, setPendingPhotos] = useState<{ uri: string; date: string }[]>([]);
   const [showPhotoListView, setShowPhotoListView] = useState<boolean>(false);
   const [loadingText, setLoadingText] = useState<string | null>(null);
   // Keep the gallery tied to the marker it opened for while selection/modal state changes.
@@ -127,7 +128,7 @@ export default function HomeScreen() {
 
   async function getValidImages(images: ImagePicker.ImagePickerAsset[]) {
     const twoWeeksAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
-    const validImages: ImagePicker.ImagePickerAsset[] = [];
+    const validImages: { image: ImagePicker.ImagePickerAsset; date: string }[] = [];
 
     for (const image of images) {
       const exifDate = image?.exif?.DateTimeOriginal;
@@ -150,7 +151,7 @@ export default function HomeScreen() {
       }
 
       await scoreAndToastBlur(image.uri);
-      validImages.push(image);
+      validImages.push({ image, date: dateTaken });
     }
     return validImages;
   }
@@ -165,19 +166,22 @@ export default function HomeScreen() {
     if (!result || !tempMarker) return;
 
     try {
-      const { preparedPhotoUris, photoMetadataByUri } =
+      const { preparedPhotoUris, photoMetadataByUri, dates } =
         await withLoadingOverlay("Running blur detection...", async () => {
           // Validates thats its not older than x days
           const validImages = await getValidImages(result);
-          const validPhotoUris = validImages.map((p) => p.uri);
+          const validPhotoUris = validImages.map((p) => p.image.uri);
+          const dates = validImages.map(({ date }) => date);
+
           log("Preparing photos for upload");
-          return preparePhotosForUpload(validPhotoUris);
+          const preparedUri = await preparePhotosForUpload(validPhotoUris);
+          return { ...preparedUri, dates };
         });
       Object.assign(pendingPhotoMetadata.current, photoMetadataByUri);
 
       setShowNewMarkerOptions(false);
       setShowTempMarker(false);
-      setPendingPhotos(preparedPhotoUris);
+      setPendingPhotos(preparedPhotoUris.map((uri, i) => ({ uri, date: dates[i] })));
       log("Successfully prepared new marker photos from gallery");
     } catch (caughtError) {
       const errorMessage =
@@ -192,6 +196,8 @@ export default function HomeScreen() {
     if (!tempMarker) return;
 
     cameraAction.current = (img) => {
+      const imageDate = new Date().toISOString().split("T")[0];;
+      
       withLoadingOverlay("Running blur detection...", async () => {
         await scoreAndToastBlur(img);
         log("Preparing photos for upload");
@@ -199,7 +205,7 @@ export default function HomeScreen() {
       })
         .then(({ preparedPhotoUris, photoMetadataByUri }) => {
           Object.assign(pendingPhotoMetadata.current, photoMetadataByUri);
-          setPendingPhotos(preparedPhotoUris);
+          setPendingPhotos(preparedPhotoUris.map((uri) => ({ uri, date: imageDate })));
           setShowCamera(false);
           log("Successfully prepared new marker photo from camera");
         })
@@ -222,17 +228,18 @@ export default function HomeScreen() {
     if (!result || !selectedMarkerId) return;
 
     try {
-      const { preparedPhotoUris, photoMetadataByUri } =
+      const { preparedPhotoUris, photoMetadataByUri, dates } =
         await withLoadingOverlay("Running blur detection...", async () => {
-          const validPhotoUris = (await getValidImages(result)).map(
-            (photo) => photo.uri
-          );
+          const validImages = await getValidImages(result);
+          const validPhotoUris = validImages.map((p) => p.image.uri);
+          const dates = validImages.map(({ date }) => date);
           log("Preparing photos for upload");
-          return preparePhotosForUpload(validPhotoUris);
+          const prepared = await preparePhotosForUpload(validPhotoUris);
+          return { ...prepared, dates };
         });
       Object.assign(pendingPhotoMetadata.current, photoMetadataByUri);
 
-      setPendingPhotos(preparedPhotoUris);
+      setPendingPhotos(preparedPhotoUris.map((uri, i) => ({ uri, date: dates[i] })));
       log("Successfully prepared additional marker photos from gallery");
     } catch (caughtError) {
       const errorMessage =
@@ -253,6 +260,7 @@ export default function HomeScreen() {
     setShowCamera(true);
 
     cameraAction.current = (img) => {
+      const imageDate = new Date().toISOString().split("T")[0];;
       withLoadingOverlay("Running blur detection...", async () => {
         await scoreAndToastBlur(img);
         log("Preparing photos for upload");
@@ -260,7 +268,7 @@ export default function HomeScreen() {
       })
         .then(({ preparedPhotoUris, photoMetadataByUri }) => {
           Object.assign(pendingPhotoMetadata.current, photoMetadataByUri);
-          setPendingPhotos(preparedPhotoUris);
+          setPendingPhotos(preparedPhotoUris.map((uri) => ({ uri, date: imageDate })));
           setShowCamera(false);
           log("Successfully prepared additional marker photo from camera");
         })
@@ -374,9 +382,10 @@ export default function HomeScreen() {
               }
               //setShowPhotoForm(false);
             }} // Skip one URI on close.
-            photoUri={pendingPhotos[0]}
-            date="2026-01-01"
+            photoUri={pendingPhotos[0].uri}
+            date={pendingPhotos[0].date}
             onSubmit={(photoData) => {
+              console.log("DATE OF PHOTO: " + pendingPhotos[0].date)
               setPendingPhotos((photos) => photos.slice(0, -1));
               // Store data on submit of photo data.
               describedPhotos.current.push(photoData);
