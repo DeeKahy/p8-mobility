@@ -216,9 +216,10 @@ export const PhotoFormModal = ({
                   />
                 </View>
 
-                <View style={styles.buttonWrapper}>
+                <View style={[styles.buttonWrapper]}>
                   <Button
                     title="Cancel"
+                    color="red"
                     onPress={() => {
                       onSkip();
                       reset({
