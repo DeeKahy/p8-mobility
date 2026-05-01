@@ -1,6 +1,5 @@
 import { useState } from "react";
 
-import { useLogger } from "../context/LoggerContext";
 import { PhotoData } from "../models/PhotoFormModel";
 
 export interface Marker {
@@ -20,7 +19,6 @@ class MarkerDeletionException extends Error {
 
 export const useMarkers = () => {
   const [markers, setMarkers] = useState<Marker[]>([]);
-  const { debug } = useLogger();
 
   const clearMarkers = () => {
     setMarkers([]);
@@ -79,7 +77,7 @@ export const useMarkers = () => {
           }) === -1
       );
       const new_len = photos.length; // REVIEW: Prevent selection of already present photos or just report an error here?
-      debug(
+      console.log(
         `Adding ${photos.length} photos to marker. ${old_len - new_len} photos were already present.`
       );
       return { ...old, photos: old.photos.concat(photos) }; // Deconstruct old marker and override photos with concatenated field
