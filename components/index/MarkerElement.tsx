@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Text } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import PieChart, { Slice } from "react-native-pie-chart";
 import Animated, {
   cancelAnimation,
@@ -120,27 +120,37 @@ export const MarkerElement = (
   return (
     <Animated.View style={[styles.marker, outerAnimatedStyle]}>
       <Downscale scale={scale}>
-        <Animated.View
-          style={[
-            {
-              borderRadius: "50%",
-              backgroundColor: "#ffffff",
-            },
-            innerAnimatedStyle,
-          ]}
-        >
-          <PieChart
-            widthAndHeight={(styles.marker.width * 2) / 3}
-            series={series}
-            style={{ transform: [{ scale: 0.9 }] }}
-            cover={{ radius: 0.4 }} // This fraction of the radius is transparent
-            padAngle={0.1} // Slices are separated by this much
-          />
+        <Animated.View style={innerAnimatedStyle}>
+          <View style={stylesheet.shadow} />
+          <View style={stylesheet.content}>
+            <PieChart
+              widthAndHeight={(styles.marker.width * 2) / 3}
+              series={series}
+              style={{ transform: [{ scale: 0.9 }] }}
+              cover={{ radius: 0.4 }} // This fraction of the radius is transparent
+              padAngle={0.1} // Slices are separated by this much
+            />
+          </View>
         </Animated.View>
-        {props.marker ? (
-          <Text style={styles.markerCount}>{series.length}</Text>
+        {marker?.photos ? (
+          <Text style={styles.markerCount}>{marker.photos.length}</Text>
         ) : null}
       </Downscale>
     </Animated.View>
   );
 };
+
+const stylesheet = StyleSheet.create({
+  shadow: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: "50%",
+    backgroundColor: "#00000050",
+    transform: [{ scale: 1.1 }],
+    zIndex: 0, // Render the "shadow" behind all markers
+  },
+  content: {
+    borderRadius: "50%",
+    backgroundColor: "#ffffff",
+    zIndex: 1,
+  },
+});

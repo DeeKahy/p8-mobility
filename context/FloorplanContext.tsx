@@ -40,6 +40,7 @@ import { FloorplanImage } from "../utils/types";
 interface FloorplanContextReturn {
   floorplanId: string | null;
   floorplan: string | null;
+  setFloorplan: Dispatch<SetStateAction<string | null>>;
   storedFloorplans: FloorplanImage[];
   isLoadingStoredFloorplans: boolean;
   isSavingMarkers: boolean;
@@ -602,6 +603,7 @@ export const FloorplanProvider = ({
         ...marker,
         floorplanId,
         floorplan,
+        setFloorplan,
         storedFloorplans,
         isLoadingStoredFloorplans,
         isSavingMarkers,

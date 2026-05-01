@@ -33,6 +33,7 @@ export default function HomeScreen() {
     isLoadingStoredFloorplans,
     isSavingMarkers,
     floorplan,
+    setFloorplan,
     selectedMarkerId,
     pickFloorplan,
     pickFromMyFloorplan,
@@ -319,10 +320,8 @@ export default function HomeScreen() {
         setSelectedMarkerId(id);
       },
       () => {
-        // Found no marker: Unselect if needed and move tempMarker
+        // Found no marker: Unselect if needed
         setSelectedMarkerId(null);
-        previewMarker.x.value = x;
-        previewMarker.y.value = y;
       }
     );
 
@@ -424,7 +423,7 @@ export default function HomeScreen() {
         {/* Header with change floor plan option */}
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Floor Plan</Text>
-          <TouchableOpacity onPress={pickFloorplan}>
+          <TouchableOpacity onPress={() => setFloorplan(null)}>
             <Text style={styles.headerButton}>Change</Text>
           </TouchableOpacity>
         </View>
@@ -463,7 +462,17 @@ export default function HomeScreen() {
               event.y +=
                 -(containerSize.height / 2) -
                 (containerSize.height - childSize.height) / 2;
-
+              if (
+                !(
+                  event.x >= 0 &&
+                  event.x < childSize.width &&
+                  event.y >= 0 &&
+                  event.y < childSize.height
+                )
+              ) {
+                // Abort if the tap was outside the child element
+                return;
+              }
               if (imageToPlace) {
                 // Move to the position of the tap for quick navigation
                 resumableRef.current.zoom(scale, { x: event.x, y: event.y });
@@ -569,7 +578,7 @@ export default function HomeScreen() {
         </View>
 
         <Text style={styles.instructions}>
-          Tap on the floor plan to place a marker
+          {`${imageToPlace ? `Tap and hold to ${selectedMarkerId ? "add the image" : "create marker"}` : "Tap on the floor plan to place a marker"}`}
         </Text>
         {(loadingText || isSavingMarkers) && (
           <LoadingOverlay text={loadingText ?? "Saving marker..."} />
