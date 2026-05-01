@@ -1,17 +1,9 @@
-import { CameraView } from "expo-camera";
 import * as ImagePicker from "expo-image-picker";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useRef, useState } from "react";
 import { Alert, Image, Text, TouchableOpacity, View } from "react-native";
-import {
-  Gesture,
-  GestureDetector,
-  GestureHandlerRootView,
-} from "react-native-gesture-handler";
-import {
-  ResumableZoom,
-  useTransformationState,
-} from "react-native-zoom-toolkit";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { ResumableZoom, ResumableZoomRefType } from "react-native-zoom-toolkit";
 
 import { CameraUI } from "../../components/CameraUI";
 import LoadingOverlay from "../../components/LoadingOverlay";
@@ -30,6 +22,7 @@ import { styles } from "../../css/indexStyle";
 import type { Marker } from "../../hooks/useMarkers";
 import { PhotoData } from "../../models/PhotoFormModel";
 import { getBlurScore, IMAGE_BLUR_THRESHOLD } from "../../utils/blurDetection";
+import { getVisibleRectFromState } from "../../utils/getVisibleRect";
 import { preparePhotosForUpload } from "../../utils/imageDataHelpers";
 
 export default function HomeScreen() {
@@ -40,6 +33,7 @@ export default function HomeScreen() {
     isLoadingStoredFloorplans,
     isSavingMarkers,
     floorplan,
+    setFloorplan,
     selectedMarkerId,
     pickFloorplan,
     pickFromMyFloorplan,
@@ -48,17 +42,19 @@ export default function HomeScreen() {
     addPhotos,
     removePhoto,
     addMarker,
-    tempMarker,
+    previewMarker,
     showTempMarker,
     setSelectedMarkerId,
     setShowTempMarker,
     showMarkerOptions,
     setShowMarkerOptions,
     selectedMarker, //Reference, use with caution
+    imageToPlace, // When this is truthy, block all marker interactions and listen for a confirmation instead
+    setImageToPlace, // Use to set "" when imageToPlace has been moved to pendingPhotos via confirmation
+    resumableState, // Persistent CommonZoomState updated by onResumableUpdate
+    onResumableUpdate, // Pass to ResumableZoom's onUpdate-callback
+    withMarkerAt,
   } = useFloorplan();
-
-  const { onUpdate: onResumableUpdate, state: resumableState } =
-    useTransformationState("resumable");
 
   const { error, log } = useLogger();
   const { showToast } = useToast();
@@ -74,9 +70,9 @@ export default function HomeScreen() {
     string | null
   >(null);
 
+  const resumableRef = useRef<ResumableZoomRefType>(null);
   const describedPhotos = useRef<PhotoData[]>([]);
   const cameraAction = useRef<((uri: string) => void) | undefined>(undefined);
-  const cameraRef = useRef<CameraView>(null);
   const pendingPhotoMetadata = useRef<
     Record<string, { base64: string; fileExtension: string }>
   >({});
@@ -162,7 +158,7 @@ export default function HomeScreen() {
   const handleNewMarkerFromCameraRoll = async () => {
     setShowNewMarkerOptions(false);
     const result = await pickPhotoFromLibrary(0);
-    if (!result || !tempMarker) return;
+    if (!result) return;
 
     try {
       const { preparedPhotoUris, photoMetadataByUri } =
@@ -189,7 +185,6 @@ export default function HomeScreen() {
   const handleNewMarkerFromPicture = async () => {
     setShowNewMarkerOptions(false);
     setShowCamera(true);
-    if (!tempMarker) return;
 
     cameraAction.current = (img) => {
       withLoadingOverlay("Running blur detection...", async () => {
@@ -315,12 +310,38 @@ export default function HomeScreen() {
     setShowTempMarker(false);
   };
 
+  // Try to find a marker at the element center and select it, for when we're trying to place an image
+  const findImagePlacementTarget = (x: number, y: number) =>
+    withMarkerAt(
+      x,
+      y,
+      ({ id }) => {
+        // Found a marker: Select it for now
+        setSelectedMarkerId(id);
+      },
+      () => {
+        // Found no marker: Unselect if needed
+        setSelectedMarkerId(null);
+      }
+    );
+
+  useEffect(() => {
+    // Run whenever a new imageToPlace is assigned (but not unassigned)
+    if (imageToPlace && resumableRef.current) {
+      const { x, y, width, height } = resumableRef.current.getVisibleRect();
+      // Change the preview marker coordinates to the center of the (element in) ResumableZoom
+      // Note that dividing by 2 with extendBorders = True returns element-space coordinates instead of container-space coordinates.
+      previewMarker.x.value = x + width / 2;
+      previewMarker.y.value = y + height / 2;
+      findImagePlacementTarget(previewMarker.x.value, previewMarker.y.value);
+    }
+  }, [imageToPlace]);
+
   if (showCamera) {
     return (
       <View style={{ flex: 1 }}>
         <CameraUI
           onPictureTaken={cameraAction.current}
-          cameraRef={cameraRef}
           onCancel={() => setShowCamera(false)}
         />
         {loadingText && <LoadingOverlay text={loadingText} />}
@@ -359,14 +380,14 @@ export default function HomeScreen() {
           <PhotoFormModal
             onSkip={() => {
               setPendingPhotos((photos) => photos.slice(0, -1));
-              if (tempMarker && describedPhotos.current.length > 0) {
+              if (describedPhotos.current.length > 0) {
                 // If we've gotten submissions for something and nothing is pending, create or update a marker.
                 if (selectedMarkerId) {
                   addPhotos(selectedMarkerId, describedPhotos.current);
                 } else {
                   addMarker(
-                    tempMarker.x,
-                    tempMarker.y,
+                    previewMarker.x.value,
+                    previewMarker.y.value,
                     describedPhotos.current
                   );
                 }
@@ -381,14 +402,14 @@ export default function HomeScreen() {
               // Store data on submit of photo data.
               describedPhotos.current.push(photoData);
               savedPhotos.current.push(photoData);
-              if (tempMarker && describedPhotos.current.length > 0) {
+              if (describedPhotos.current.length > 0) {
                 // If we've gotten submissions for something and nothing is pending, create or update a marker.
                 if (selectedMarkerId) {
                   addPhotos(selectedMarkerId, describedPhotos.current);
                 } else {
                   addMarker(
-                    tempMarker.x,
-                    tempMarker.y,
+                    previewMarker.x.value,
+                    previewMarker.y.value,
                     describedPhotos.current
                   );
                 }
@@ -402,55 +423,120 @@ export default function HomeScreen() {
         {/* Header with change floor plan option */}
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Floor Plan</Text>
-          <TouchableOpacity onPress={pickFloorplan}>
+          <TouchableOpacity onPress={() => setFloorplan(null)}>
             <Text style={styles.headerButton}>Change</Text>
           </TouchableOpacity>
         </View>
 
         {/* Floor plan with markers. */}
         <ResumableZoom
+          ref={resumableRef}
           extendGestures // This should be used with extendBorders or it might act weird.
           extendBorders // extendBorders is our own addition. Don't forget to apply the patch!
-          onUpdate={onResumableUpdate}
+          onUpdate={
+            imageToPlace
+              ? (state) => {
+                  "worklet";
+                  onResumableUpdate(state);
+                  const { x, y, width, height } =
+                    getVisibleRectFromState(state);
+                  previewMarker.x.value = x + width / 2;
+                  previewMarker.y.value = y + height / 2;
+                }
+              : onResumableUpdate
+          }
+          onLongPress={(event) => {
+            if (imageToPlace) {
+              // Confirm the image placement if one is ongoing
+              console.info(`Confirming image placement via long press..`);
+              setPendingPhotos([imageToPlace]);
+              setImageToPlace("");
+            }
+          }}
+          onTap={(event) => {
+            if (resumableRef.current) {
+              const { scale, containerSize, childSize } =
+                resumableRef.current.getState();
+              // Adjust event coordinates to be in the child element's coordinate space
+              event.x += -(containerSize.width / 2);
+              event.y +=
+                -(containerSize.height / 2) -
+                (containerSize.height - childSize.height) / 2;
+              if (
+                !(
+                  event.x >= 0 &&
+                  event.x < childSize.width &&
+                  event.y >= 0 &&
+                  event.y < childSize.height
+                )
+              ) {
+                // Abort if the tap was outside the child element
+                return;
+              }
+              if (imageToPlace) {
+                // Move to the position of the tap for quick navigation
+                resumableRef.current.zoom(scale, { x: event.x, y: event.y });
+                // Check if a marker was hit and select it
+                findImagePlacementTarget(event.x, event.y);
+              } else {
+                // Bring up the menu to edit or create a marker
+                handleCanvasPress(event);
+              }
+            }
+          }}
+          onGestureEnd={() => {
+            if (imageToPlace) {
+              findImagePlacementTarget(
+                previewMarker.x.value,
+                previewMarker.y.value
+              );
+            }
+          }}
         >
-          <GestureDetector
-            gesture={Gesture.Tap() // Copying ResumableZoom's tap gesture parameters to have taps registered on the inside of it.
-              .maxDuration(250)
-              .numberOfTaps(1)
-              .runOnJS(true)
-              .onEnd(handleCanvasPress)}
-          >
-            <View style={styles.canvas}>
-              <Image
-                source={{ uri: floorplan }}
-                style={styles.floorPlanImage}
-                resizeMode="contain"
+          <View style={styles.canvas}>
+            <Image
+              source={{ uri: floorplan }}
+              style={styles.floorPlanImage}
+              resizeMode="contain"
+            />
+
+            {/* Render markers */}
+            {markers.map((marker) => (
+              <MarkerElement
+                marker={marker}
+                key={marker.id}
+                highlight={selectedMarkerId === marker.id}
+                scale={resumableState.scale}
               />
+            ))}
 
-              {/* Render markers */}
-              {markers.map((marker) => (
-                <MarkerElement
-                  marker={marker}
-                  key={marker.id}
-                  scale={resumableState.scale}
-                />
-              ))}
+            {/* Preview of marker to camera-first create */}
+            {imageToPlace || showTempMarker ? (
+              <MarkerElement
+                x={previewMarker.x}
+                y={previewMarker.y}
+                highlight={showTempMarker}
+                scale={resumableState.scale}
+              />
+            ) : null}
 
-              {/* New marker popup */}
-              {showTempMarker && tempMarker && (
-                <EditMarkerModal
-                  tempMarker={tempMarker}
-                  onCancel={() => {
-                    setShowTempMarker(false);
-                  }}
-                  onAddPicture={() => {
-                    setShowNewMarkerOptions(true);
-                  }}
-                  scale={resumableState.scale}
-                />
-              )}
-            </View>
-          </GestureDetector>
+            {/* New marker popup */}
+            {showTempMarker && (
+              <EditMarkerModal
+                tempMarker={{
+                  x: previewMarker.x,
+                  y: previewMarker.y,
+                }}
+                onCancel={() => {
+                  setShowTempMarker(false);
+                }}
+                onAddPicture={() => {
+                  setShowNewMarkerOptions(true);
+                }}
+                scale={resumableState.scale}
+              />
+            )}
+          </View>
         </ResumableZoom>
         {/* New marker options modal */}
         <NewMarkerOptionsModal
@@ -492,7 +578,7 @@ export default function HomeScreen() {
         </View>
 
         <Text style={styles.instructions}>
-          Tap on the floor plan to place a marker
+          {`${imageToPlace ? `Tap and hold to ${selectedMarkerId ? "add the image" : "create marker"}` : "Tap on the floor plan to place a marker"}`}
         </Text>
         {(loadingText || isSavingMarkers) && (
           <LoadingOverlay text={loadingText ?? "Saving marker..."} />

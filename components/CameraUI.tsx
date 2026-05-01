@@ -1,15 +1,15 @@
 import { CameraView, useCameraPermissions } from "expo-camera";
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 interface CameraUIProps {
   onPictureTaken: ((uri: string) => void) | undefined;
   onCancel?: () => void;
-  cameraRef: React.RefObject<CameraView | null>;
 }
 
 export const CameraUI = (props: CameraUIProps) => {
-  const { onPictureTaken, onCancel, cameraRef } = props;
+  const cameraRef = useRef<CameraView>(null);
+  const { onPictureTaken, onCancel } = props;
   const [permission, requestPermission] = useCameraPermissions();
 
   useEffect(() => {
@@ -31,22 +31,22 @@ export const CameraUI = (props: CameraUIProps) => {
 
   return (
     <View style={styles.cameraContainer}>
-      <CameraView style={styles.camera} ref={cameraRef}>
-        <View style={styles.cameraButtons}>
+      <CameraView style={styles.camera} ref={cameraRef} />
+      <View style={styles.cameraButtons}>
+        {onCancel && (
+          // Only show cancel button if onCancel is given
           <TouchableOpacity style={styles.cancelButton} onPress={onCancel}>
             <Text style={styles.buttonText}>Cancel</Text>
           </TouchableOpacity>
+        )}
 
-          <TouchableOpacity
-            style={styles.captureButton}
-            onPress={handleTakePicture}
-          >
-            <View style={styles.captureButtonInner} />
-          </TouchableOpacity>
-
-          <View style={{ width: 70 }} />
-        </View>
-      </CameraView>
+        <TouchableOpacity
+          style={styles.captureButton}
+          onPress={handleTakePicture}
+        >
+          <View style={styles.captureButtonInner} />
+        </TouchableOpacity>
+      </View>
     </View>
   );
 };
@@ -60,20 +60,25 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   cameraButtons: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    position: "absolute",
+    width: "100%",
+    height: "97.5%",
+    justifyContent: "flex-end",
     paddingHorizontal: 30,
     paddingBottom: 40,
   },
   cancelButton: {
+    position: "absolute",
     padding: 15,
+    alignSelf: "flex-start",
   },
   captureButton: {
+    position: "absolute",
     width: 70,
     height: 70,
     borderRadius: 35,
     backgroundColor: "rgba(255,255,255,0.3)",
+    alignSelf: "center",
     alignItems: "center",
     justifyContent: "center",
   },
