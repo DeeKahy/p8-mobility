@@ -12,7 +12,7 @@ export default function CameraScreen() {
   const isFocused = useIsFocused();
   const { setCapturedImage } = useCamera();
 
-  //NOTE the mode passed via router.push etc. will be undefined when navigating via the tabs bar.
+  //NOTE the mode passed via router.push etc. will be null when navigating via the tabs bar.
   const { mode: modeParam } = useLocalSearchParams<{ mode: CameraMode }>();
   const [mode, setMode] = useState(DEFAULT_MODE);
 
@@ -20,7 +20,7 @@ export default function CameraScreen() {
     if (!modeParam) return;
     // Clear params immediately, but remember the mode, so tab reuse is safe
     setMode(modeParam);
-    router.setParams({ mode: undefined });
+    router.setParams({ mode: null });
   }, [modeParam]);
 
   const onPictureTaken = (uri: string) => {
