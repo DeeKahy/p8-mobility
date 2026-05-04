@@ -1,6 +1,6 @@
 import { useIsFocused } from "@react-navigation/native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 import { CameraUI } from "../../components/CameraUI";
 import { CameraMode, useCamera } from "../../context/CameraContext";
@@ -12,13 +12,14 @@ export default function CameraScreen() {
   const isFocused = useIsFocused();
   const { setCapturedImage } = useCamera();
 
-  //NOTE the mode passed via router.push etc. will be null when navigating via the tabs bar.
+  //NOTE the mode passed via router.push etc. will be undefined when navigating via the tabs bar.
   const { mode: modeParam } = useLocalSearchParams<{ mode: CameraMode }>();
-  const mode = modeParam ?? DEFAULT_MODE;
+  const [mode, setMode] = useState(DEFAULT_MODE);
 
   useEffect(() => {
     if (!modeParam) return;
-    // Clear params immediately so tab reuse is safe
+    // Clear params immediately, but remember the mode, so tab reuse is safe
+    setMode(modeParam);
     router.setParams({ mode: undefined });
   }, [modeParam]);
 
