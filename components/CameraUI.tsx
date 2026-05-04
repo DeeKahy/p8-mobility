@@ -3,7 +3,7 @@ import React, { useEffect, useRef } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 interface CameraUIProps {
-  onPictureTaken: ((uri: string) => void) | undefined;
+  onPictureTaken: (uri: string) => void | null;
   onCancel?: () => void;
 }
 
