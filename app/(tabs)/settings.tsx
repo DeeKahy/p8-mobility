@@ -11,7 +11,7 @@ import {
 
 import HelpItemsContent from "../../components/HelpItemsContent";
 import SettingsInfoModal from "../../components/SettingsInfoModal";
-import UserGuideItems from "../../components/UserGuideItems";
+import UserGuideItemsContent from "../../components/UserGuideItemsContent";
 import { useFloorplan } from "../../context/FloorplanContext";
 import { type LogEntry, useLogger } from "../../context/LoggerContext";
 import {
@@ -252,10 +252,13 @@ export default function Settings() {
         {renderGroups(logsGroupedByGroup, openGroups, toggleGroupVisibility)}
       </ScrollView>
 
-      <UserGuideItems
+      <SettingsInfoModal
         visible={settingsModal === "userGuide"}
+        title="User guide"
         onClose={() => setSettingsModal(null)}
-      />
+      >
+        <UserGuideItemsContent />
+      </SettingsInfoModal>
 
       <SettingsInfoModal
         visible={settingsModal === "help"}
