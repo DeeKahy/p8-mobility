@@ -182,14 +182,14 @@ export default function Settings() {
           style={styles.infoButton}
           onPress={() => setSettingsModal("userGuide")}
         >
-          <Text style={styles.infoText}>User guide</Text>
+          <Text style={styles.infoText}>What and how should you document?</Text>
         </Pressable>
 
         <Pressable
           style={styles.infoButton}
           onPress={() => setSettingsModal("help")}
         >
-          <Text style={styles.infoText}>Help</Text>
+          <Text style={styles.infoText}>How to use our app?</Text>
         </Pressable>
       </View>
 
