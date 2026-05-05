@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Alert,
   Pressable,
@@ -16,8 +16,10 @@ import { type LogEntry, useLogger } from "../../context/LoggerContext";
 import {
   type ApiMode,
   getApiSettings,
+  resetLocalApiBaseUrl,
+  setApiLogger,
   setApiMode,
-  setCustomApiBaseUrl,
+  setLocalApiBaseUrl,
 } from "../../utils/api";
 
 type GroupedLogs = Record<string, LogEntry[]>;
@@ -106,11 +108,15 @@ function renderGroups(
 
 // Renders the settings screen.
 export default function Settings() {
-  const { logs, clearLogs, log, error } = useLogger();
+  const { logs, clearLogs, log, error, custom } = useLogger();
   const { clearAllUserData } = useFloorplan();
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
   const [settingsModal, setSettingsModal] = useState<SettingsModal>(null);
   const [apiSettings, setApiSettings] = useState(getApiSettings());
+
+  useEffect(() => {
+    setApiLogger((message) => custom(message, "API"));
+  }, [custom]);
 
   const logsGroupedByGroup = groupLogsByGroup(logs);
   // Handles the logic for toggle down. Since we use State to update if it's shown or not, we cannot simply do state = newState, as React will notice this as a "newState". It detects if we reassign to a new place in memory. We therefore need to return something new, which is why we do Object.assign() and return it.
@@ -154,9 +160,15 @@ export default function Settings() {
     setApiSettings(getApiSettings());
   };
 
-  // Changes the custom API URL.
-  const changeCustomApiUrl = (nextCustomUrl: string) => {
-    setCustomApiBaseUrl(nextCustomUrl);
+  // Changes the local API URL.
+  const changeLocalApiUrl = (nextLocalUrl: string) => {
+    setLocalApiBaseUrl(nextLocalUrl);
+    setApiSettings(getApiSettings());
+  };
+
+  // Resets the local API URL.
+  const resetLocalApiUrl = () => {
+    resetLocalApiBaseUrl();
     setApiSettings(getApiSettings());
   };
 
@@ -212,25 +224,20 @@ export default function Settings() {
             <Text style={styles.apiButtonText}>Local</Text>
           </Pressable>
 
-          <Pressable
-            style={[
-              styles.apiButton,
-              apiSettings.mode === "custom" && styles.activeApiButton,
-            ]}
-            onPress={() => changeApiMode("custom")}
-          >
-            <Text style={styles.apiButtonText}>Custom</Text>
-          </Pressable>
         </View>
 
         <TextInput
           style={styles.apiInput}
-          value={apiSettings.customUrl}
-          onChangeText={changeCustomApiUrl}
+          value={apiSettings.localUrl}
+          onChangeText={changeLocalApiUrl}
           autoCapitalize="none"
           autoCorrect={false}
-          placeholder="Custom API URL"
+          placeholder="Local API URL"
         />
+
+        <Pressable style={styles.resetButton} onPress={resetLocalApiUrl}>
+          <Text style={styles.clearText}>Reset Local URL</Text>
+        </Pressable>
       </View>
 
       <Pressable
@@ -321,8 +328,11 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
 
-  apiUrl: {
-    color: "#666",
+  resetButton: {
+    backgroundColor: "#777",
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
     marginBottom: 8,
   },
 

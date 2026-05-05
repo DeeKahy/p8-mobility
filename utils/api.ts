@@ -12,10 +12,11 @@ const LOCAL_API_BASE_URL = "http://10.27.48.86:5000/api";
 
 const PROD_API_BASE_URL = "http://130.225.39.166:5000/api";
 
-export type ApiMode = "prod" | "local" | "custom";
+export type ApiMode = "prod" | "local";
 
 let apiMode: ApiMode = "prod";
-let customApiBaseUrl = process.env.P8_API_BASE_URL ?? PROD_API_BASE_URL;
+let localApiBaseUrl = LOCAL_API_BASE_URL;
+let apiLogger: ((message: string) => void) | null = null;
 
 const rawDeviceUserName =
   process.env.P8_API_USER ?? Constants.deviceName ?? "unknown-device";
@@ -26,23 +27,21 @@ export const API_USER =
 
 // Gets the current API base URL.
 export function getApiBaseUrl(): string {
+  let apiBaseUrl = PROD_API_BASE_URL;
+
   if (apiMode === "local") {
-    return LOCAL_API_BASE_URL;
+    apiBaseUrl = localApiBaseUrl;
   }
 
-  if (apiMode === "custom") {
-    return customApiBaseUrl;
-  }
-
-  return PROD_API_BASE_URL;
+  return apiBaseUrl;
 }
 
 // Gets the current API settings.
 export function getApiSettings() {
   return {
     mode: apiMode,
-    customUrl: customApiBaseUrl,
-    localUrl: LOCAL_API_BASE_URL,
+    localUrl: localApiBaseUrl,
+    defaultLocalUrl: LOCAL_API_BASE_URL,
     prodUrl: PROD_API_BASE_URL,
   };
 }
@@ -52,44 +51,64 @@ export function setApiMode(nextApiMode: ApiMode): void {
   apiMode = nextApiMode;
 }
 
-// Sets the custom API base URL.
-export function setCustomApiBaseUrl(nextCustomApiBaseUrl: string): void {
-  customApiBaseUrl = nextCustomApiBaseUrl.trim();
+// Sets the local API base URL.
+export function setLocalApiBaseUrl(nextLocalApiBaseUrl: string): void {
+  localApiBaseUrl = nextLocalApiBaseUrl.trim();
+}
+
+// Resets the local API base URL.
+export function resetLocalApiBaseUrl(): void {
+  localApiBaseUrl = LOCAL_API_BASE_URL;
+}
+
+// Sets the API logger.
+export function setApiLogger(nextApiLogger: (message: string) => void): void {
+  apiLogger = nextApiLogger;
 }
 
 /**
  * Build the URL for listing or creating floorplans for the current API user.
  */
 function userFloorplansUrl(): string {
-  return `${getApiBaseUrl()}/users/${API_USER}/floorplans`;
+  const apiUrl = `${getApiBaseUrl()}/users/${API_USER}/floorplans`;
+  apiLogger?.(`Using API URL: ${apiUrl}`);
+  return apiUrl;
 }
 
 /**
  * Build the URL for listing or creating markers for one floorplan id.
  */
 function floorplanMarkersUrl(floorplanId: string): string {
-  return `${getApiBaseUrl()}/users/${API_USER}/floorplans/${floorplanId}/markers`;
+  const apiUrl = `${getApiBaseUrl()}/users/${API_USER}/floorplans/${floorplanId}/markers`;
+  apiLogger?.(`Using API URL: ${apiUrl}`);
+  return apiUrl;
 }
 
 /**
  * Build the URL for one specific floorplan id.
  */
 function floorplanUrl(floorplanId: string): string {
-  return `${getApiBaseUrl()}/users/${API_USER}/floorplans/${floorplanId}`;
+  const apiUrl = `${getApiBaseUrl()}/users/${API_USER}/floorplans/${floorplanId}`;
+  apiLogger?.(`Using API URL: ${apiUrl}`);
+  return apiUrl;
 }
 
 /**
  * Build the URL for one specific marker inside one floorplan.
  */
 function markerUrl(floorplanId: string, markerId: string): string {
-  return `${floorplanMarkersUrl(floorplanId)}/${markerId}`;
+  const apiUrl = `${getApiBaseUrl()}/users/${API_USER}/floorplans/${floorplanId}/markers/${markerId}`;
+  apiLogger?.(`Using API URL: ${apiUrl}`);
+  return apiUrl;
 }
 
 /**
  * Build the URL for updating only the coordinates of one marker.
  */
 function markerCoordinatesUrl(floorplanId: string, markerId: string): string {
-  return `${markerUrl(floorplanId, markerId)}/coordinates`;
+  const apiUrl = `${getApiBaseUrl()}/users/${API_USER}/floorplans/${floorplanId}/markers/${markerId}/coordinates`;
+  apiLogger?.(`Using API URL: ${apiUrl}`);
+  return apiUrl;
 }
 
 /**
