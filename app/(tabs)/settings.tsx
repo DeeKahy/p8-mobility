@@ -9,7 +9,8 @@ import {
   View,
 } from "react-native";
 
-import HelpItems from "../../components/HelpItems";
+import HelpItemsContent from "../../components/HelpItemsContent";
+import SettingsInfoModal from "../../components/SettingsInfoModal";
 import UserGuideItems from "../../components/UserGuideItems";
 import { useFloorplan } from "../../context/FloorplanContext";
 import { type LogEntry, useLogger } from "../../context/LoggerContext";
@@ -256,10 +257,13 @@ export default function Settings() {
         onClose={() => setSettingsModal(null)}
       />
 
-      <HelpItems
+      <SettingsInfoModal
         visible={settingsModal === "help"}
+        title="Help"
         onClose={() => setSettingsModal(null)}
-      />
+      >
+        <HelpItemsContent />
+      </SettingsInfoModal>
     </View>
   );
   return page;

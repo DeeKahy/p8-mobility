@@ -1,3 +1,5 @@
+import { Text, StyleSheet } from "react-native";
+
 import SettingsInfoModal from "./SettingsInfoModal";
 import { userGuideItems } from "../utils/userGuideItems";
 
@@ -12,11 +14,19 @@ export default function UserGuideItems({
   onClose,
 }: UserGuideItemsProps) {
   return (
-    <SettingsInfoModal
-      visible={visible}
-      title="User guide"
-      items={userGuideItems}
-      onClose={onClose}
-    />
+    <SettingsInfoModal visible={visible} title="User guide" onClose={onClose}>
+      {userGuideItems.map((item) => (
+        <Text key={item} style={styles.item}>
+          {item}
+        </Text>
+      ))}
+    </SettingsInfoModal>
   );
 }
+
+const styles = StyleSheet.create({
+  item: {
+    fontSize: 18,
+    marginBottom: 16,
+  },
+});
