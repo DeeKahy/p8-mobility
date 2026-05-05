@@ -68,9 +68,6 @@ interface FloorplanContextReturn {
   setShowMarkerOptions: Dispatch<SetStateAction<boolean>>;
   selectedMarker: Marker | undefined;
 
-  setImageToPlace: Dispatch<SetStateAction<string>>;
-  imageToPlace: string;
-
   resumableState: CommonZoomState<SharedValue<number>>;
   onResumableUpdate: (state: CommonZoomState<number>) => void;
 
@@ -446,7 +443,6 @@ export const FloorplanProvider = ({
         setIsSavingMarkers(false);
       });
   }
-  const [imageToPlace, setImageToPlace] = useState<string>(""); // Note that empty strings are falsy
 
   const { onUpdate: onResumableUpdate, state: resumableState } =
     useTransformationState("resumable");
@@ -628,8 +624,6 @@ export const FloorplanProvider = ({
         setShowTempMarker,
         showMarkerOptions,
         setShowMarkerOptions,
-        imageToPlace,
-        setImageToPlace,
         resumableState,
         onResumableUpdate,
         withMarkerAt,
