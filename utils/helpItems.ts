@@ -9,7 +9,6 @@ export const helpItems = [
 
 - \`Camera\`: take a photo first, then place it on the floorplan.
 - \`Floorplan\`: select floorplan, place markers, add photos, view photos.
-- \`Main page\`: welcome/test page.
 - \`debug\`: see logs and clear data.
 
 ## Floorplan start
