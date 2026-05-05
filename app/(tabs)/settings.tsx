@@ -193,8 +193,6 @@ export default function Settings() {
         </Pressable>
       </View>
 
-
-
       <Pressable
         style={styles.deleteButton}
         onPress={confirmClearAllUserData}
@@ -203,7 +201,6 @@ export default function Settings() {
         <Text style={styles.clearText}>Clear All User Data</Text>
       </Pressable>
       <View style={styles.apiSettings}>
-
         <View style={styles.apiButtons}>
           <Pressable
             style={[
@@ -224,7 +221,6 @@ export default function Settings() {
           >
             <Text style={styles.apiButtonText}>Local</Text>
           </Pressable>
-
         </View>
 
         <TextInput

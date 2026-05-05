@@ -22,15 +22,26 @@ function item(text: string) {
 
 // Renders an item that starts with bold text.
 function bold_then_item(bold_text: string, item_text: string) {
-  return <Text style={styles.item}>{bold(bold_text)}{item_text}</Text>;
+  return (
+    <Text style={styles.item}>
+      {bold(bold_text)}
+      {item_text}
+    </Text>
+  );
 }
 // Renders the help text content.
 export default function HelpItemsContent() {
   return (
     <View>
       <Text style={styles.subheading}>Tabs</Text>
-      {bold_then_item("Camera", ": Take a photo first, then place it on the floorplan.")}
-      {bold_then_item("Floorplan",": Select floorplan, place markers, add photos, view photos.")}
+      {bold_then_item(
+        "Camera",
+        ": Take a photo first, then place it on the floorplan."
+      )}
+      {bold_then_item(
+        "Floorplan",
+        ": Select floorplan, place markers, add photos, view photos."
+      )}
       <Text style={styles.subheading}>Floorplan start</Text>
       {item("1. Open Floorplan.")}
       {item("2. If no floorplan is selected, press Add from gallery.")}
@@ -59,13 +70,17 @@ export default function HelpItemsContent() {
       {item("1. Open Camera.")}
       {item("2. Take a photo.")}
       {item("3. The app returns to Floorplan.")}
-      {item("4. A preview marker appears in the middle of the visible floorplan.")}
+      {item(
+        "4. A preview marker appears in the middle of the visible floorplan."
+      )}
       {item("5. Pan or zoom until the preview marker is where you want it.")}
       {item("6. Tap somewhere to move the preview faster.")}
       {item("7. Long press on the floorplan to confirm placement.")}
       {item("8. Fill in the photo form.")}
       {item("9. Press Done.")}
-      {item("If the preview marker is near an existing marker, the photo is added to that marker.")}
+      {item(
+        "If the preview marker is near an existing marker, the photo is added to that marker."
+      )}
       {item("If it is not near an existing marker, a new marker is created.")}
 
       <Text style={styles.subheading}>Select existing marker</Text>
