@@ -1,19 +1,11 @@
-import { CameraView } from "expo-camera";
 import * as ImagePicker from "expo-image-picker";
+import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useRef, useState } from "react";
 import { Alert, Image, Text, TouchableOpacity, View } from "react-native";
-import {
-  Gesture,
-  GestureDetector,
-  GestureHandlerRootView,
-} from "react-native-gesture-handler";
-import {
-  ResumableZoom,
-  useTransformationState,
-} from "react-native-zoom-toolkit";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { ResumableZoom, ResumableZoomRefType } from "react-native-zoom-toolkit";
 
-import { CameraUI } from "../../components/CameraUI";
 import LoadingOverlay from "../../components/LoadingOverlay";
 import MyFloorPlans from "../../components/floorplans";
 import { EditMarkerModal } from "../../components/index/EditMarkerModal";
@@ -23,6 +15,7 @@ import { NewMarkerOptionsModal } from "../../components/index/NewMarkerOptionsMo
 import { PhotoGalleryModal } from "../../components/index/PhotoGalleryModal";
 import { PhotoFormModal } from "../../components/photoForm";
 import { PhotoList } from "../../components/photos_list";
+import { useCamera, CameraMode } from "../../context/CameraContext";
 import { useFloorplan } from "../../context/FloorplanContext";
 import { useLogger } from "../../context/LoggerContext";
 import { useToast } from "../../context/ToastProvider";
@@ -30,6 +23,7 @@ import { styles } from "../../css/indexStyle";
 import type { Marker } from "../../hooks/useMarkers";
 import { PhotoData } from "../../models/PhotoFormModel";
 import { getBlurScore, IMAGE_BLUR_THRESHOLD } from "../../utils/blurDetection";
+import { getVisibleRectFromState } from "../../utils/getVisibleRect";
 import { preparePhotosForUpload } from "../../utils/imageDataHelpers";
 
 export default function HomeScreen() {
@@ -40,6 +34,7 @@ export default function HomeScreen() {
     isLoadingStoredFloorplans,
     isSavingMarkers,
     floorplan,
+    setFloorplan,
     selectedMarkerId,
     pickFloorplan,
     pickFromMyFloorplan,
@@ -48,25 +43,28 @@ export default function HomeScreen() {
     addPhotos,
     removePhoto,
     addMarker,
-    tempMarker,
+    previewMarker,
     showTempMarker,
     setSelectedMarkerId,
     setShowTempMarker,
     showMarkerOptions,
     setShowMarkerOptions,
     selectedMarker, //Reference, use with caution
+    resumableState, // Persistent CommonZoomState updated by onResumableUpdate
+    onResumableUpdate, // Pass to ResumableZoom's onUpdate-callback
+    withMarkerAt,
   } = useFloorplan();
 
-  const { onUpdate: onResumableUpdate, state: resumableState } =
-    useTransformationState("resumable");
+  const { capturedImage, captureMode, setCaptureMode } = useCamera();
 
   const { error, log } = useLogger();
   const { showToast } = useToast();
 
   const [showPhotos, setShowPhotos] = useState(false);
-  const [showCamera, setShowCamera] = useState(false);
   const [showNewMarkerOptions, setShowNewMarkerOptions] = useState(false);
-  const [pendingPhotos, setPendingPhotos] = useState<string[]>([]);
+  const [pendingPhotos, setPendingPhotos] = useState<
+    { uri: string; date: string }[]
+  >([]);
   const [showPhotoListView, setShowPhotoListView] = useState<boolean>(false);
   const [loadingText, setLoadingText] = useState<string | null>(null);
   // Keep the gallery tied to the marker it opened for while selection/modal state changes.
@@ -74,9 +72,8 @@ export default function HomeScreen() {
     string | null
   >(null);
 
+  const resumableRef = useRef<ResumableZoomRefType>(null);
   const describedPhotos = useRef<PhotoData[]>([]);
-  const cameraAction = useRef<((uri: string) => void) | undefined>(undefined);
-  const cameraRef = useRef<CameraView>(null);
   const pendingPhotoMetadata = useRef<
     Record<string, { base64: string; fileExtension: string }>
   >({});
@@ -127,7 +124,8 @@ export default function HomeScreen() {
 
   async function getValidImages(images: ImagePicker.ImagePickerAsset[]) {
     const twoWeeksAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
-    const validImages: ImagePicker.ImagePickerAsset[] = [];
+    const validImages: { image: ImagePicker.ImagePickerAsset; date: string }[] =
+      [];
 
     for (const image of images) {
       const exifDate = image?.exif?.DateTimeOriginal;
@@ -150,7 +148,7 @@ export default function HomeScreen() {
       }
 
       await scoreAndToastBlur(image.uri);
-      validImages.push(image);
+      validImages.push({ image, date: dateTaken });
     }
     return validImages;
   }
@@ -162,22 +160,27 @@ export default function HomeScreen() {
   const handleNewMarkerFromCameraRoll = async () => {
     setShowNewMarkerOptions(false);
     const result = await pickPhotoFromLibrary(0);
-    if (!result || !tempMarker) return;
+    if (!result) return;
 
     try {
-      const { preparedPhotoUris, photoMetadataByUri } =
+      const { preparedPhotoUris, photoMetadataByUri, dates } =
         await withLoadingOverlay("Running blur detection...", async () => {
           // Validates thats its not older than x days
           const validImages = await getValidImages(result);
-          const validPhotoUris = validImages.map((p) => p.uri);
+          const validPhotoUris = validImages.map((p) => p.image.uri);
+          const dates = validImages.map(({ date }) => date);
+
           log("Preparing photos for upload");
-          return preparePhotosForUpload(validPhotoUris);
+          const preparedUri = await preparePhotosForUpload(validPhotoUris);
+          return { ...preparedUri, dates };
         });
       Object.assign(pendingPhotoMetadata.current, photoMetadataByUri);
 
       setShowNewMarkerOptions(false);
       setShowTempMarker(false);
-      setPendingPhotos(preparedPhotoUris);
+      setPendingPhotos(
+        preparedPhotoUris.map((uri, i) => ({ uri, date: dates[i] }))
+      );
       log("Successfully prepared new marker photos from gallery");
     } catch (caughtError) {
       const errorMessage =
@@ -188,32 +191,9 @@ export default function HomeScreen() {
 
   const handleNewMarkerFromPicture = async () => {
     setShowNewMarkerOptions(false);
-    setShowCamera(true);
-    if (!tempMarker) return;
-
-    cameraAction.current = (img) => {
-      withLoadingOverlay("Running blur detection...", async () => {
-        await scoreAndToastBlur(img);
-        log("Preparing photos for upload");
-        return preparePhotosForUpload([img]);
-      })
-        .then(({ preparedPhotoUris, photoMetadataByUri }) => {
-          Object.assign(pendingPhotoMetadata.current, photoMetadataByUri);
-          setPendingPhotos(preparedPhotoUris);
-          setShowCamera(false);
-          log("Successfully prepared new marker photo from camera");
-        })
-        .catch((caughtError: unknown) => {
-          const errorMessage =
-            caughtError instanceof Error
-              ? caughtError.message
-              : "Unknown error";
-          error(`Preparing new marker camera photo failed: ${errorMessage}`);
-          throw caughtError;
-        });
-    };
-    setShowNewMarkerOptions(false);
     setShowTempMarker(false);
+    router.navigate("/camera");
+    setCaptureMode(CameraMode.Addition);
   };
 
   const handleAddFromCameraRollToMarker = async () => {
@@ -222,17 +202,20 @@ export default function HomeScreen() {
     if (!result || !selectedMarkerId) return;
 
     try {
-      const { preparedPhotoUris, photoMetadataByUri } =
+      const { preparedPhotoUris, photoMetadataByUri, dates } =
         await withLoadingOverlay("Running blur detection...", async () => {
-          const validPhotoUris = (await getValidImages(result)).map(
-            (photo) => photo.uri
-          );
+          const validImages = await getValidImages(result);
+          const validPhotoUris = validImages.map((p) => p.image.uri);
+          const dates = validImages.map(({ date }) => date);
           log("Preparing photos for upload");
-          return preparePhotosForUpload(validPhotoUris);
+          const prepared = await preparePhotosForUpload(validPhotoUris);
+          return { ...prepared, dates };
         });
       Object.assign(pendingPhotoMetadata.current, photoMetadataByUri);
 
-      setPendingPhotos(preparedPhotoUris);
+      setPendingPhotos(
+        preparedPhotoUris.map((uri, i) => ({ uri, date: dates[i] }))
+      );
       log("Successfully prepared additional marker photos from gallery");
     } catch (caughtError) {
       const errorMessage =
@@ -250,31 +233,8 @@ export default function HomeScreen() {
   const handleAddFromPictureToMarker = async () => {
     if (!selectedMarkerId) return;
     setShowNewMarkerOptions(false);
-    setShowCamera(true);
-
-    cameraAction.current = (img) => {
-      withLoadingOverlay("Running blur detection...", async () => {
-        await scoreAndToastBlur(img);
-        log("Preparing photos for upload");
-        return preparePhotosForUpload([img]);
-      })
-        .then(({ preparedPhotoUris, photoMetadataByUri }) => {
-          Object.assign(pendingPhotoMetadata.current, photoMetadataByUri);
-          setPendingPhotos(preparedPhotoUris);
-          setShowCamera(false);
-          log("Successfully prepared additional marker photo from camera");
-        })
-        .catch((caughtError: unknown) => {
-          const errorMessage =
-            caughtError instanceof Error
-              ? caughtError.message
-              : "Unknown error";
-          error(
-            `Preparing additional marker camera photo failed: ${errorMessage}`
-          );
-          throw caughtError;
-        });
-    };
+    router.navigate("/camera");
+    setCaptureMode(CameraMode.Addition);
   };
 
   const handleDeletePhoto = (photo: PhotoData) => {
@@ -307,7 +267,6 @@ export default function HomeScreen() {
   };
 
   const closeAllModals = () => {
-    setShowCamera(false);
     setShowPhotos(false);
     setPhotoGalleryMarkerId(null);
     setSelectedMarkerId(null);
@@ -315,18 +274,63 @@ export default function HomeScreen() {
     setShowTempMarker(false);
   };
 
-  if (showCamera) {
-    return (
-      <View style={{ flex: 1 }}>
-        <CameraUI
-          onPictureTaken={cameraAction.current}
-          cameraRef={cameraRef}
-          onCancel={() => setShowCamera(false)}
-        />
-        {loadingText && <LoadingOverlay text={loadingText} />}
-      </View>
+  // Try to find a marker at the element center and select it, for when we're trying to place an image
+  const findImagePlacementTarget = (x: number, y: number) =>
+    withMarkerAt(
+      x,
+      y,
+      ({ id }) => {
+        // Found a marker: Select it for now
+        setSelectedMarkerId(id);
+      },
+      () => {
+        // Found no marker: Unselect if needed
+        setSelectedMarkerId(null);
+      }
     );
-  }
+
+  // Runs whenever capturedImage updates e.g. when a new photo is taken using camera.tsx
+  useEffect(() => {
+    if (!capturedImage) return;
+    if (captureMode === CameraMode.Placement && resumableRef.current) {
+      // Image should be added to a user-selected marker or used to create a new marker at a user-defined position
+      const { x, y, width, height } = resumableRef.current.getVisibleRect();
+      // Change the preview marker coordinates to the center of the (element in) ResumableZoom
+      // Note that dividing by 2 with extendBorders = True returns element-space coordinates instead of container-space coordinates.
+      previewMarker.x.value = x + width / 2;
+      previewMarker.y.value = y + height / 2;
+      findImagePlacementTarget(previewMarker.x.value, previewMarker.y.value);
+    } else if (captureMode === CameraMode.Addition) {
+      // Image should be added to the currently selected marker or used to create a new marker at the preview
+      const imageDate = new Date().toISOString().split("T")[0];
+      withLoadingOverlay("Running blur detection...", async () => {
+        await scoreAndToastBlur(capturedImage);
+        log("Preparing photos for upload");
+        return preparePhotosForUpload([capturedImage]);
+      })
+        .then(({ preparedPhotoUris, photoMetadataByUri }) => {
+          Object.assign(pendingPhotoMetadata.current, photoMetadataByUri);
+          setPendingPhotos(
+            preparedPhotoUris.map((uri) => ({ uri, date: imageDate }))
+          );
+          log(
+            `Successfully prepared ${selectedMarkerId ? "additional" : "new"} marker photo from camera`
+          );
+        })
+        .catch((caughtError: unknown) => {
+          const errorMessage =
+            caughtError instanceof Error
+              ? caughtError.message
+              : "Unknown error";
+          error(
+            `Preparing ${selectedMarkerId ? "additional" : "new"} marker camera photo failed: ${errorMessage}`
+          );
+          throw caughtError;
+        });
+      // Addition complete. Unset the mode but keep the URI
+      setCaptureMode(CameraMode.None);
+    }
+  }, [capturedImage]);
 
   // Show floor plan picker if no floor plan selected
   if (!floorplan) {
@@ -359,14 +363,14 @@ export default function HomeScreen() {
           <PhotoFormModal
             onSkip={() => {
               setPendingPhotos((photos) => photos.slice(0, -1));
-              if (tempMarker && describedPhotos.current.length > 0) {
+              if (describedPhotos.current.length > 0) {
                 // If we've gotten submissions for something and nothing is pending, create or update a marker.
                 if (selectedMarkerId) {
                   addPhotos(selectedMarkerId, describedPhotos.current);
                 } else {
                   addMarker(
-                    tempMarker.x,
-                    tempMarker.y,
+                    previewMarker.x.value,
+                    previewMarker.y.value,
                     describedPhotos.current
                   );
                 }
@@ -374,21 +378,22 @@ export default function HomeScreen() {
               }
               //setShowPhotoForm(false);
             }} // Skip one URI on close.
-            photoUri={pendingPhotos[0]}
-            date="2026-01-01"
+            photoUri={pendingPhotos[0].uri}
+            date={pendingPhotos[0].date}
             onSubmit={(photoData) => {
+              console.log("DATE OF PHOTO: " + pendingPhotos[0].date);
               setPendingPhotos((photos) => photos.slice(0, -1));
               // Store data on submit of photo data.
               describedPhotos.current.push(photoData);
               savedPhotos.current.push(photoData);
-              if (tempMarker && describedPhotos.current.length > 0) {
+              if (describedPhotos.current.length > 0) {
                 // If we've gotten submissions for something and nothing is pending, create or update a marker.
                 if (selectedMarkerId) {
                   addPhotos(selectedMarkerId, describedPhotos.current);
                 } else {
                   addMarker(
-                    tempMarker.x,
-                    tempMarker.y,
+                    previewMarker.x.value,
+                    previewMarker.y.value,
                     describedPhotos.current
                   );
                 }
@@ -402,55 +407,120 @@ export default function HomeScreen() {
         {/* Header with change floor plan option */}
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Floor Plan</Text>
-          <TouchableOpacity onPress={pickFloorplan}>
+          <TouchableOpacity onPress={() => setFloorplan(null)}>
             <Text style={styles.headerButton}>Change</Text>
           </TouchableOpacity>
         </View>
 
         {/* Floor plan with markers. */}
         <ResumableZoom
+          ref={resumableRef}
           extendGestures // This should be used with extendBorders or it might act weird.
           extendBorders // extendBorders is our own addition. Don't forget to apply the patch!
-          onUpdate={onResumableUpdate}
+          onUpdate={(state) => {
+            "worklet";
+            if (captureMode === CameraMode.Placement) {
+              onResumableUpdate(state);
+              const { x, y, width, height } = getVisibleRectFromState(state);
+              previewMarker.x.value = x + width / 2;
+              previewMarker.y.value = y + height / 2;
+            } else {
+              onResumableUpdate(state);
+            }
+          }}
+          onLongPress={(event) => {
+            if (captureMode === CameraMode.Placement) {
+              // Confirm the image placement if one is ongoing
+              console.info(`Confirming image placement via long press..`);
+              const imageDate = new Date().toISOString().split("T")[0];
+              setPendingPhotos([{ uri: capturedImage, date: imageDate }]);
+              setCaptureMode(CameraMode.None);
+            }
+          }}
+          onTap={(event) => {
+            if (resumableRef.current) {
+              const { scale, containerSize, childSize } =
+                resumableRef.current.getState();
+              // Adjust event coordinates to be in the child element's coordinate space
+              event.x += -(containerSize.width / 2);
+              event.y +=
+                -(containerSize.height / 2) -
+                (containerSize.height - childSize.height) / 2;
+              if (
+                !(
+                  event.x >= 0 &&
+                  event.x < childSize.width &&
+                  event.y >= 0 &&
+                  event.y < childSize.height
+                )
+              ) {
+                // Abort if the tap was outside the child element
+                return;
+              }
+              if (captureMode === CameraMode.Placement) {
+                // Move to the position of the tap for quick navigation
+                resumableRef.current.zoom(scale, { x: event.x, y: event.y });
+                // Check if a marker was hit and select it
+                findImagePlacementTarget(event.x, event.y);
+              } else {
+                // Bring up the menu to edit or create a marker
+                handleCanvasPress(event);
+              }
+            }
+          }}
+          onGestureEnd={() => {
+            if (captureMode === CameraMode.Placement) {
+              findImagePlacementTarget(
+                previewMarker.x.value,
+                previewMarker.y.value
+              );
+            }
+          }}
         >
-          <GestureDetector
-            gesture={Gesture.Tap() // Copying ResumableZoom's tap gesture parameters to have taps registered on the inside of it.
-              .maxDuration(250)
-              .numberOfTaps(1)
-              .runOnJS(true)
-              .onEnd(handleCanvasPress)}
-          >
-            <View style={styles.canvas}>
-              <Image
-                source={{ uri: floorplan }}
-                style={styles.floorPlanImage}
-                resizeMode="contain"
+          <View style={styles.canvas}>
+            <Image
+              source={{ uri: floorplan }}
+              style={styles.floorPlanImage}
+              resizeMode="contain"
+            />
+
+            {/* Render markers */}
+            {markers.map((marker) => (
+              <MarkerElement
+                marker={marker}
+                key={marker.id}
+                highlight={selectedMarkerId === marker.id}
+                scale={resumableState.scale}
               />
+            ))}
 
-              {/* Render markers */}
-              {markers.map((marker) => (
-                <MarkerElement
-                  marker={marker}
-                  key={marker.id}
-                  scale={resumableState.scale}
-                />
-              ))}
+            {/* Preview of marker to camera-first create */}
+            {captureMode === CameraMode.Placement || showTempMarker ? (
+              <MarkerElement
+                x={previewMarker.x}
+                y={previewMarker.y}
+                highlight={showTempMarker}
+                scale={resumableState.scale}
+              />
+            ) : null}
 
-              {/* New marker popup */}
-              {showTempMarker && tempMarker && (
-                <EditMarkerModal
-                  tempMarker={tempMarker}
-                  onCancel={() => {
-                    setShowTempMarker(false);
-                  }}
-                  onAddPicture={() => {
-                    setShowNewMarkerOptions(true);
-                  }}
-                  scale={resumableState.scale}
-                />
-              )}
-            </View>
-          </GestureDetector>
+            {/* New marker popup */}
+            {showTempMarker && (
+              <EditMarkerModal
+                tempMarker={{
+                  x: previewMarker.x,
+                  y: previewMarker.y,
+                }}
+                onCancel={() => {
+                  setShowTempMarker(false);
+                }}
+                onAddPicture={() => {
+                  setShowNewMarkerOptions(true);
+                }}
+                scale={resumableState.scale}
+              />
+            )}
+          </View>
         </ResumableZoom>
         {/* New marker options modal */}
         <NewMarkerOptionsModal
@@ -492,7 +562,7 @@ export default function HomeScreen() {
         </View>
 
         <Text style={styles.instructions}>
-          Tap on the floor plan to place a marker
+          {`${captureMode === CameraMode.Placement ? `Tap and hold to ${selectedMarkerId ? "add the image" : "create marker"}` : "Tap on the floor plan to place a marker"}`}
         </Text>
         {(loadingText || isSavingMarkers) && (
           <LoadingOverlay text={loadingText ?? "Saving marker..."} />

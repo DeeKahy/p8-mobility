@@ -14,6 +14,7 @@ import {
   Platform,
 } from "react-native";
 import DropDownPicker, { ItemType } from "react-native-dropdown-picker";
+import { SafeAreaView } from "react-native-safe-area-context";
 import * as yup from "yup";
 
 import { styles } from "../css/photoForm";
@@ -71,7 +72,7 @@ export const PhotoFormModal = ({
     // Specififying what our form is gonna look like
     defaultValues: {
       photoUri,
-      dateTaken: "2026-01-01",
+      dateTaken: date,
       pictureName: "",
       areaGroup: "",
       description: "",
@@ -98,137 +99,147 @@ export const PhotoFormModal = ({
 
   return (
     <Modal animationType="slide" transparent visible>
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-      >
-        <ScrollView style={[styles.container, styles.fullscreenOverlay]}>
-          <View>
-            <View style={styles.formCard}>
-              <Text>Picture:</Text>
-              <View style={styles.imageContainer}>
-                <Image source={{ uri: photoUri }} style={styles.image} />
-              </View>
-              {errors.photoUri && (
-                <Text style={styles.error}>{errors.photoUri.message}</Text>
-              )}
-
-              <Text>Picture name:</Text>
-              {/* Tracking input using control for the form  */}
-              <Controller
-                control={control}
-                name="pictureName"
-                render={({ field: { onChange, value } }) => (
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Picture name..."
-                    value={value}
-                    onChangeText={onChange}
-                  />
+      <SafeAreaView style={{ flex: 1 }}>
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+        >
+          <ScrollView style={[styles.container, styles.fullscreenOverlay]}>
+            <View>
+              <View style={styles.formCard}>
+                <Text>Picture:</Text>
+                <View style={styles.imageContainer}>
+                  <Image source={{ uri: photoUri }} style={styles.image} />
+                </View>
+                {errors.photoUri && (
+                  <Text style={styles.error}>{errors.photoUri.message}</Text>
                 )}
-              />
-              {errors.pictureName && (
-                <Text style={styles.error}>{errors.pictureName.message}</Text>
-              )}
 
-              <Text>Area group:</Text>
-              <Controller
-                control={control}
-                name="areaGroup"
-                render={({ field: { onChange, value } }) => (
-                  <View>
-                    <DropDownPicker
-                      open={open}
+                <Text>Picture name:</Text>
+                {/* Tracking input using control for the form  */}
+                <Controller
+                  control={control}
+                  name="pictureName"
+                  render={({ field: { onChange, value } }) => (
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Picture name..."
                       value={value}
-                      items={items}
-                      listMode="SCROLLVIEW"
-                      setOpen={setOpen}
-                      setValue={(currentValue) => {
-                        const newValue = currentValue(value);
-                        setShowOtherInputForm(newValue === "Other");
-                        onChange(newValue);
-                      }}
-                      placeholder="Select area group"
+                      onChangeText={onChange}
                     />
-                    {showOtherInputForm && (
-                      <TextInput
-                        style={styles.input}
-                        placeholder="Picture name..."
+                  )}
+                />
+                {errors.pictureName && (
+                  <Text style={styles.error}>{errors.pictureName.message}</Text>
+                )}
+
+                <Text>Area group:</Text>
+                <Controller
+                  control={control}
+                  name="areaGroup"
+                  render={({ field: { onChange, value } }) => (
+                    <View>
+                      <DropDownPicker
+                        open={open}
                         value={value}
-                        onChangeText={onChange}
+                        items={items}
+                        listMode="SCROLLVIEW"
+                        setOpen={setOpen}
+                        setValue={(currentValue) => {
+                          const newValue = currentValue(value);
+                          setShowOtherInputForm(newValue === "Other");
+                          onChange(newValue);
+                        }}
+                        placeholder="Select area group"
                       />
-                    )}
+                      {showOtherInputForm && (
+                        <TextInput
+                          style={styles.input}
+                          placeholder="Enter area group..."
+                          value={value}
+                          onChangeText={onChange}
+                        />
+                      )}
+                    </View>
+                  )}
+                />
+                {errors.areaGroup && (
+                  <Text style={styles.error}>{errors.areaGroup.message}</Text>
+                )}
+
+                <Text>Description:</Text>
+                <Controller
+                  control={control}
+                  name="description"
+                  render={({ field: { value, onChange } }) => (
+                    <TextInput
+                      multiline
+                      numberOfLines={5}
+                      style={styles.textarea}
+                      value={value}
+                      onChangeText={onChange}
+                    />
+                  )}
+                />
+                <Text>Date:</Text>
+                <Controller
+                  control={control}
+                  name="dateTaken"
+                  render={({ field: { value } }) => (
+                    <TextInput
+                      style={styles.dateInput}
+                      value={date}
+                      placeholder="YYYY-MM-DD"
+                      editable={false}
+                    />
+                  )}
+                />
+                {errors.dateTaken && (
+                  <Text style={styles.error}>{errors.dateTaken.message}</Text>
+                )}
+              </View>
+
+              <View style={styles.buttonContainer}>
+                <View style={styles.buttonRow}>
+                  <View style={styles.buttonWrapper}>
+                    <Button
+                      title="Done"
+                      disabled={isLoading}
+                      onPress={handleSubmit((data) => {
+                        onSubmit(data);
+                        reset({
+                          photoUri,
+                          dateTaken: date,
+                          pictureName: "",
+                          areaGroup: "",
+                          description: "",
+                        });
+                      })}
+                    />
                   </View>
-                )}
-              />
-              {errors.pictureName && (
-                <Text style={styles.error}>{errors.pictureName.message}</Text>
-              )}
 
-              <Text>Description:</Text>
-              <Controller
-                control={control}
-                name="description"
-                render={({ field: { value, onChange } }) => (
-                  <TextInput
-                    multiline
-                    numberOfLines={5}
-                    style={styles.textarea}
-                    value={value}
-                    onChangeText={onChange}
-                  />
-                )}
-              />
-              <Text>Date:</Text>
-              <Controller
-                control={control}
-                name="dateTaken"
-                render={({ field: { value } }) => (
-                  <TextInput
-                    style={styles.dateInput}
-                    value={date}
-                    placeholder="YYYY-MM-DD"
-                    editable={false}
-                  />
-                )}
-              />
-              {errors.dateTaken && (
-                <Text style={styles.error}>{errors.dateTaken.message}</Text>
-              )}
+                  <View style={[styles.buttonWrapper]}>
+                    <Button
+                      title="Cancel"
+                      color="red"
+                      onPress={() => {
+                        onSkip();
+                        reset({
+                          photoUri,
+                          dateTaken: date,
+                          pictureName: "",
+                          areaGroup: "",
+                          description: "",
+                        });
+                      }}
+                    />
+                  </View>
+                </View>
+              </View>
             </View>
-
-            <View style={styles.buttonContainer}>
-              <Button
-                title="Done"
-                disabled={isLoading}
-                onPress={handleSubmit((data) => {
-                  onSubmit(data);
-                  reset({
-                    photoUri,
-                    dateTaken: date,
-                    pictureName: "",
-                    areaGroup: "",
-                    description: "",
-                  });
-                })}
-              />
-              <Button
-                title="Cancel"
-                onPress={() => {
-                  onSkip();
-                  reset({
-                    photoUri,
-                    dateTaken: date,
-                    pictureName: "",
-                    areaGroup: "",
-                    description: "",
-                  });
-                }}
-              />
-            </View>
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
     </Modal>
   );
 };

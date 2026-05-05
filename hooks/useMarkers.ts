@@ -1,6 +1,5 @@
 import { useState } from "react";
 
-import { useLogger } from "../context/LoggerContext";
 import { PhotoData } from "../models/PhotoFormModel";
 
 export interface Marker {
@@ -20,7 +19,6 @@ class MarkerDeletionException extends Error {
 
 export const useMarkers = () => {
   const [markers, setMarkers] = useState<Marker[]>([]);
-  const { debug } = useLogger();
 
   const clearMarkers = () => {
     setMarkers([]);
@@ -79,7 +77,7 @@ export const useMarkers = () => {
           }) === -1
       );
       const new_len = photos.length; // REVIEW: Prevent selection of already present photos or just report an error here?
-      debug(
+      console.log(
         `Adding ${photos.length} photos to marker. ${old_len - new_len} photos were already present.`
       );
       return { ...old, photos: old.photos.concat(photos) }; // Deconstruct old marker and override photos with concatenated field
@@ -104,21 +102,19 @@ export const useMarkers = () => {
     });
   };
 
-  const tryGetMarker = (x: number, y: number) => {
+  const tryGetMarker = (x: number, y: number, scale: number = 1) => {
     const TOLERANCE = 30;
-    let nearMarkers = markers.filter(
-      (m) => Math.abs(m.x - x) + Math.abs(m.y - y) < TOLERANCE
-    ); // Check if any markers are within tolerance (Manhattan Distance)
-    if (nearMarkers.length === 0) return null;
-
-    if (nearMarkers.length === 1) return nearMarkers[0];
-    nearMarkers = nearMarkers.sort((a, b) =>
-      Math.abs(a.x - x) + Math.abs(a.y - y) <
-      Math.abs(b.x - x) + Math.abs(b.y - y)
-        ? -1
-        : 1
-    );
-    return nearMarkers[0];
+    let closestMarker = null;
+    let minDistance = Infinity;
+    markers.forEach((m) => {
+      // Compute Manhattan distance from given point and replace closestMarker if distance is smaller
+      const distance = Math.abs(m.x - x) + Math.abs(m.y - y);
+      if (distance < TOLERANCE / scale && distance < minDistance) {
+        closestMarker = m;
+        minDistance = distance;
+      }
+    });
+    return closestMarker;
   };
 
   return {

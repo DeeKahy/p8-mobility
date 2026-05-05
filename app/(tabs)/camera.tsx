@@ -1,63 +1,27 @@
-import { CameraView, useCameraPermissions } from "expo-camera";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useIsFocused } from "@react-navigation/native";
+import { useRouter } from "expo-router";
 
-import { useLogger } from "../../context/LoggerContext";
+import { CameraUI } from "../../components/CameraUI";
+import { CameraMode, useCamera } from "../../context/CameraContext";
+
+const DEFAULT_MODE = CameraMode.Placement; // Camera-first marker placement is the default
 
 export default function CameraScreen() {
-  const [permission, requestPermission] = useCameraPermissions();
-  const { log } = useLogger();
-  if (!permission) {
-    return <View />;
-  }
+  const router = useRouter();
+  const isFocused = useIsFocused();
+  const { captureMode, setCaptureMode, setCapturedImage } = useCamera();
 
-  if (!permission.granted) {
-    return (
-      <View style={styles.center}>
-        <Text style={styles.text}>Camera permission is required</Text>
-        <TouchableOpacity onPress={requestPermission} style={styles.button}>
-          <Text style={styles.buttonText}>Grant permission</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
+  const onPictureTaken = (uri: string) => {
+    // Adjust the mode, set the URI, and jump to the default tab, which is index.tsx
+    switch (captureMode) {
+      //STUB: Add more cases as needed.
+      case CameraMode.None: // With mode specified we use the default
+        setCaptureMode(DEFAULT_MODE);
+        break;
+    }
+    setCapturedImage(uri);
+    router.navigate("/");
+  };
 
-  return (
-    <CameraView style={{ flex: 1 }} onCameraReady={() => log("Camera ready")}>
-      <View style={styles.overlay}>
-        <Text style={styles.overlayText}>Camera screen</Text>
-      </View>
-    </CameraView>
-  );
+  return isFocused ? <CameraUI onPictureTaken={onPictureTaken} /> : null;
 }
-
-const styles = StyleSheet.create({
-  center: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 20,
-  },
-  text: {
-    fontSize: 16,
-    marginBottom: 16,
-  },
-  button: {
-    backgroundColor: "#2196F3",
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  buttonText: {
-    color: "#fff",
-    fontWeight: "600",
-  },
-  overlay: {
-    position: "absolute",
-    bottom: 40,
-    alignSelf: "center",
-  },
-  overlayText: {
-    color: "#fff",
-    fontSize: 16,
-  },
-});

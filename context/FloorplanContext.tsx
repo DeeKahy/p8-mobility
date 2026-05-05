@@ -8,7 +8,12 @@ import {
   useEffect,
   useState,
 } from "react";
-import { TapGestureEvent } from "react-native-zoom-toolkit";
+import { SharedValue, useSharedValue } from "react-native-reanimated";
+import {
+  CommonZoomState,
+  TapGestureEvent,
+  useTransformationState,
+} from "react-native-zoom-toolkit";
 
 import { useLogger } from "./LoggerContext";
 import { Marker, useMarkers } from "../hooks/useMarkers";
@@ -35,6 +40,7 @@ import { FloorplanImage } from "../utils/types";
 interface FloorplanContextReturn {
   floorplanId: string | null;
   floorplan: string | null;
+  setFloorplan: Dispatch<SetStateAction<string | null>>;
   storedFloorplans: FloorplanImage[];
   isLoadingStoredFloorplans: boolean;
   isSavingMarkers: boolean;
@@ -55,19 +61,34 @@ interface FloorplanContextReturn {
   deleteMarker: (id: string) => void;
   selectedMarkerId: string | null;
   setSelectedMarkerId: Dispatch<SetStateAction<string | null>>;
-  tempMarker: TempMarker | null;
-  setTempMarker: Dispatch<SetStateAction<TempMarker>>;
+  previewMarker: SharedPoint;
   showTempMarker: boolean;
   setShowTempMarker: Dispatch<SetStateAction<boolean>>;
   showMarkerOptions: boolean;
   setShowMarkerOptions: Dispatch<SetStateAction<boolean>>;
   selectedMarker: Marker | undefined;
+
+  resumableState: CommonZoomState<SharedValue<number>>;
+  onResumableUpdate: (state: CommonZoomState<number>) => void;
+
+  withMarkerAt: withMarkerAtType;
 }
 
-interface TempMarker {
-  x: number;
-  y: number;
-}
+export type Point<T> = {
+  x: T;
+  y: T;
+};
+
+type SharedPoint = Point<SharedValue<number>>;
+
+type MarkerFoundCallback = (marker: Marker, x: number, y: number) => void;
+type MarkerNotFoundCallback = (x: number, y: number) => void;
+type withMarkerAtType = (
+  x: number,
+  y: number,
+  success: MarkerFoundCallback,
+  failure: MarkerNotFoundCallback
+) => void;
 
 const FloorplanContext = createContext<FloorplanContextReturn | undefined>(
   undefined
@@ -91,7 +112,6 @@ export const FloorplanProvider = ({
 
   const [showMarkerOptions, setShowMarkerOptions] = useState(false);
 
-  const [tempMarker, setTempMarker] = useState<TempMarker>({ x: 0, y: 0 });
   const [showTempMarker, setShowTempMarker] = useState(false);
 
   const [selectedMarkerId, setSelectedMarkerId] = useState<string | null>(null);
@@ -424,26 +444,52 @@ export const FloorplanProvider = ({
       });
   }
 
+  const { onUpdate: onResumableUpdate, state: resumableState } =
+    useTransformationState("resumable");
+
+  const previewMarkerX = useSharedValue(0);
+  const previewMarkerY = useSharedValue(0);
+
+  // Utility function that performs one of two callbacks depending on if a marker can be found near (x,y)
+  const withMarkerAt: withMarkerAtType = (x, y, success, failure) => {
+    const existingMarker = marker.tryGetMarker(
+      x,
+      y,
+      resumableState.scale.value // Selection area is scaled down when zoomed in to keep its relative size on screen
+    );
+    if (existingMarker) {
+      success(existingMarker, x, y);
+    } else {
+      failure(x, y);
+    }
+  };
+
   const handleCanvasPress = (event: TapGestureEvent) => {
+    // TODO: This function should be defined where it is used because withMarkerAt is a more general solution
     if (!floorplan) {
       debug("No Floorplan");
       return;
     }
 
     const { x, y } = event;
-    const existingMarker = marker.tryGetMarker(x, y);
-
-    if (existingMarker) {
-      setSelectedMarkerId(existingMarker.id);
-      setShowMarkerOptions(true);
-      setShowTempMarker(false);
-      debug(`Trying to select existing Marker near (${x},${y})`);
-    } else {
-      // Create new marker position
-      setTempMarker({ x, y });
-      setShowTempMarker(true);
-      debug(`Trying to set temp Marker at (${x},${y})`);
-    }
+    withMarkerAt(
+      x,
+      y,
+      (existingMarker, x, y) => {
+        setSelectedMarkerId(existingMarker.id);
+        setShowMarkerOptions(true);
+        setShowTempMarker(false);
+        debug(`Trying to select existing Marker near (${x},${y})`);
+      },
+      (x, y) => {
+        // Create new marker position
+        setSelectedMarkerId(null);
+        previewMarkerX.value = x;
+        previewMarkerY.value = y;
+        setShowTempMarker(true);
+        debug(`Trying to set temp Marker at (${x},${y})`);
+      }
+    );
   };
 
   const pickFloorplan = async () => {
@@ -553,6 +599,7 @@ export const FloorplanProvider = ({
         ...marker,
         floorplanId,
         floorplan,
+        setFloorplan,
         storedFloorplans,
         isLoadingStoredFloorplans,
         isSavingMarkers,
@@ -572,12 +619,14 @@ export const FloorplanProvider = ({
           : undefined,
         selectedMarkerId,
         setSelectedMarkerId,
-        tempMarker,
-        setTempMarker,
+        previewMarker: { x: previewMarkerX, y: previewMarkerY },
         showTempMarker,
         setShowTempMarker,
         showMarkerOptions,
         setShowMarkerOptions,
+        resumableState,
+        onResumableUpdate,
+        withMarkerAt,
       }}
     >
       {children}
