@@ -6,17 +6,17 @@ import {
   FloorplanMarker,
   FloorplanImageRecord,
 } from "./types";
-// Should be False, whenever you are not testing locally
-const USE_LOCAL_API = false;
 // THIS IS FOR TESTING ONLY.  this was my local IPv4 Address
 // For you may need to change it.  run ipconfig to se your adress
 const LOCAL_API_BASE_URL = "http://10.27.48.86:5000/api";
 
 const PROD_API_BASE_URL = "http://130.225.39.166:5000/api";
 
-const API_BASE_URL =
-  process.env.P8_API_BASE_URL ??
-  (USE_LOCAL_API ? LOCAL_API_BASE_URL : PROD_API_BASE_URL);
+export type ApiMode = "prod" | "local" | "custom";
+
+let apiMode: ApiMode = "prod";
+let customApiBaseUrl = process.env.P8_API_BASE_URL ?? PROD_API_BASE_URL;
+
 const rawDeviceUserName =
   process.env.P8_API_USER ?? Constants.deviceName ?? "unknown-device";
 
@@ -24,25 +24,58 @@ export const API_USER =
   rawDeviceUserName.replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 64) ||
   "unknown-device";
 
+// Gets the current API base URL.
+export function getApiBaseUrl(): string {
+  if (apiMode === "local") {
+    return LOCAL_API_BASE_URL;
+  }
+
+  if (apiMode === "custom") {
+    return customApiBaseUrl;
+  }
+
+  return PROD_API_BASE_URL;
+}
+
+// Gets the current API settings.
+export function getApiSettings() {
+  return {
+    mode: apiMode,
+    customUrl: customApiBaseUrl,
+    localUrl: LOCAL_API_BASE_URL,
+    prodUrl: PROD_API_BASE_URL,
+  };
+}
+
+// Sets which API mode the app should use.
+export function setApiMode(nextApiMode: ApiMode): void {
+  apiMode = nextApiMode;
+}
+
+// Sets the custom API base URL.
+export function setCustomApiBaseUrl(nextCustomApiBaseUrl: string): void {
+  customApiBaseUrl = nextCustomApiBaseUrl.trim();
+}
+
 /**
  * Build the URL for listing or creating floorplans for the current API user.
  */
 function userFloorplansUrl(): string {
-  return `${API_BASE_URL}/users/${API_USER}/floorplans`;
+  return `${getApiBaseUrl()}/users/${API_USER}/floorplans`;
 }
 
 /**
  * Build the URL for listing or creating markers for one floorplan id.
  */
 function floorplanMarkersUrl(floorplanId: string): string {
-  return `${API_BASE_URL}/users/${API_USER}/floorplans/${floorplanId}/markers`;
+  return `${getApiBaseUrl()}/users/${API_USER}/floorplans/${floorplanId}/markers`;
 }
 
 /**
  * Build the URL for one specific floorplan id.
  */
 function floorplanUrl(floorplanId: string): string {
-  return `${API_BASE_URL}/users/${API_USER}/floorplans/${floorplanId}`;
+  return `${getApiBaseUrl()}/users/${API_USER}/floorplans/${floorplanId}`;
 }
 
 /**
@@ -291,7 +324,7 @@ export async function deleteFloorplanMarker(
  * floorplans and markers inside it.
  */
 export async function resetUserData(): Promise<void> {
-  const resetUserUrl = `${API_BASE_URL}/resetUser/${API_USER}`;
+  const resetUserUrl = `${getApiBaseUrl()}/resetUser/${API_USER}`;
 
   const resetUserResponse = await fetch(resetUserUrl, {
     method: "DELETE",
