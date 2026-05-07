@@ -6,6 +6,7 @@ import { Alert, Image, Text, TouchableOpacity, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { ResumableZoom, ResumableZoomRefType } from "react-native-zoom-toolkit";
 
+import FloatingHelpButton from "../../components/FloatingHelpButton";
 import LoadingOverlay from "../../components/LoadingOverlay";
 import MyFloorPlans from "../../components/floorplans";
 import { EditMarkerModal } from "../../components/index/EditMarkerModal";
@@ -337,6 +338,7 @@ export default function HomeScreen() {
     return (
       <View style={styles.pickerContainer}>
         <StatusBar style="auto" />
+        <FloatingHelpButton />
         <Text style={styles.title}>Floor Plan Marker</Text>
         <Text style={styles.subtitle}>
           Select a floor plan image to get started
@@ -358,6 +360,7 @@ export default function HomeScreen() {
     <GestureHandlerRootView>
       <View style={styles.container}>
         <StatusBar style="auto" />
+        <FloatingHelpButton />
 
         {pendingPhotos.length > 0 && (
           <PhotoFormModal

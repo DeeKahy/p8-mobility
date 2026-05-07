@@ -29,7 +29,7 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "usesCleartextTraffic": true,// Allowes http
+      "usesCleartextTraffic": true, // Allowes http
       "package": "com.anonymous.p8mobility",
       "permissions": [
         "android.permission.READ_EXTERNAL_STORAGE",

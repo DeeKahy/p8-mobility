@@ -9,6 +9,7 @@ import {
   View,
 } from "react-native";
 
+import FloatingHelpButton from "../../components/FloatingHelpButton";
 import HelpItemsContent from "../../components/HelpItemsContent";
 import SettingsInfoModal from "../../components/SettingsInfoModal";
 import UserGuideItemsContent from "../../components/UserGuideItemsContent";
@@ -175,6 +176,7 @@ export default function Settings() {
 
   const page = (
     <View style={styles.container}>
+      <FloatingHelpButton />
       <Text style={styles.title}>Settings</Text>
 
       <View style={styles.settingsButtons}>

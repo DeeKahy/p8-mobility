@@ -17,6 +17,7 @@ import DropDownPicker, { ItemType } from "react-native-dropdown-picker";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as yup from "yup";
 
+import FloatingHelpButton from "./FloatingHelpButton";
 import { styles } from "../css/photoForm";
 import { PhotoData } from "../models/PhotoFormModel";
 import { hashNameToColor } from "../utils/stringColor";
@@ -100,6 +101,7 @@ export const PhotoFormModal = ({
   return (
     <Modal animationType="slide" transparent visible>
       <SafeAreaView style={{ flex: 1 }}>
+        <FloatingHelpButton />
         <KeyboardAvoidingView
           style={{ flex: 1 }}
           behavior={Platform.OS === "ios" ? "padding" : "height"}
