@@ -406,7 +406,7 @@ export default function HomeScreen() {
 
         {/* Header with change floor plan option */}
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>      Floor Plan</Text>
+          <Text style={styles.headerTitle}>{"      Floor Plan"}</Text>
           <TouchableOpacity onPress={() => setFloorplan(null)}>
             <Text style={styles.headerButton}>Change</Text>
           </TouchableOpacity>
