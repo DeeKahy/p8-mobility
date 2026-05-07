@@ -15,7 +15,7 @@ call npm install
 if errorlevel 1 goto build_failed
 
 echo Prebuilding Android...
-call npx expo prebuild --platform android
+call npx expo prebuild --platform android --clean
 if errorlevel 1 goto build_failed
 
 echo Enabling New Architecture...
