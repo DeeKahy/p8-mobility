@@ -205,37 +205,28 @@ export const FloorplanProvider = ({
   /**
    * Create one new marker locally and on the server with a single POST request.
    */
-  function addMarkerAtomically(
+  async function addMarkerAtomically(
     x: number,
     y: number,
     photos: PhotoData[]
-  ): void {
+  ) {
     if (!floorplanId) {
       error("No id for the selected floorplan");
       return;
     }
-
-    const newMarker: Marker = {
-      id: Date.now().toString(),
-      photos,
-      x,
-      y,
-    };
-
-    setIsSavingMarkers(true);
-    createFloorplanMarker(floorplanId, markerForServer(newMarker))
-      .then(() => {
-        marker.replaceMarkers(marker.markers.concat(newMarker));
-        log(`Successfully created marker ${newMarker.id}`);
-      })
-      .catch((caughtError: unknown) => {
-        const errorMessage =
-          caughtError instanceof Error ? caughtError.message : "Unknown error";
-        error(errorMessage);
-      })
-      .finally(() => {
-        setIsSavingMarkers(false);
-      });
+    try {
+      const id = marker.addMarker(x, y, photos);
+      log(`Locally created marker ${id}`);
+      const res = marker.getById(id) as Marker;
+      setIsSavingMarkers(true);
+      await createFloorplanMarker(floorplanId, markerForServer(res));
+      log(`Server created marker ${id}`);
+    } catch (e) {
+      const errorMessage = e instanceof Error ? e.message : "Unknown error";
+      error(errorMessage);
+    } finally {
+      setIsSavingMarkers(false);
+    }
   }
 
   /**
@@ -245,65 +236,42 @@ export const FloorplanProvider = ({
    * replace the marker with delete+create because the server does not allow
    * general overwrite.
    */
-  function editMarkerAtomically(
+  async function editMarkerAtomically(
     id: string,
     editorFnc: (old: Marker) => Marker
-  ): void {
+  ) {
     if (!floorplanId) {
       error("No id for the selected floorplan");
       return;
     }
-
-    const existingMarker = marker.markers.find(
-      (currentMarker) => currentMarker.id === id
-    );
-    if (!existingMarker) {
-      error(`Marker ${id} not found`);
-      return;
-    }
-
-    let nextMarker: Marker;
-
     try {
-      nextMarker = editorFnc(existingMarker);
-    } catch (caughtError) {
-      throw caughtError;
+      const oldMarker = marker.getById(id) as Marker; // editMarker throws if this is undefined so it's safe to assume Marker
+      marker.editMarker(id, editorFnc);
+      log(`Locally edited marker ${id}`);
+      const newMarker = marker.getById(id) as Marker;
+
+      const coordinatesChanged =
+        oldMarker.x !== newMarker.x || oldMarker.y !== newMarker.y;
+      const otherFieldsChanged =
+        JSON.stringify({ ...oldMarker, x: undefined, y: undefined }) !==
+        JSON.stringify({ ...newMarker, x: undefined, y: undefined });
+
+      setIsSavingMarkers(true);
+      if (otherFieldsChanged) {
+        await replaceFloorplanMarker(floorplanId, markerForServer(newMarker));
+      } else if (coordinatesChanged) {
+        await updateFloorplanMarkerCoordinates(
+          floorplanId,
+          markerForServer(newMarker)
+        );
+      }
+      log(`Server edited marker ${id}`);
+    } catch (e) {
+      const errorMessage = e instanceof Error ? e.message : "Unknown error";
+      error(errorMessage);
+    } finally {
+      setIsSavingMarkers(false);
     }
-
-    const coordinatesChanged =
-      existingMarker.x !== nextMarker.x || existingMarker.y !== nextMarker.y;
-    const otherFieldsChanged =
-      JSON.stringify({ ...existingMarker, x: undefined, y: undefined }) !==
-      JSON.stringify({ ...nextMarker, x: undefined, y: undefined });
-
-    let markerRequest: Promise<void> = Promise.resolve();
-
-    if (coordinatesChanged && !otherFieldsChanged) {
-      markerRequest = updateFloorplanMarkerCoordinates(
-        floorplanId,
-        markerForServer(nextMarker)
-      );
-    } else if (JSON.stringify(existingMarker) !== JSON.stringify(nextMarker)) {
-      markerRequest = replaceFloorplanMarker(
-        floorplanId,
-        markerForServer(nextMarker)
-      );
-    }
-
-    setIsSavingMarkers(true);
-    markerRequest
-      .then(() => {
-        marker.editMarker(id, () => nextMarker);
-        log(`Successfully updated marker ${id}`);
-      })
-      .catch((caughtError: unknown) => {
-        const errorMessage =
-          caughtError instanceof Error ? caughtError.message : "Unknown error";
-        error(errorMessage);
-      })
-      .finally(() => {
-        setIsSavingMarkers(false);
-      });
   }
 
   /**
@@ -312,45 +280,26 @@ export const FloorplanProvider = ({
    * Photo changes are not coordinate-only updates, so they must use the
    * replace flow instead of PATCH.
    */
-  function addPhotosAtomically(id: string, photos: PhotoData[]): void {
+  async function addPhotosAtomically(id: string, photos: PhotoData[]) {
     if (!floorplanId) {
       error("No id for the selected floorplan");
       return;
     }
-
-    const existingMarker = marker.markers.find(
-      (currentMarker) => currentMarker.id === id
-    );
-    if (!existingMarker) {
-      error(`Marker ${id} not found`);
-      return;
+    // TODO: Add rollback on local or serverside error
+    try {
+      marker.addPhotos(id, photos);
+      log(`Locally added photos to marker ${id}`);
+      // Now synchronize with the server
+      const res = marker.getById(id) as Marker; // We know this will succeed if addPhotos did
+      setIsSavingMarkers(true);
+      await replaceFloorplanMarker(floorplanId, markerForServer(res));
+      log(`Server added photos to marker ${id}`);
+    } catch (e) {
+      const errorMessage = e instanceof Error ? e.message : "Unknown error";
+      error(errorMessage);
+    } finally {
+      setIsSavingMarkers(false);
     }
-
-    const filteredPhotos = photos.filter(
-      (photoToAdd) =>
-        existingMarker.photos.findIndex(
-          (existingPhoto) => existingPhoto.photoUri === photoToAdd.photoUri
-        ) === -1
-    );
-    const nextMarker: Marker = {
-      ...existingMarker,
-      photos: existingMarker.photos.concat(filteredPhotos),
-    };
-
-    setIsSavingMarkers(true);
-    replaceFloorplanMarker(floorplanId, markerForServer(nextMarker))
-      .then(() => {
-        marker.addPhotos(id, filteredPhotos);
-        log(`Successfully added photos to marker ${id}`);
-      })
-      .catch((caughtError: unknown) => {
-        const errorMessage =
-          caughtError instanceof Error ? caughtError.message : "Unknown error";
-        error(errorMessage);
-      })
-      .finally(() => {
-        setIsSavingMarkers(false);
-      });
   }
 
   /**
@@ -359,64 +308,30 @@ export const FloorplanProvider = ({
    * If the last photo is removed, the whole marker is deleted. Otherwise the
    * marker is replaced with an updated photo list.
    */
-  function removePhotoAtomically(id: string, photo: PhotoData): void {
+  async function removePhotoAtomically(id: string, photo: PhotoData) {
     if (!floorplanId) {
       error("No id for the selected floorplan");
       return;
     }
 
-    const existingMarker = marker.markers.find(
-      (currentMarker) => currentMarker.id === id
-    );
-    if (!existingMarker) {
-      error(`Marker ${id} not found`);
-      return;
+    try {
+      marker.removePhoto(id, photo);
+      setIsSavingMarkers(true);
+      const res = marker.getById(id);
+      log(`Locally removed photo from marker ${id}`);
+      if (res) // Returns undefined if marker was deleted.
+      {
+        await replaceFloorplanMarker(floorplanId, markerForServer(res));
+      } else {
+        await deleteFloorplanMarker(floorplanId, id);
+      }
+      log(`Server removed photo from marker ${id}`);
+    } catch (e) {
+      const errorMessage = e instanceof Error ? e.message : "Unknown error";
+      error(errorMessage);
+    } finally {
+      setIsSavingMarkers(false);
     }
-
-    const photoIndex = existingMarker.photos.indexOf(photo);
-    if (photoIndex === -1) {
-      error(`Photo not found in marker ${id}`);
-      return;
-    }
-
-    let markerRequest: Promise<void>;
-
-    if (existingMarker.photos.length < 2) {
-      markerRequest = deleteFloorplanMarker(floorplanId, id);
-    } else {
-      const nextMarker: Marker = {
-        ...existingMarker,
-        photos: existingMarker.photos.filter(
-          (_, index) => index !== photoIndex
-        ),
-      };
-
-      markerRequest = replaceFloorplanMarker(
-        floorplanId,
-        markerForServer(nextMarker)
-      );
-    }
-
-    setIsSavingMarkers(true);
-    markerRequest
-      .then(() => {
-        if (existingMarker.photos.length < 2) {
-          marker.deleteMarker(id);
-          log(`Successfully deleted marker ${id} after last photo removal`);
-          return;
-        }
-
-        marker.removePhoto(id, photo);
-        log(`Successfully removed photo from marker ${id}`);
-      })
-      .catch((caughtError: unknown) => {
-        const errorMessage =
-          caughtError instanceof Error ? caughtError.message : "Unknown error";
-        error(errorMessage);
-      })
-      .finally(() => {
-        setIsSavingMarkers(false);
-      });
   }
 
   /**
@@ -428,20 +343,18 @@ export const FloorplanProvider = ({
       return;
     }
 
-    setIsSavingMarkers(true);
-    deleteFloorplanMarker(floorplanId, id)
-      .then(() => {
-        marker.deleteMarker(id);
-        log(`Successfully deleted marker ${id}`);
-      })
-      .catch((caughtError: unknown) => {
-        const errorMessage =
-          caughtError instanceof Error ? caughtError.message : "Unknown error";
-        error(errorMessage);
-      })
-      .finally(() => {
-        setIsSavingMarkers(false);
-      });
+    try {
+      marker.deleteMarker(id);
+      log(`Locally deleted marker ${id}`);
+      setIsSavingMarkers(true);
+      deleteFloorplanMarker(floorplanId, id);
+      log(`Server deleted marker ${id}`);
+    } catch (e) {
+      const errorMessage = e instanceof Error ? e.message : "Unknown error";
+      error(errorMessage);
+    } finally {
+      setIsSavingMarkers(false);
+    }
   }
 
   const { onUpdate: onResumableUpdate, state: resumableState } =
