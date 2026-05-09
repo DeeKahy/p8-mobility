@@ -28,14 +28,20 @@ export const useMarkers = () => {
     setMarkers(nextMarkers);
   };
 
+  const getById = (id: string) => {
+    return markers.find((currentMarker) => currentMarker.id === id);
+  };
+
   const addMarker = (x: number, y: number, photos: PhotoData[]) => {
+    const id = Date.now().toString();
     const newMarker: Marker = {
-      id: Date.now().toString(),
+      id,
       photos,
       x,
       y,
     };
     setMarkers((curr) => curr.concat(newMarker));
+    return id;
   };
 
   const editMarker = (id: string, editorFnc: (old: Marker) => Marker) => {
@@ -120,6 +126,7 @@ export const useMarkers = () => {
   return {
     markers,
     replaceMarkers,
+    getById,
     addMarker,
     deleteMarker,
     clearMarkers,
