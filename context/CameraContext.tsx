@@ -1,8 +1,10 @@
 import React, {
   createContext,
   Dispatch,
+  RefObject,
   SetStateAction,
   useContext,
+  useRef,
   useState,
 } from "react";
 
@@ -13,16 +15,13 @@ export enum CameraMode {
   Addition = "Addition", // Marker associated with image. Don't use placement system.
 }
 
-const CameraContext = createContext<
-  | {
-      // Returned types go here:
-      capturedImage: string; // URI of the most recent image captured
-      setCapturedImage: Dispatch<SetStateAction<string>>;
-      captureMode: CameraMode; // What to do with the capturedImage
-      setCaptureMode: Dispatch<SetStateAction<CameraMode>>;
-    }
-  | undefined
->(undefined);
+interface CameraContextReturn {
+  capturedImage: string; // URI of the most recent image captured
+  setCapturedImage: Dispatch<SetStateAction<string>>;
+  captureMode: RefObject<CameraMode>; // What to do with the capturedImage
+}
+
+const CameraContext = createContext<CameraContextReturn | undefined>(undefined);
 
 export const CameraContextProvider = ({
   children,
@@ -30,11 +29,11 @@ export const CameraContextProvider = ({
   children: React.ReactNode;
 }) => {
   const [capturedImage, setCapturedImage] = useState("");
-  const [captureMode, setCaptureMode] = useState(CameraMode.None);
+  const captureMode = useRef(CameraMode.None);
 
   return (
     <CameraContext.Provider
-      value={{ capturedImage, setCapturedImage, captureMode, setCaptureMode }}
+      value={{ capturedImage, setCapturedImage, captureMode }}
     >
       {children}
     </CameraContext.Provider>
