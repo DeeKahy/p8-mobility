@@ -10,6 +10,18 @@ module.exports = [
     },
   },
   {
-    ignores: ["node_modules/", ".expo/", "dist/", "build/", "web/"],
+    ignores: [
+      "node_modules/",
+      ".expo/",
+      "dist/",
+      "build/",
+      "web/",
+      "Lib/",
+      "Include/",
+      "Scripts/",
+      "server/Lib/",
+      "server/Include/",
+      "server/Scripts/",
+    ],
   },
 ];

@@ -1,18 +1,33 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Alert,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from "react-native";
 
+import FloatingHelpButton from "../../components/FloatingHelpButton";
+import HelpItemsContent from "../../components/HelpItemsContent";
+import SettingsInfoModal from "../../components/SettingsInfoModal";
+import UserGuideItemsContent from "../../components/UserGuideItemsContent";
 import { useFloorplan } from "../../context/FloorplanContext";
 import { type LogEntry, useLogger } from "../../context/LoggerContext";
+import {
+  type ApiMode,
+  getApiSettings,
+  resetLocalApiBaseUrl,
+  setApiLogger,
+  setApiMode,
+  setLocalApiBaseUrl,
+} from "../../utils/api";
 
 type GroupedLogs = Record<string, LogEntry[]>;
+type SettingsModal = "userGuide" | "help" | null;
 
+// Groups logs by their group name.
 function groupLogsByGroup(logs: LogEntry[]): GroupedLogs {
   const groupedLogs: GroupedLogs = {};
   // Adds the "group" for example API to the object So  API:[]
@@ -93,10 +108,17 @@ function renderGroups(
   return groups;
 }
 
-export default function Debug() {
-  const { logs, clearLogs, log, error } = useLogger();
+// Renders the settings screen.
+export default function Settings() {
+  const { logs, clearLogs, log, error, custom } = useLogger();
   const { clearAllUserData } = useFloorplan();
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
+  const [settingsModal, setSettingsModal] = useState<SettingsModal>(null);
+  const [apiSettings, setApiSettings] = useState(getApiSettings());
+
+  useEffect(() => {
+    setApiLogger((message) => custom(message, "API"));
+  }, [custom]);
 
   const logsGroupedByGroup = groupLogsByGroup(logs);
   // Handles the logic for toggle down. Since we use State to update if it's shown or not, we cannot simply do state = newState, as React will notice this as a "newState". It detects if we reassign to a new place in memory. We therefore need to return something new, which is why we do Object.assign() and return it.
@@ -134,17 +156,44 @@ export default function Debug() {
     );
   };
 
+  // Changes which API the app should use.
+  const changeApiMode = (nextApiMode: ApiMode) => {
+    setApiMode(nextApiMode);
+    setApiSettings(getApiSettings());
+  };
+
+  // Changes the local API URL.
+  const changeLocalApiUrl = (nextLocalUrl: string) => {
+    setLocalApiBaseUrl(nextLocalUrl);
+    setApiSettings(getApiSettings());
+  };
+
+  // Resets the local API URL.
+  const resetLocalApiUrl = () => {
+    resetLocalApiBaseUrl();
+    setApiSettings(getApiSettings());
+  };
+
   const page = (
     <View style={styles.container}>
-      <Text style={styles.title}>Debugger</Text>
+      <FloatingHelpButton />
+      <Text style={styles.title}>Settings</Text>
 
-      <Pressable
-        style={styles.clearButton}
-        onPress={clearLogs}
-        nativeID="Button-to-clear-logs"
-      >
-        <Text style={styles.clearText}>Clear Logs</Text>
-      </Pressable>
+      <View style={styles.settingsButtons}>
+        <Pressable
+          style={styles.infoButton}
+          onPress={() => setSettingsModal("userGuide")}
+        >
+          <Text style={styles.infoText}>What and how should you document?</Text>
+        </Pressable>
+
+        <Pressable
+          style={styles.infoButton}
+          onPress={() => setSettingsModal("help")}
+        >
+          <Text style={styles.infoText}>How to use our app?</Text>
+        </Pressable>
+      </View>
 
       <Pressable
         style={styles.deleteButton}
@@ -153,10 +202,69 @@ export default function Debug() {
       >
         <Text style={styles.clearText}>Clear All User Data</Text>
       </Pressable>
+      <View style={styles.apiSettings}>
+        <View style={styles.apiButtons}>
+          <Pressable
+            style={[
+              styles.apiButton,
+              apiSettings.mode === "prod" && styles.activeApiButton,
+            ]}
+            onPress={() => changeApiMode("prod")}
+          >
+            <Text style={styles.apiButtonText}>Prod</Text>
+          </Pressable>
 
+          <Pressable
+            style={[
+              styles.apiButton,
+              apiSettings.mode === "local" && styles.activeApiButton,
+            ]}
+            onPress={() => changeApiMode("local")}
+          >
+            <Text style={styles.apiButtonText}>Local</Text>
+          </Pressable>
+        </View>
+
+        <TextInput
+          style={styles.apiInput}
+          value={apiSettings.localUrl}
+          onChangeText={changeLocalApiUrl}
+          autoCapitalize="none"
+          autoCorrect={false}
+          placeholder="Local API URL"
+        />
+
+        <Pressable style={styles.resetButton} onPress={resetLocalApiUrl}>
+          <Text style={styles.clearText}>Reset Local URL</Text>
+        </Pressable>
+      </View>
+
+      <Pressable
+        style={styles.clearButton}
+        onPress={clearLogs}
+        nativeID="Button-to-clear-logs"
+      >
+        <Text style={styles.clearText}>Clear Logs</Text>
+      </Pressable>
       <ScrollView style={styles.logContainer} nativeID="Log group container">
         {renderGroups(logsGroupedByGroup, openGroups, toggleGroupVisibility)}
       </ScrollView>
+
+      <SettingsInfoModal
+        visible={settingsModal === "userGuide"}
+        title="User guide"
+        onClose={() => setSettingsModal(null)}
+      >
+        <UserGuideItemsContent />
+      </SettingsInfoModal>
+
+      <SettingsInfoModal
+        visible={settingsModal === "help"}
+        title="Help"
+        onClose={() => setSettingsModal(null)}
+      >
+        <HelpItemsContent />
+      </SettingsInfoModal>
     </View>
   );
   return page;
@@ -174,6 +282,77 @@ const styles = StyleSheet.create({
     fontSize: 26,
     fontWeight: "bold",
     marginBottom: 10,
+  },
+
+  settingsButtons: {
+    width: "90%",
+    marginBottom: 12,
+  },
+
+  apiSettings: {
+    width: "90%",
+    marginBottom: 12,
+  },
+
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    marginBottom: 8,
+  },
+
+  apiButtons: {
+    flexDirection: "row",
+    marginBottom: 10,
+  },
+
+  apiButton: {
+    flex: 1,
+    backgroundColor: "#777",
+    paddingVertical: 10,
+    borderRadius: 8,
+    marginRight: 8,
+  },
+
+  activeApiButton: {
+    backgroundColor: "#2196F3",
+  },
+
+  apiButtonText: {
+    color: "white",
+    fontWeight: "600",
+    textAlign: "center",
+  },
+
+  apiInput: {
+    backgroundColor: "white",
+    borderColor: "#ddd",
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 8,
+  },
+
+  resetButton: {
+    backgroundColor: "#777",
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+
+  infoButton: {
+    backgroundColor: "#2196F3",
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+    marginBottom: 10,
+  },
+
+  infoText: {
+    color: "white",
+    fontWeight: "600",
+    textAlign: "center",
   },
 
   clearButton: {

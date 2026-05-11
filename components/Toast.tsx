@@ -1,56 +1,75 @@
 import React, { useEffect } from "react";
-import { Animated, Text, StyleSheet, useAnimatedValue } from "react-native";
+import { Text, StyleSheet } from "react-native";
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withSequence,
+  withTiming,
+} from "react-native-reanimated";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import { scheduleOnRN } from "react-native-worklets";
+
+type ToastType = "Success" | "Error" | "Info";
 
 type ToastMessage = {
-  type: "Success" | "Error" | "Info";
+  type: ToastType;
   message: string;
   onRemove: () => void;
 };
 
+const getTypeColor = (type: ToastType) => {
+  switch (type) {
+    case "Success":
+      return "#19ae75";
+    case "Error":
+      return "#ff3355";
+    case "Info":
+      return "#074799";
+  }
+};
+
+const FADE_IN_MS = 500;
+const IDLE_MS = 2500;
+const FADE_OUT_MS = 1000;
+
+const FADE_IN_OPTIONS = {
+  duration: FADE_IN_MS,
+  easing: Easing.out(Easing.cubic),
+};
+const FADE_OUT_OPTIONS = {
+  duration: FADE_OUT_MS,
+  easing: Easing.in(Easing.cubic),
+};
+
 export const Toast = (props: ToastMessage) => {
-  const fadeAnim = useAnimatedValue(0);
-
-  const fade = () => {
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 2000,
-      useNativeDriver: true,
-    }).start();
-
-    setTimeout(() => {
-      Animated.timing(fadeAnim, {
-        toValue: 0,
-        duration: 1000,
-        useNativeDriver: true,
-      }).start(() => props.onRemove());
-    }, 2000);
-  };
-
-  const getTypeColor = (type: string) => {
-    switch (type) {
-      case "Success":
-        return "#5DB996";
-      case "Error":
-        return "#FF748B";
-      case "Info":
-        return "#074799";
-    }
-  };
+  const opacity = useSharedValue(0);
 
   useEffect(() => {
-    fade();
+    opacity.value = withSequence(
+      // Fade in
+      withTiming(1, FADE_IN_OPTIONS),
+      // Wait
+      withDelay(
+        IDLE_MS,
+        // Fade out and run onRemove not on the UI thread
+        withTiming(0, FADE_OUT_OPTIONS, () => scheduleOnRN(props.onRemove))
+      )
+    );
   }, []);
+
+  const opacityStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+  }));
 
   return (
     <SafeAreaProvider>
       <Animated.View
         style={[
+          opacityStyle,
           styles.container,
-          {
-            opacity: fadeAnim,
-            backgroundColor: getTypeColor(props.type),
-          },
+          { backgroundColor: getTypeColor(props.type) },
         ]}
       >
         <Text style={styles.typetext}>{props.type}</Text>
@@ -77,7 +96,7 @@ const styles = StyleSheet.create({
   },
   typetext: {
     fontSize: 20,
-    color: "black",
+    color: "white",
     textAlign: "center",
   },
 });

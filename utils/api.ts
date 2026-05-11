@@ -6,17 +6,18 @@ import {
   FloorplanMarker,
   FloorplanImageRecord,
 } from "./types";
-// Should be False, whenever you are not testing locally
-const USE_LOCAL_API = false;
 // THIS IS FOR TESTING ONLY.  this was my local IPv4 Address
 // For you may need to change it.  run ipconfig to se your adress
 const LOCAL_API_BASE_URL = "http://10.27.48.86:5000/api";
 
 const PROD_API_BASE_URL = "http://130.225.39.166:5000/api";
 
-const API_BASE_URL =
-  process.env.P8_API_BASE_URL ??
-  (USE_LOCAL_API ? LOCAL_API_BASE_URL : PROD_API_BASE_URL);
+export type ApiMode = "prod" | "local";
+
+let apiMode: ApiMode = "prod";
+let localApiBaseUrl = LOCAL_API_BASE_URL;
+let apiLogger: ((message: string) => void) | null = null;
+
 const rawDeviceUserName =
   process.env.P8_API_USER ?? Constants.deviceName ?? "unknown-device";
 
@@ -24,39 +25,90 @@ export const API_USER =
   rawDeviceUserName.replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 64) ||
   "unknown-device";
 
+// Gets the current API base URL.
+export function getApiBaseUrl(): string {
+  let apiBaseUrl = PROD_API_BASE_URL;
+
+  if (apiMode === "local") {
+    apiBaseUrl = localApiBaseUrl;
+  }
+
+  return apiBaseUrl;
+}
+
+// Gets the current API settings.
+export function getApiSettings() {
+  return {
+    mode: apiMode,
+    localUrl: localApiBaseUrl,
+    defaultLocalUrl: LOCAL_API_BASE_URL,
+    prodUrl: PROD_API_BASE_URL,
+  };
+}
+
+// Sets which API mode the app should use.
+export function setApiMode(nextApiMode: ApiMode): void {
+  apiMode = nextApiMode;
+}
+
+// Sets the local API base URL.
+export function setLocalApiBaseUrl(nextLocalApiBaseUrl: string): void {
+  localApiBaseUrl = nextLocalApiBaseUrl.trim();
+}
+
+// Resets the local API base URL.
+export function resetLocalApiBaseUrl(): void {
+  localApiBaseUrl = LOCAL_API_BASE_URL;
+}
+
+// Sets the API logger.
+export function setApiLogger(nextApiLogger: (message: string) => void): void {
+  apiLogger = nextApiLogger;
+}
+
 /**
  * Build the URL for listing or creating floorplans for the current API user.
  */
 function userFloorplansUrl(): string {
-  return `${API_BASE_URL}/users/${API_USER}/floorplans`;
+  const apiUrl = `${getApiBaseUrl()}/users/${API_USER}/floorplans`;
+  apiLogger?.(`Using API URL: ${apiUrl}`);
+  return apiUrl;
 }
 
 /**
  * Build the URL for listing or creating markers for one floorplan id.
  */
 function floorplanMarkersUrl(floorplanId: string): string {
-  return `${API_BASE_URL}/users/${API_USER}/floorplans/${floorplanId}/markers`;
+  const apiUrl = `${getApiBaseUrl()}/users/${API_USER}/floorplans/${floorplanId}/markers`;
+  apiLogger?.(`Using API URL: ${apiUrl}`);
+  return apiUrl;
 }
 
 /**
  * Build the URL for one specific floorplan id.
  */
 function floorplanUrl(floorplanId: string): string {
-  return `${API_BASE_URL}/users/${API_USER}/floorplans/${floorplanId}`;
+  const apiUrl = `${getApiBaseUrl()}/users/${API_USER}/floorplans/${floorplanId}`;
+  apiLogger?.(`Using API URL: ${apiUrl}`);
+  return apiUrl;
 }
 
 /**
  * Build the URL for one specific marker inside one floorplan.
  */
 function markerUrl(floorplanId: string, markerId: string): string {
-  return `${floorplanMarkersUrl(floorplanId)}/${markerId}`;
+  const apiUrl = `${getApiBaseUrl()}/users/${API_USER}/floorplans/${floorplanId}/markers/${markerId}`;
+  apiLogger?.(`Using API URL: ${apiUrl}`);
+  return apiUrl;
 }
 
 /**
  * Build the URL for updating only the coordinates of one marker.
  */
 function markerCoordinatesUrl(floorplanId: string, markerId: string): string {
-  return `${markerUrl(floorplanId, markerId)}/coordinates`;
+  const apiUrl = `${getApiBaseUrl()}/users/${API_USER}/floorplans/${floorplanId}/markers/${markerId}/coordinates`;
+  apiLogger?.(`Using API URL: ${apiUrl}`);
+  return apiUrl;
 }
 
 /**
@@ -291,7 +343,7 @@ export async function deleteFloorplanMarker(
  * floorplans and markers inside it.
  */
 export async function resetUserData(): Promise<void> {
-  const resetUserUrl = `${API_BASE_URL}/resetUser/${API_USER}`;
+  const resetUserUrl = `${getApiBaseUrl()}/resetUser/${API_USER}`;
 
   const resetUserResponse = await fetch(resetUserUrl, {
     method: "DELETE",
