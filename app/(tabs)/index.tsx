@@ -7,6 +7,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { ResumableZoom, ResumableZoomRefType } from "react-native-zoom-toolkit";
 
 import FloatingHelpButton from "../../components/FloatingHelpButton";
+import FloorplanHeader from "../../components/FloorplanHeader";
 import LoadingOverlay from "../../components/LoadingOverlay";
 import MyFloorPlans from "../../components/floorplans";
 import { EditMarkerModal } from "../../components/index/EditMarkerModal";
@@ -34,7 +35,6 @@ export default function HomeScreen() {
     isLoadingStoredFloorplans,
     isSavingMarkers,
     floorplan,
-    setFloorplan,
     selectedMarkerId,
     pickFloorplan,
     pickFromMyFloorplan,
@@ -358,7 +358,6 @@ export default function HomeScreen() {
     <GestureHandlerRootView>
       <View style={styles.container}>
         <StatusBar style="auto" />
-        <FloatingHelpButton />
 
         {pendingPhotos.length > 0 && (
           <PhotoFormModal
@@ -405,13 +404,8 @@ export default function HomeScreen() {
           />
         )}
 
-        {/* Header with change floor plan option */}
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>{"      Floor Plan"}</Text>
-          <TouchableOpacity onPress={() => setFloorplan(null)}>
-            <Text style={styles.headerButton}>Go back</Text>
-          </TouchableOpacity>
-        </View>
+        {/* Header with change floor plan option and floating help button */}
+        <FloorplanHeader showHelpButton />
 
         {/* Floor plan with markers. */}
         <ResumableZoom
