@@ -9,6 +9,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import { scheduleOnRN } from "react-native-worklets";
 
 type ToastType = "Success" | "Error" | "Info";
 
@@ -52,8 +53,8 @@ export const Toast = (props: ToastMessage) => {
       // Wait
       withDelay(
         IDLE_MS,
-        // Fade out
-        withTiming(0, FADE_OUT_OPTIONS, props.onRemove)
+        // Fade out and run onRemove not on the UI thread
+        withTiming(0, FADE_OUT_OPTIONS, () => scheduleOnRN(props.onRemove))
       )
     );
   }, []);
