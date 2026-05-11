@@ -411,7 +411,7 @@ export default function HomeScreen() {
         <View style={styles.header}>
           <Text style={styles.headerTitle}>{"      Floor Plan"}</Text>
           <TouchableOpacity onPress={() => setFloorplan(null)}>
-            <Text style={styles.headerButton}>Change</Text>
+            <Text style={styles.headerButton}>Go back</Text>
           </TouchableOpacity>
         </View>
 
