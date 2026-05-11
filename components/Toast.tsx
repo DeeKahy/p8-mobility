@@ -22,9 +22,9 @@ type ToastMessage = {
 const getTypeColor = (type: ToastType) => {
   switch (type) {
     case "Success":
-      return "#5DB996";
+      return "#19ae75";
     case "Error":
-      return "#FF748B";
+      return "#ff3355";
     case "Info":
       return "#074799";
   }
@@ -96,7 +96,7 @@ const styles = StyleSheet.create({
   },
   typetext: {
     fontSize: 20,
-    color: "black",
+    color: "white",
     textAlign: "center",
   },
 });
