@@ -37,7 +37,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: "Floorplan",
+          title: "Floor plan",
           href: "/",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="map" size={size} color={color} />
