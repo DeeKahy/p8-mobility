@@ -2,6 +2,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
 
 export default function TabLayout() {
+  const enableCamera = true;
+
   return (
     <Tabs
       screenOptions={{
@@ -13,6 +15,7 @@ export default function TabLayout() {
         name="camera"
         options={{
           title: "Camera",
+          href: enableCamera ? "/camera" : null,
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="camera" size={size} color={color} />
           ),
@@ -22,6 +25,7 @@ export default function TabLayout() {
         name="index"
         options={{
           title: "Floorplan",
+          href: "/",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="map" size={size} color={color} />
           ),
@@ -31,6 +35,7 @@ export default function TabLayout() {
         name="main"
         options={{
           title: "Main page",
+          href: "/main",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="menu" size={size} color={color} />
           ),
@@ -40,6 +45,7 @@ export default function TabLayout() {
         name="debug"
         options={{
           title: "debug",
+          href: "/debug",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="bug" size={size} color={color} />
           ),
