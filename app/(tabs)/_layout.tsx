@@ -45,6 +45,16 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="imagelist"
+        options={{
+          title: "All images",
+          href: enableCamera ? "/imagelist" : null,
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="images-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="settings"
         options={{
           title: "Settings",

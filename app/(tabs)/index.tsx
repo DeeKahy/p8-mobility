@@ -15,7 +15,6 @@ import { MarkerOptionsModal } from "../../components/index/MarkerOptionsModal";
 import { NewMarkerOptionsModal } from "../../components/index/NewMarkerOptionsModal";
 import { PhotoGalleryModal } from "../../components/index/PhotoGalleryModal";
 import { PhotoFormModal } from "../../components/photoForm";
-import { PhotoList } from "../../components/photos_list";
 import { useCamera, CameraMode } from "../../context/CameraContext";
 import { useFloorplan } from "../../context/FloorplanContext";
 import { useLogger } from "../../context/LoggerContext";
@@ -66,7 +65,6 @@ export default function HomeScreen() {
   const [pendingPhotos, setPendingPhotos] = useState<
     { uri: string; date: string }[]
   >([]);
-  const [showPhotoListView, setShowPhotoListView] = useState<boolean>(false);
   const [loadingText, setLoadingText] = useState<string | null>(null);
   // Keep the gallery tied to the marker it opened for while selection/modal state changes.
   const [photoGalleryMarkerId, setPhotoGalleryMarkerId] = useState<
@@ -549,20 +547,6 @@ export default function HomeScreen() {
           handleDeletePhoto={handleDeletePhoto}
           closeAllModals={closeAllModals}
         />
-
-        {showPhotoListView && (
-          <View style={styles.fullscreenOverlay}>
-            <PhotoList photoList={savedPhotos.current} />
-          </View>
-        )}
-        <View>
-          <TouchableOpacity
-            style={styles.showListButton}
-            onPress={() => setShowPhotoListView(!showPhotoListView)}
-          >
-            <Text>{showPhotoListView ? "Hide photos" : "Show photos"}</Text>
-          </TouchableOpacity>
-        </View>
 
         <Text style={styles.instructions}>
           {`${captureMode === CameraMode.Placement ? `Tap and hold to ${selectedMarkerId ? "add the image" : "create marker"}` : "Tap on the floor plan to place a marker"}`}
