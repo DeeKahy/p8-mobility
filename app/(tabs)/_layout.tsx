@@ -3,6 +3,7 @@ import { Tabs } from "expo-router";
 
 export default function TabLayout() {
   const enableCamera = true;
+  const enableAR = true;
 
   return (
     <Tabs
@@ -18,6 +19,16 @@ export default function TabLayout() {
           href: enableCamera ? "/camera" : null,
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="camera" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="ar"
+        options={{
+          title: "AR scan",
+          href: enableAR ? "/ar" : null,
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="scan-circle-outline" size={size} color={color} />
           ),
         }}
       />
