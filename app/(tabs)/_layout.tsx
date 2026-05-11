@@ -1,9 +1,11 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
 
+import { useFloorplan } from "../../context/FloorplanContext";
+
 export default function TabLayout() {
-  const enableCamera = true;
-  const enableAR = true;
+  const { floorplan: enableCamera } = useFloorplan();
+  const enableAR = !enableCamera;
 
   return (
     <Tabs
