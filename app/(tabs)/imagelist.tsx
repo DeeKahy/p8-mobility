@@ -5,6 +5,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import PieChart from "react-native-pie-chart";
 
 import FloorplanHeader from "../../components/FloorplanHeader";
+import FullscreenImage from "../../components/FullscreenImage";
 import { makePieChartSeries } from "../../components/index/MarkerElement";
 import { useFloorplan } from "../../context/FloorplanContext";
 import { styles as indexStyles } from "../../css/indexStyle";
@@ -39,6 +40,7 @@ export default function ImagesScreen() {
   const { markers, setSelectedMarkerId, removePhoto } = useFloorplan();
   const [sortBy, setSortBy] = useState(SortBy.Group);
   const [selected, setSelected] = useState(-1);
+  const [fullscreenImage, setFullscreenImage] = useState("");
 
   useFocusEffect(
     useCallback(() => {
@@ -121,6 +123,7 @@ export default function ImagesScreen() {
   };
 
   const MarkerHeader = ({ section: { key, data } }: SectionDataArgument) => {
+    const imageCount = data.length;
     return (
       <TouchableOpacity
         style={[
@@ -135,12 +138,15 @@ export default function ImagesScreen() {
           cover={{ radius: 0.4 }}
           padAngle={0.1}
         />
-        <Text style={indexStyles.headerButton}>Go to marker</Text>
+        <Text
+          style={indexStyles.headerButton}
+        >{`Marker with ${imageCount} ${imageCount > 1 ? "images" : "image"}`}</Text>
       </TouchableOpacity>
     );
   };
 
-  const GroupHeader = ({ section: { key } }: SectionDataArgument) => {
+  const GroupHeader = ({ section: { key, data } }: SectionDataArgument) => {
+    const imageCount = data.length;
     return (
       <View
         style={[
@@ -152,7 +158,9 @@ export default function ImagesScreen() {
           widthAndHeight={25}
           series={[{ value: 1, color: hashNameToColor(key) }]}
         />
-        <Text style={indexStyles.headerButton}>{key}</Text>
+        <Text
+          style={indexStyles.headerButton}
+        >{`${key} with ${imageCount} ${imageCount > 1 ? "images" : "image"}`}</Text>
       </View>
     );
   };
@@ -190,24 +198,26 @@ export default function ImagesScreen() {
               <Text style={photoListStyles.subtitle}>{description}</Text>
             ) : null}
           </View>
-          {expand ? (
-            <Image
-              source={{ uri: photoUri }}
-              style={{
-                width: IMAGE_WIDTH * EXPAND_SCALE,
-                height: IMAGE_WIDTH * EXPAND_SCALE,
+          <View
+            style={[photoListStyles.textContainer, { alignItems: "flex-end" }]}
+          >
+            <TouchableOpacity
+              onPress={() => {
+                setSelected(index);
+                setFullscreenImage(photoUri);
               }}
-              resizeMethod="scale"
-              resizeMode="contain"
-            />
-          ) : (
-            <Image
-              source={{ uri: photoUri }}
-              style={{ width: IMAGE_WIDTH, height: IMAGE_HEIGHT }}
-              resizeMethod="scale"
-              resizeMode="contain"
-            />
-          )}
+            >
+              <Image
+                source={{ uri: photoUri }}
+                style={{
+                  width: expand ? IMAGE_WIDTH * EXPAND_SCALE : IMAGE_WIDTH,
+                  height: expand ? IMAGE_HEIGHT * EXPAND_SCALE : IMAGE_HEIGHT,
+                }}
+                resizeMethod="scale"
+                resizeMode="contain"
+              />
+            </TouchableOpacity>
+          </View>
         </View>
         {expand ? (
           <View style={{ flexDirection: "row" }}>
@@ -252,6 +262,9 @@ export default function ImagesScreen() {
           ListHeaderComponent={SortingSelector}
           stickySectionHeadersEnabled
         />
+        {fullscreenImage ? (
+          <FullscreenImage uri={fullscreenImage} setUri={setFullscreenImage} />
+        ) : null}
       </View>
     </GestureHandlerRootView>
   );
