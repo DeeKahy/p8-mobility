@@ -3,7 +3,6 @@ import { useCallback, useState } from "react";
 import { TouchableOpacity, View, Text, SectionList, Image } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import PieChart from "react-native-pie-chart";
-import { SnapbackZoom } from "react-native-zoom-toolkit";
 
 import FloorplanHeader from "../../components/FloorplanHeader";
 import { makePieChartSeries } from "../../components/index/MarkerElement";
@@ -20,7 +19,8 @@ enum SortBy {
 }
 
 type IndexedPhotoData = {
-  index: number;
+  index: number; // Unique index in the list
+  markerId: string; // ID of the marker this picture is associated with
 } & PhotoData;
 
 interface SectionDataArgument {
@@ -36,13 +36,13 @@ interface ImageListItemProps {
 }
 
 export default function ImagesScreen() {
-  const { markers, setSelectedMarkerId } = useFloorplan();
+  const { markers, setSelectedMarkerId, removePhoto } = useFloorplan();
   const [sortBy, setSortBy] = useState(SortBy.Group);
   const [selected, setSelected] = useState(-1);
-  console.log(`${selected < 0 ? "Nothing" : selected} is selected`);
 
   useFocusEffect(
     useCallback(() => {
+      setSelectedMarkerId(null);
       return setSelected(-1);
     }, [])
   );
@@ -55,30 +55,43 @@ export default function ImagesScreen() {
     return index;
   };
 
+  const navigateToMarker = (id: string) => {
+    setSelectedMarkerId(id);
+    router.navigate("/");
+  };
+
   // Sections are what will be used to generate the list, including the section header components
   const makeMarkerSections = (markers: Marker[]) => {
     return markers.map((marker) => ({
       key: marker.id,
-      data: marker.photos.map((pd) => ({ ...pd, index: newIndex() })),
+      data: marker.photos.map((pd) => ({
+        ...pd,
+        index: newIndex(),
+        markerId: marker.id,
+      })),
     }));
   };
 
   const makeGroupSections = (markers: Marker[]) => {
-    const groups = new Map<string, PhotoData[]>();
+    const groups = new Map<string, IndexedPhotoData[]>();
     const sections: { key: string; data: IndexedPhotoData[] }[] = [];
     // Split photos up according to their group
     markers.forEach((marker) => {
-      marker.photos.forEach((p: PhotoData) => {
-        const ps = groups.get(p.areaGroup) ?? [];
-        ps.push(p);
-        groups.set(p.areaGroup, ps);
+      marker.photos.forEach((pd: PhotoData) => {
+        const ps = groups.get(pd.areaGroup) ?? [];
+        ps.push({
+          ...pd,
+          index: newIndex(),
+          markerId: marker.id,
+        });
+        groups.set(pd.areaGroup, ps);
       });
     });
     // Make sections with groupName as keys
-    groups.forEach((photos, groupName) => {
+    groups.forEach((indexedPhotos, groupName) => {
       sections.push({
         key: groupName,
-        data: photos.map((pd) => ({ ...pd, index: newIndex() })),
+        data: indexedPhotos,
       });
     });
     return sections;
@@ -114,10 +127,7 @@ export default function ImagesScreen() {
           photoListStyles.card,
           { marginTop: "5%", alignItems: "center" },
         ]}
-        onPress={() => {
-          setSelectedMarkerId(key);
-          router.navigate("/");
-        }}
+        onPress={() => navigateToMarker(key)}
       >
         <PieChart
           widthAndHeight={25}
@@ -151,24 +161,36 @@ export default function ImagesScreen() {
     const IMAGE_WIDTH = 50;
     const IMAGE_HEIGHT = 75;
     const EXPAND_SCALE = 4;
-    const { index, pictureName, dateTaken, photoUri, areaGroup, description } =
-      item;
+    const {
+      index,
+      markerId,
+      pictureName,
+      dateTaken,
+      photoUri,
+      areaGroup,
+      description,
+    } = item;
 
     return (
-      <View style={[photoListStyles.card, { zIndex: expand ? 100 : 0 }]}>
-        <View style={photoListStyles.textContainer}>
-          <Text
-            style={photoListStyles.subtitle}
-          >{`${areaGroup}\n${dateTaken}`}</Text>
-          <TouchableOpacity onPress={() => setSelected(index)}>
-            <Text style={photoListStyles.title}>{pictureName}</Text>
-          </TouchableOpacity>
-          {expand && description ? (
-            <Text style={photoListStyles.subtitle}>{description}</Text>
-          ) : null}
-        </View>
-        {expand ? (
-          <SnapbackZoom>
+      <View
+        style={[
+          photoListStyles.card,
+          { flexDirection: "column", zIndex: expand ? 100 : 0 },
+        ]}
+      >
+        <View style={{ flexDirection: "row" }}>
+          <View style={photoListStyles.textContainer}>
+            <Text
+              style={photoListStyles.subtitle}
+            >{`${areaGroup}\n${dateTaken}`}</Text>
+            <TouchableOpacity onPress={() => setSelected(index)}>
+              <Text style={photoListStyles.title}>{pictureName}</Text>
+            </TouchableOpacity>
+            {expand && description ? (
+              <Text style={photoListStyles.subtitle}>{description}</Text>
+            ) : null}
+          </View>
+          {expand ? (
             <Image
               source={{ uri: photoUri }}
               style={{
@@ -178,15 +200,35 @@ export default function ImagesScreen() {
               resizeMethod="scale"
               resizeMode="contain"
             />
-          </SnapbackZoom>
-        ) : (
-          <Image
-            source={{ uri: photoUri }}
-            style={{ width: IMAGE_WIDTH, height: IMAGE_HEIGHT }}
-            resizeMethod="scale"
-            resizeMode="contain"
-          />
-        )}
+          ) : (
+            <Image
+              source={{ uri: photoUri }}
+              style={{ width: IMAGE_WIDTH, height: IMAGE_HEIGHT }}
+              resizeMethod="scale"
+              resizeMode="contain"
+            />
+          )}
+        </View>
+        {expand ? (
+          <View style={{ flexDirection: "row" }}>
+            <TouchableOpacity
+              style={{ flex: 1, alignSelf: "flex-start" }}
+              onPress={() => removePhoto(markerId, item)}
+            >
+              <Text style={[indexStyles.headerButton, { color: "#f32121" }]}>
+                Delete image
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={{ flex: 1, alignSelf: "flex-end" }}
+              onPress={() => navigateToMarker(markerId)}
+            >
+              <Text style={[indexStyles.headerButton, { textAlign: "right" }]}>
+                Go to marker
+              </Text>
+            </TouchableOpacity>
+          </View>
+        ) : null}
       </View>
     );
   };
