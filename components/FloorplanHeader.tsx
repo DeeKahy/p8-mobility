@@ -1,3 +1,4 @@
+import { router } from "expo-router";
 import { TouchableOpacity, View, Text } from "react-native";
 
 import FloatingHelpButton from "./FloatingHelpButton";
@@ -17,7 +18,12 @@ const FloorplanHeader = ({ showHelpButton = false }: FloorplanHeaderProps) => {
       <Text
         style={styles.headerTitle}
       >{`${showHelpButton ? "      " : ""}Floor Plan`}</Text>
-      <TouchableOpacity onPress={() => setFloorplan(null)}>
+      <TouchableOpacity
+        onPress={() => {
+          setFloorplan(null);
+          router.navigate("/");
+        }}
+      >
         <Text style={styles.headerButton}>Go back</Text>
       </TouchableOpacity>
     </View>
