@@ -1,7 +1,7 @@
 import React, {
   createContext,
   FC,
-  ReactNode,
+  ReactElement,
   useCallback,
   useContext,
   useEffect,
@@ -20,14 +20,14 @@ type ToastMessage = {
 
 type ToastContextProps = {
   showToast: (message: string, type: "Success" | "Error" | "Info") => void;
-  register: (overlay: ReactNode) => number;
+  register: (overlay: ReactElement) => number;
   unregister: (id: number) => void;
 };
 
 const ToastContext = createContext<ToastContextProps | null>(null);
 
 interface ToastProviderprops {
-  children: ReactNode;
+  children: React.ReactNode;
 }
 
 export const ToastProvider: FC<ToastProviderprops> = ({ children }) => {
@@ -48,10 +48,10 @@ export const ToastProvider: FC<ToastProviderprops> = ({ children }) => {
   };
 
   const [overlays, setOverlays] = useState<
-    { id: number; overlay: ReactNode }[]
+    { id: number; overlay: ReactElement }[]
   >([]);
 
-  const register = useCallback((overlay: ReactNode) => {
+  const register = useCallback((overlay: ReactElement) => {
     const id = ++idRef.current;
     setOverlays((prev) => [...prev, { id, overlay }]);
     return id;
@@ -64,8 +64,15 @@ export const ToastProvider: FC<ToastProviderprops> = ({ children }) => {
   return (
     <ToastContext.Provider value={{ showToast, register, unregister }}>
       {children}
+      {overlays.map(({ id, overlay }) => (
+        <View
+          key={id}
+          style={[StyleSheet.absoluteFill, { pointerEvents: "box-none" }]}
+        >
+          {overlay}
+        </View>
+      ))}
       <View style={[StyleSheet.absoluteFill, { pointerEvents: "box-none" }]}>
-        {overlays.map(({ overlay }) => overlay)}
         {toast.map((item) => (
           <Toast
             key={item.id}
@@ -87,16 +94,20 @@ export const useToast = () => {
   return context;
 };
 
+interface OverlayProps {
+  children: ReactElement;
+}
+
 // Wraps a component and moves it to the overlay modal on mount.
 // This moves it to a modal-like layer removed from the normal layout.
-export const Overlay = ({ children }: any) => {
-  const child = React.Children.only(children);
+// Real modal components still render above this layer.
+export const Overlay = ({ children }: OverlayProps) => {
   const idRef = useRef<number>(null);
   const { register, unregister } = useToast();
 
   useEffect(() => {
-    idRef.current = register(child);
-    console.log(`Registered overlay as ${idRef.current}`);
+    idRef.current = register(children);
+    console.log(`Registered overlay ${idRef.current}`);
     return () => {
       if (idRef.current != null) {
         console.log(`Unregistered overlay ${idRef.current}`);
