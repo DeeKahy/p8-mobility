@@ -4,7 +4,11 @@ import { StatusBar } from "expo-status-bar";
 import { useEffect, useRef, useState } from "react";
 import { Alert, Image, Text, TouchableOpacity, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { ResumableZoom, ResumableZoomRefType } from "react-native-zoom-toolkit";
+import {
+  CommonZoomState,
+  ResumableZoom,
+  ResumableZoomRefType,
+} from "react-native-zoom-toolkit";
 
 import LoadingOverlay from "../../components/LoadingOverlay";
 import MyFloorPlans from "../../components/floorplans";
@@ -289,6 +293,14 @@ export default function HomeScreen() {
       }
     );
 
+  const onResumablePlacementUpdate = (state: CommonZoomState<number>) => {
+    "worklet";
+    onResumableUpdate(state);
+    const { x, y, width, height } = getVisibleRectFromState(state);
+    previewMarker.x.value = x + width / 2;
+    previewMarker.y.value = y + height / 2;
+  };
+
   // Runs whenever capturedImage updates e.g. when a new photo is taken using camera.tsx
   useEffect(() => {
     if (!capturedImage) return;
@@ -417,17 +429,11 @@ export default function HomeScreen() {
           ref={resumableRef}
           extendGestures // This should be used with extendBorders or it might act weird.
           extendBorders // extendBorders is our own addition. Don't forget to apply the patch!
-          onUpdate={(state) => {
-            "worklet";
-            if (captureMode.current === CameraMode.Placement) {
-              onResumableUpdate(state);
-              const { x, y, width, height } = getVisibleRectFromState(state);
-              previewMarker.x.value = x + width / 2;
-              previewMarker.y.value = y + height / 2;
-            } else {
-              onResumableUpdate(state);
-            }
-          }}
+          onUpdate={
+            captureMode.current === CameraMode.Placement
+              ? onResumablePlacementUpdate
+              : onResumableUpdate
+          }
           onLongPress={(event) => {
             if (captureMode.current === CameraMode.Placement) {
               // Confirm the image placement if one is ongoing
