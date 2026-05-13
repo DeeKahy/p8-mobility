@@ -197,6 +197,7 @@ export default function HomeScreen() {
     setShowTempMarker(false);
     router.navigate("/camera");
     captureMode.current = CameraMode.Addition;
+    closeAllModals();
   };
 
   const handleAddFromCameraRollToMarker = async () => {
@@ -238,6 +239,7 @@ export default function HomeScreen() {
     setShowNewMarkerOptions(false);
     router.navigate("/camera");
     captureMode.current = CameraMode.Addition;
+    closeAllModals();
   };
 
   const handleDeletePhoto = (photo: PhotoData) => {
@@ -271,7 +273,6 @@ export default function HomeScreen() {
   const closeAllModals = () => {
     setShowPhotos(false);
     setPhotoGalleryMarkerId(null);
-    setSelectedMarkerId(null);
     setShowMarkerOptions(false);
     setShowTempMarker(false);
   };

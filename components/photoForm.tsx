@@ -11,10 +11,9 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-  StyleSheet,
 } from "react-native";
 import DropDownPicker, { ItemType } from "react-native-dropdown-picker";
-import { SafeAreaView } from "react-native-safe-area-context";
+import Animated, { SlideInDown, SlideOutDown } from "react-native-reanimated";
 import * as yup from "yup";
 
 import FloatingHelpButton from "./FloatingHelpButton";
@@ -101,7 +100,11 @@ export const PhotoFormModal = ({
 
   return (
     <Overlay>
-      <SafeAreaView style={StyleSheet.absoluteFill}>
+      <Animated.View
+        style={{ flex: 1 }}
+        entering={SlideInDown}
+        exiting={SlideOutDown}
+      >
         <FloatingHelpButton />
         <KeyboardAvoidingView
           style={{ flex: 1 }}
@@ -242,7 +245,7 @@ export const PhotoFormModal = ({
             </View>
           </ScrollView>
         </KeyboardAvoidingView>
-      </SafeAreaView>
+      </Animated.View>
     </Overlay>
   );
 };

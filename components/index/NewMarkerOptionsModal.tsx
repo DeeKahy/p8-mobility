@@ -1,6 +1,8 @@
 import { Dispatch, SetStateAction } from "react";
-import { Modal, Pressable, Text, TouchableOpacity } from "react-native";
+import { Pressable, Text, TouchableOpacity } from "react-native";
+import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 
+import { Overlay } from "../../context/ToastProvider";
 import { styles } from "../../css/indexStyle";
 
 interface NewMarkerOptionsModalProps {
@@ -11,6 +13,8 @@ interface NewMarkerOptionsModalProps {
   handleNewMarkerFromCameraRoll: () => void;
 }
 
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
 export const NewMarkerOptionsModal = (props: NewMarkerOptionsModalProps) => {
   const {
     showModal,
@@ -19,12 +23,14 @@ export const NewMarkerOptionsModal = (props: NewMarkerOptionsModalProps) => {
     handleNewMarkerFromPicture,
     handleNewMarkerFromCameraRoll,
   } = props;
-
+  if (!showModal) return null;
   return (
-    <Modal visible={showModal} transparent animationType="fade">
-      <Pressable
+    <Overlay>
+      <AnimatedPressable
         style={styles.modalOverlay}
         onPress={() => setShowNewMarkerOptions(false)}
+        entering={FadeIn}
+        exiting={FadeOut}
       >
         <Pressable
           style={styles.optionsModal}
@@ -53,7 +59,7 @@ export const NewMarkerOptionsModal = (props: NewMarkerOptionsModalProps) => {
             <Text style={styles.optionCancelText}>Cancel</Text>
           </TouchableOpacity>
         </Pressable>
-      </Pressable>
-    </Modal>
+      </AnimatedPressable>
+    </Overlay>
   );
 };
