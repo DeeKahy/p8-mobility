@@ -259,10 +259,9 @@ export default function HomeScreen() {
 
   const handleShowPhotos = () => {
     if (selectedMarkerId) {
-      setPhotoGalleryMarkerId(selectedMarkerId);
+      router.navigate("/imagelist");
     }
     setShowMarkerOptions(false);
-    setShowPhotos(true);
   };
 
   const closeAllModals = () => {

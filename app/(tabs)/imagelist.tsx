@@ -1,6 +1,13 @@
 import { router, useFocusEffect } from "expo-router";
-import { useCallback, useState } from "react";
-import { TouchableOpacity, View, Text, SectionList, Image } from "react-native";
+import { useCallback, useRef, useState } from "react";
+import {
+  TouchableOpacity,
+  View,
+  Text,
+  SectionList,
+  Image,
+  StyleSheet,
+} from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import PieChart from "react-native-pie-chart";
 
@@ -19,10 +26,14 @@ enum SortBy {
   Marker = "Sort by Marker",
 }
 
+// Item type for the list
 type IndexedPhotoData = {
   index: number; // Unique index in the list
   markerId: string; // ID of the marker this picture is associated with
 } & PhotoData;
+
+// Section type for the list
+type ImageListSection = { key: string; data: IndexedPhotoData[] };
 
 interface SectionDataArgument {
   section: {
@@ -36,16 +47,27 @@ interface ImageListItemProps {
   expand: boolean;
 }
 
+interface ListButtonProps {
+  text: string;
+  action: () => void;
+  enable?: boolean;
+}
+
 export default function ImagesScreen() {
-  const { markers, setSelectedMarkerId, removePhoto } = useFloorplan();
+  const { markers, selectedMarkerId, setSelectedMarkerId, removePhoto } =
+    useFloorplan();
   const [sortBy, setSortBy] = useState(SortBy.Group);
   const [selected, setSelected] = useState(-1);
   const [fullscreenImage, setFullscreenImage] = useState("");
+  const listRef = useRef<SectionList<IndexedPhotoData, ImageListSection>>(null);
 
   useFocusEffect(
     useCallback(() => {
-      setSelectedMarkerId(null);
-      return setSelected(-1);
+      // Clean up the list selection
+      return () => {
+        setFullscreenImage("");
+        setSelected(-1);
+      };
     }, [])
   );
 
@@ -64,30 +86,36 @@ export default function ImagesScreen() {
 
   // Sections are what will be used to generate the list, including the section header components
   const makeMarkerSections = (markers: Marker[]) => {
-    return markers.map((marker) => ({
-      key: marker.id,
-      data: marker.photos.map((pd) => ({
-        ...pd,
-        index: newIndex(),
-        markerId: marker.id,
-      })),
-    }));
+    const sections: ImageListSection[] = [];
+    markers.forEach((marker) => {
+      if (!selectedMarkerId || selectedMarkerId === marker.id)
+        sections.push({
+          key: marker.id,
+          data: marker.photos.map((pd) => ({
+            ...pd,
+            index: newIndex(),
+            markerId: marker.id,
+          })),
+        });
+    });
+    return sections;
   };
 
   const makeGroupSections = (markers: Marker[]) => {
     const groups = new Map<string, IndexedPhotoData[]>();
-    const sections: { key: string; data: IndexedPhotoData[] }[] = [];
+    const sections: ImageListSection[] = [];
     // Split photos up according to their group
     markers.forEach((marker) => {
-      marker.photos.forEach((pd: PhotoData) => {
-        const ps = groups.get(pd.areaGroup) ?? [];
-        ps.push({
-          ...pd,
-          index: newIndex(),
-          markerId: marker.id,
+      if (!selectedMarkerId || selectedMarkerId === marker.id)
+        marker.photos.forEach((pd: PhotoData) => {
+          const ps = groups.get(pd.areaGroup) ?? [];
+          ps.push({
+            ...pd,
+            index: newIndex(),
+            markerId: marker.id,
+          });
+          groups.set(pd.areaGroup, ps);
         });
-        groups.set(pd.areaGroup, ps);
-      });
     });
     // Make sections with groupName as keys
     groups.forEach((indexedPhotos, groupName) => {
@@ -99,14 +127,21 @@ export default function ImagesScreen() {
     return sections;
   };
 
-  const SortingButton = (sorting: SortBy) => {
+  const ListButton = ({ text, action, enable = true }: ListButtonProps) => {
     return (
       <TouchableOpacity
-        style={photoListStyles.card}
-        onPress={() => setSortBy(sorting)}
+        style={[photoListStyles.card, { width: "40%" }]}
+        onPress={action}
+        disabled={!enable}
       >
-        <Text style={[indexStyles.headerButton, { textAlign: "center" }]}>
-          {sorting}
+        <Text
+          style={[
+            indexStyles.headerButton,
+            { textAlign: "center", flex: 1 },
+            enable ? null : { color: "#0000005b" },
+          ]}
+        >
+          {text}
         </Text>
       </TouchableOpacity>
     );
@@ -116,11 +151,53 @@ export default function ImagesScreen() {
   const SortingSelector = () => {
     return (
       <View style={[photoListStyles.card, { justifyContent: "center" }]}>
-        {SortingButton(SortBy.Group)}
-        {SortingButton(SortBy.Marker)}
+        <ListButton
+          text={SortBy.Group}
+          action={() => setSortBy(SortBy.Group)}
+          enable={sortBy !== SortBy.Group}
+        />
+        <ListButton
+          text={SortBy.Marker}
+          action={() => setSortBy(SortBy.Marker)}
+          enable={sortBy !== SortBy.Marker}
+        />
       </View>
     );
   };
+
+  //Footer for the list. Contains a button to jump to the top and to clear selectedMarkerId
+  const ListResetter = () => {
+    return (
+      <View style={[photoListStyles.card, { justifyContent: "center" }]}>
+        <ListButton
+          text="To the top"
+          action={() =>
+            listRef?.current?.scrollToLocation({
+              sectionIndex: 0,
+              itemIndex: 0,
+              animated: true,
+            })
+          }
+        />
+        <ListButton
+          text="Show all"
+          action={() => setSelectedMarkerId(null)}
+          enable={!!selectedMarkerId}
+        />
+      </View>
+    );
+  };
+
+  const EmptyListRedirector = () => (
+    <View
+      style={[
+        StyleSheet.absoluteFill,
+        { alignItems: "center", justifyContent: "center" },
+      ]}
+    >
+      <ListButton text="No images yet" action={() => router.navigate("/")} />
+    </View>
+  );
 
   const MarkerHeader = ({ section: { key, data } }: SectionDataArgument) => {
     const imageCount = data.length;
@@ -248,6 +325,7 @@ export default function ImagesScreen() {
       <View style={indexStyles.container}>
         <FloorplanHeader showHelpButton />
         <SectionList
+          ref={listRef}
           sections={
             sortBy === SortBy.Group
               ? makeGroupSections(markers)
@@ -260,6 +338,8 @@ export default function ImagesScreen() {
             sortBy === SortBy.Group ? GroupHeader : MarkerHeader
           }
           ListHeaderComponent={SortingSelector}
+          ListFooterComponent={ListResetter}
+          ListEmptyComponent={EmptyListRedirector}
           stickySectionHeadersEnabled
         />
         {fullscreenImage ? (
