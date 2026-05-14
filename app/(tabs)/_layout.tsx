@@ -1,7 +1,12 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
 
+import { useFloorplan } from "../../context/FloorplanContext";
+
 export default function TabLayout() {
+  const { floorplan: enableCamera } = useFloorplan();
+  const enableAR = !enableCamera;
+
   return (
     <Tabs
       screenOptions={{
@@ -13,17 +18,39 @@ export default function TabLayout() {
         name="camera"
         options={{
           title: "Camera",
+          href: enableCamera ? "/camera" : null,
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="camera" size={size} color={color} />
           ),
         }}
       />
       <Tabs.Screen
+        name="ar"
+        options={{
+          title: "AR scan",
+          href: enableAR ? "/ar" : null,
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="scan-circle-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="index"
         options={{
-          title: "Floorplan",
+          title: "Floor plan",
+          href: "/",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="map" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="imagelist"
+        options={{
+          title: "All images",
+          href: enableCamera ? "/imagelist" : null,
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="images-outline" size={size} color={color} />
           ),
         }}
       />

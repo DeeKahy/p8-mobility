@@ -39,19 +39,13 @@ const MAX_HIGHLIGHT_SCALE = 1.25;
 const BASE_HIGHTLIGHT_SCALE = 1;
 const HIGHTLIGHT_LOOP_MS = 400;
 
-export const MarkerElement = (
-  props: MarkerPropsWithMarker | MarkerPropsWithFreePosition
-) => {
-  const DEFAULT_SCALE = useSharedValue(1); // Don't transform if scale isn't given
-  const extraScale = useSharedValue(BASE_HIGHTLIGHT_SCALE);
-  const { marker, highlight = false, scale = DEFAULT_SCALE } = props;
-
+export function makePieChartSeries(photos?: PhotoData[]) {
   const hashedColors = new Map<string, number>();
   const series: Slice[] = [];
 
-  if (marker) {
+  if (photos) {
     // Count how many times each color hash appears
-    marker.photos.forEach((p: PhotoData) => {
+    photos.forEach((p: PhotoData) => {
       const c = hashNameToColor(p.areaGroup);
       const n = hashedColors.get(c);
       hashedColors.set(c, n ? n + 1 : 1);
@@ -63,6 +57,16 @@ export const MarkerElement = (
   } else {
     series.push({ value: 1, color: "#ffffff" });
   }
+
+  return series;
+}
+
+export const MarkerElement = (
+  props: MarkerPropsWithMarker | MarkerPropsWithFreePosition
+) => {
+  const DEFAULT_SCALE = useSharedValue(1); // Don't transform if scale isn't given
+  const extraScale = useSharedValue(BASE_HIGHTLIGHT_SCALE);
+  const { marker, highlight = false, scale = DEFAULT_SCALE } = props;
 
   useEffect(() => {
     // Start highlight animation on mount
@@ -125,7 +129,7 @@ export const MarkerElement = (
           <View style={stylesheet.content}>
             <PieChart
               widthAndHeight={(styles.marker.width * 2) / 3}
-              series={series}
+              series={makePieChartSeries(marker?.photos)}
               style={{ transform: [{ scale: 0.9 }] }}
               cover={{ radius: 0.4 }} // This fraction of the radius is transparent
               padAngle={0.1} // Slices are separated by this much

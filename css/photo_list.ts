@@ -17,7 +17,8 @@ export const styles = StyleSheet.create({
     elevation: 3,
     flexDirection: "row",
     gap: 16,
-    alignItems: "center",
+    marginVertical: 5,
+    marginHorizontal: 5,
   },
 
   imageContainer: {

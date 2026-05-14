@@ -11,6 +11,7 @@ import {
 } from "react-native-zoom-toolkit";
 
 import FloatingHelpButton from "../../components/FloatingHelpButton";
+import FloorplanHeader from "../../components/FloorplanHeader";
 import LoadingOverlay from "../../components/LoadingOverlay";
 import MyFloorPlans from "../../components/floorplans";
 import { EditMarkerModal } from "../../components/index/EditMarkerModal";
@@ -19,7 +20,6 @@ import { MarkerOptionsModal } from "../../components/index/MarkerOptionsModal";
 import { NewMarkerOptionsModal } from "../../components/index/NewMarkerOptionsModal";
 import { PhotoGalleryModal } from "../../components/index/PhotoGalleryModal";
 import { PhotoFormModal } from "../../components/photoForm";
-import { PhotoList } from "../../components/photos_list";
 import { useCamera, CameraMode } from "../../context/CameraContext";
 import { useFloorplan } from "../../context/FloorplanContext";
 import { useLogger } from "../../context/LoggerContext";
@@ -39,7 +39,6 @@ export default function HomeScreen() {
     isLoadingStoredFloorplans,
     isSavingMarkers,
     floorplan,
-    setFloorplan,
     selectedMarkerId,
     pickFloorplan,
     pickFromMyFloorplan,
@@ -70,7 +69,6 @@ export default function HomeScreen() {
   const [pendingPhotos, setPendingPhotos] = useState<
     { uri: string; date: string }[]
   >([]);
-  const [showPhotoListView, setShowPhotoListView] = useState<boolean>(false);
   const [loadingText, setLoadingText] = useState<string | null>(null);
   // Keep the gallery tied to the marker it opened for while selection/modal state changes.
   const [photoGalleryMarkerId, setPhotoGalleryMarkerId] = useState<
@@ -265,10 +263,9 @@ export default function HomeScreen() {
 
   const handleShowPhotos = () => {
     if (selectedMarkerId) {
-      setPhotoGalleryMarkerId(selectedMarkerId);
+      router.navigate("/imagelist");
     }
     setShowMarkerOptions(false);
-    setShowPhotos(true);
   };
 
   const closeAllModals = () => {
@@ -372,7 +369,6 @@ export default function HomeScreen() {
     <GestureHandlerRootView>
       <View style={styles.container}>
         <StatusBar style="auto" />
-        <FloatingHelpButton />
 
         {pendingPhotos.length > 0 && (
           <PhotoFormModal
@@ -419,13 +415,8 @@ export default function HomeScreen() {
           />
         )}
 
-        {/* Header with change floor plan option */}
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>{"      Floor Plan"}</Text>
-          <TouchableOpacity onPress={() => setFloorplan(null)}>
-            <Text style={styles.headerButton}>Change</Text>
-          </TouchableOpacity>
-        </View>
+        {/* Header with change floor plan option and floating help button */}
+        <FloorplanHeader showHelpButton />
 
         {/* Floor plan with markers. */}
         <ResumableZoom
@@ -555,20 +546,6 @@ export default function HomeScreen() {
           handleDeletePhoto={handleDeletePhoto}
           closeAllModals={closeAllModals}
         />
-
-        {showPhotoListView && (
-          <View style={styles.fullscreenOverlay}>
-            <PhotoList photoList={savedPhotos.current} />
-          </View>
-        )}
-        <View>
-          <TouchableOpacity
-            style={styles.showListButton}
-            onPress={() => setShowPhotoListView(!showPhotoListView)}
-          >
-            <Text>{showPhotoListView ? "Hide photos" : "Show photos"}</Text>
-          </TouchableOpacity>
-        </View>
 
         <Text style={styles.instructions}>
           {`${captureMode.current === CameraMode.Placement ? `Tap and hold to ${selectedMarkerId ? "add the image" : "create marker"}` : "Tap on the floor plan to place a marker"}`}

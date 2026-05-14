@@ -47,6 +47,7 @@ export const styles = StyleSheet.create({
     backgroundColor: "#fff",
     borderBottomWidth: 1,
     borderBottomColor: "#eee",
+    zIndex: 1,
   },
   headerTitle: {
     fontSize: 18,
