@@ -167,27 +167,30 @@ export default function ImagesScreen() {
   const ListResetter = () => {
     return (
       <View style={[photoListStyles.card, { justifyContent: "center" }]}>
-        <ListButton
-          text="To the top"
-          action={() =>
-            listRef?.current?.scrollToLocation({
-              sectionIndex: 0,
-              itemIndex: 0,
-              animated: true,
-            })
-          }
-          enable={!!sections}
-        />
-        <ListButton
-          text="Show all"
-          action={() => setSelectedMarkerId(null)}
-          enable={!!sections && !!selectedMarkerId}
-        />
-        <ListButton
-          text="No images yet"
-          action={() => router.navigate("/")}
-          enable={!sections}
-        />
+        {sections.length > 0 ? (
+          <View>
+            <ListButton
+              text="To the top"
+              action={() =>
+                listRef?.current?.scrollToLocation({
+                  sectionIndex: 0,
+                  itemIndex: 0,
+                  animated: true,
+                })
+              }
+            />
+            <ListButton
+              text="Show all"
+              action={() => setSelectedMarkerId(null)}
+              enable={!!selectedMarkerId}
+            />{" "}
+          </View>
+        ) : (
+          <ListButton
+            text="No images yet"
+            action={() => router.navigate("/")}
+          />
+        )}
       </View>
     );
   };
