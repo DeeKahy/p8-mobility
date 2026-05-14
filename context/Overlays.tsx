@@ -72,7 +72,7 @@ export const OverlayProvider: FC<OverlayProviderprops> = ({ children }) => {
           {overlay}
         </View>
       ))}
-      <View style={[StyleSheet.absoluteFill, { pointerEvents: "box-none" }]}>
+      <View style={[StyleSheet.absoluteFill, { pointerEvents: "none" }]}>
         {toast.map((item) => (
           <Toast
             key={item.id}
