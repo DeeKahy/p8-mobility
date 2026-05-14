@@ -1,12 +1,8 @@
 import { type ReactNode } from "react";
-import {
-  Modal,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text } from "react-native";
+import Animated, { SlideInDown, SlideOutDown } from "react-native-reanimated";
+
+import { Overlay } from "../context/ToastProvider";
 
 type SettingsInfoModalProps = {
   visible: boolean;
@@ -22,16 +18,21 @@ export default function SettingsInfoModal({
   children,
   onClose,
 }: SettingsInfoModalProps) {
+  if (!visible) return null;
   return (
-    <Modal visible={visible} animationType="slide" transparent={false}>
-      <View style={styles.container}>
+    <Overlay>
+      <Animated.View
+        style={styles.container}
+        entering={SlideInDown}
+        exiting={SlideOutDown}
+      >
         <Pressable style={styles.closeButton} onPress={onClose}>
           <Text style={styles.closeText}>x</Text>
         </Pressable>
         <Text style={styles.title}>{title}</Text>
         <ScrollView style={styles.content}>{children}</ScrollView>
-      </View>
-    </Modal>
+      </Animated.View>
+    </Overlay>
   );
 }
 
