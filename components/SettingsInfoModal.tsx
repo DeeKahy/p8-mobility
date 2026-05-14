@@ -2,7 +2,7 @@ import { type ReactNode } from "react";
 import { Pressable, ScrollView, StyleSheet, Text } from "react-native";
 import Animated, { SlideInDown, SlideOutDown } from "react-native-reanimated";
 
-import { Overlay } from "../context/ToastProvider";
+import { Overlay } from "../context/Overlays";
 
 type SettingsInfoModalProps = {
   visible: boolean;

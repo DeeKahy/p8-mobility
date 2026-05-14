@@ -1,7 +1,7 @@
 import { Pressable, Text, TouchableOpacity } from "react-native";
 import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 
-import { Overlay } from "../../context/ToastProvider";
+import { Overlay } from "../../context/Overlays";
 import { styles } from "../../css/indexStyle";
 import { Marker } from "../../hooks/useMarkers";
 

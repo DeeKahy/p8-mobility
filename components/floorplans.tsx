@@ -7,7 +7,7 @@ import {
   View,
 } from "react-native";
 
-import { useToast } from "../context/ToastProvider";
+import { useOverlays } from "../context/Overlays";
 import { styles } from "../css/floorplanillustrator";
 import {
   FloorplanCardProps,
@@ -57,7 +57,7 @@ export default function FloorplanList({
   pickFloorPlan,
   onDeleteFloorPlan,
 }: FloorplanListProps) {
-  const { showToast } = useToast();
+  const { showToast } = useOverlays();
 
   const confirmDeleteFloorplan = (storedFloorplan: FloorplanImage) => {
     Alert.alert("Delete Image", "Are you sure you want to delete this image?", [
