@@ -257,12 +257,7 @@ export default function ImagesScreen() {
     } = item;
 
     return (
-      <View
-        style={[
-          photoListStyles.card,
-          { flexDirection: "column", zIndex: expand ? 100 : 0 },
-        ]}
-      >
+      <View style={[photoListStyles.card, { flexDirection: "column" }]}>
         <View style={{ flexDirection: "row" }}>
           <View style={photoListStyles.textContainer}>
             <Text
