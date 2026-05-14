@@ -1,13 +1,6 @@
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useRef, useState } from "react";
-import {
-  TouchableOpacity,
-  View,
-  Text,
-  SectionList,
-  Image,
-  StyleSheet,
-} from "react-native";
+import { TouchableOpacity, View, Text, SectionList, Image } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import PieChart from "react-native-pie-chart";
 
@@ -127,6 +120,11 @@ export default function ImagesScreen() {
     return sections;
   };
 
+  const sections =
+    sortBy === SortBy.Group
+      ? makeGroupSections(markers)
+      : makeMarkerSections(markers);
+
   const ListButton = ({ text, action, enable = true }: ListButtonProps) => {
     return (
       <TouchableOpacity
@@ -178,26 +176,21 @@ export default function ImagesScreen() {
               animated: true,
             })
           }
+          enable={!!sections}
         />
         <ListButton
           text="Show all"
           action={() => setSelectedMarkerId(null)}
-          enable={!!selectedMarkerId}
+          enable={!!sections && !!selectedMarkerId}
+        />
+        <ListButton
+          text="No images yet"
+          action={() => router.navigate("/")}
+          enable={!sections}
         />
       </View>
     );
   };
-
-  const EmptyListRedirector = () => (
-    <View
-      style={[
-        StyleSheet.absoluteFill,
-        { alignItems: "center", justifyContent: "center" },
-      ]}
-    >
-      <ListButton text="No images yet" action={() => router.navigate("/")} />
-    </View>
-  );
 
   const MarkerHeader = ({ section: { key, data } }: SectionDataArgument) => {
     const imageCount = data.length;
@@ -321,11 +314,7 @@ export default function ImagesScreen() {
         <FloorplanHeader showHelpButton />
         <SectionList
           ref={listRef}
-          sections={
-            sortBy === SortBy.Group
-              ? makeGroupSections(markers)
-              : makeMarkerSections(markers)
-          }
+          sections={sections}
           renderItem={({ item }) => (
             <SectionItem item={item} expand={selected === item.index} />
           )}
@@ -334,7 +323,6 @@ export default function ImagesScreen() {
           }
           ListHeaderComponent={SortingSelector}
           ListFooterComponent={ListResetter}
-          ListEmptyComponent={EmptyListRedirector}
           stickySectionHeadersEnabled
         />
         {fullscreenImage ? (
