@@ -183,7 +183,7 @@ export default function ImagesScreen() {
               text="Show all"
               action={() => setSelectedMarkerId(null)}
               enable={!!selectedMarkerId}
-            />{" "}
+            />
           </View>
         ) : (
           <ListButton
