@@ -72,7 +72,7 @@ export const Toast = (props: ToastMessage) => {
           { backgroundColor: getTypeColor(props.type) },
         ]}
       >
-        <Text style={styles.typetext}>{props.type}</Text>
+        <Text style={styles.text}>{props.type}</Text>
         <Text style={styles.text}>{props.message}</Text>
       </Animated.View>
     </SafeAreaProvider>
@@ -90,11 +90,6 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   text: {
-    fontSize: 20,
-    color: "white",
-    textAlign: "center",
-  },
-  typetext: {
     fontSize: 20,
     color: "white",
     textAlign: "center",
