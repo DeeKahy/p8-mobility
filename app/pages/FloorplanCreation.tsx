@@ -17,7 +17,7 @@ import { RotationControls } from "../../components/RotationControls";
 import { SaveFormModal } from "../../components/SaveModal";
 import { useFloorplan } from "../../context/FloorplanContext";
 import { useLogger } from "../../context/LoggerContext";
-import { Overlay, useToast } from "../../context/ToastProvider";
+import { Overlay, useOverlays } from "../../context/Overlays";
 import { Point3D } from "../../models/3Dpoints";
 import { createFloorplanImage } from "../../utils/api";
 import {
@@ -38,7 +38,7 @@ export default function SvgComponent() {
     points?: string | string[];
   }>();
   const router = useRouter();
-  const { showToast } = useToast();
+  const { showToast } = useOverlays();
   const { refreshStoredFloorplans } = useFloorplan();
   const { error, log } = useLogger();
 

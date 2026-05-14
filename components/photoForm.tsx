@@ -17,7 +17,7 @@ import Animated, { SlideInDown, SlideOutDown } from "react-native-reanimated";
 import * as yup from "yup";
 
 import FloatingHelpButton from "./FloatingHelpButton";
-import { Overlay } from "../context/ToastProvider";
+import { Overlay } from "../context/Overlays";
 import { styles } from "../css/photoForm";
 import { PhotoData } from "../models/PhotoFormModel";
 import { hashNameToColor } from "../utils/stringColor";

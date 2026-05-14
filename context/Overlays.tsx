@@ -18,19 +18,19 @@ type ToastMessage = {
   type: "Success" | "Error" | "Info";
 };
 
-type ToastContextProps = {
+type OverlayContextProps = {
   showToast: (message: string, type: "Success" | "Error" | "Info") => void;
   register: (overlay: ReactElement) => number;
   unregister: (id: number) => void;
 };
 
-const ToastContext = createContext<ToastContextProps | null>(null);
+const OverlayContext = createContext<OverlayContextProps | null>(null);
 
-interface ToastProviderprops {
+interface OverlayProviderprops {
   children: React.ReactNode;
 }
 
-export const ToastProvider: FC<ToastProviderprops> = ({ children }) => {
+export const OverlayProvider: FC<OverlayProviderprops> = ({ children }) => {
   const [toast, setToast] = useState<ToastMessage[]>([]);
 
   const idRef = useRef(0);
@@ -62,7 +62,7 @@ export const ToastProvider: FC<ToastProviderprops> = ({ children }) => {
   }, []);
 
   return (
-    <ToastContext.Provider value={{ showToast, register, unregister }}>
+    <OverlayContext.Provider value={{ showToast, register, unregister }}>
       {children}
       {overlays.map(({ id, overlay }) => (
         <View
@@ -82,14 +82,14 @@ export const ToastProvider: FC<ToastProviderprops> = ({ children }) => {
           />
         ))}
       </View>
-    </ToastContext.Provider>
+    </OverlayContext.Provider>
   );
 };
 
-export const useToast = () => {
-  const context = useContext(ToastContext);
+export const useOverlays = () => {
+  const context = useContext(OverlayContext);
   if (!context) {
-    throw new Error("useToast must be used within a ToastProvider");
+    throw new Error("useOverlays must be used within a ToastProvider");
   }
   return context;
 };
@@ -103,7 +103,7 @@ interface OverlayProps {
 // Real modal components still render above this layer.
 export const Overlay = ({ children }: OverlayProps) => {
   const idRef = useRef<number>(null);
-  const { register, unregister } = useToast();
+  const { register, unregister } = useOverlays();
 
   useEffect(() => {
     idRef.current = register(children);

@@ -1,7 +1,7 @@
 import { Image, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import Animated, { SlideInDown, SlideOutDown } from "react-native-reanimated";
 
-import { Overlay } from "../../context/ToastProvider";
+import { Overlay } from "../../context/Overlays";
 import { styles } from "../../css/indexStyle";
 import { Marker } from "../../hooks/useMarkers";
 import { PhotoData } from "../../models/PhotoFormModel";

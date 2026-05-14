@@ -23,7 +23,7 @@ import { PhotoFormModal } from "../../components/photoForm";
 import { useCamera, CameraMode } from "../../context/CameraContext";
 import { useFloorplan } from "../../context/FloorplanContext";
 import { useLogger } from "../../context/LoggerContext";
-import { useToast } from "../../context/ToastProvider";
+import { useOverlays } from "../../context/Overlays";
 import { styles } from "../../css/indexStyle";
 import type { Marker } from "../../hooks/useMarkers";
 import { PhotoData } from "../../models/PhotoFormModel";
@@ -62,7 +62,7 @@ export default function HomeScreen() {
   const { capturedImage, captureMode } = useCamera();
 
   const { error, log } = useLogger();
-  const { showToast } = useToast();
+  const { showToast } = useOverlays();
 
   const [showPhotos, setShowPhotos] = useState(false);
   const [showNewMarkerOptions, setShowNewMarkerOptions] = useState(false);
