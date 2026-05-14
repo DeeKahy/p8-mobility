@@ -4,7 +4,11 @@ import { StatusBar } from "expo-status-bar";
 import { useEffect, useRef, useState } from "react";
 import { Alert, Image, Text, TouchableOpacity, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { ResumableZoom, ResumableZoomRefType } from "react-native-zoom-toolkit";
+import {
+  CommonZoomState,
+  ResumableZoom,
+  ResumableZoomRefType,
+} from "react-native-zoom-toolkit";
 
 import FloatingHelpButton from "../../components/FloatingHelpButton";
 import LoadingOverlay from "../../components/LoadingOverlay";
@@ -56,7 +60,7 @@ export default function HomeScreen() {
     withMarkerAt,
   } = useFloorplan();
 
-  const { capturedImage, captureMode, setCaptureMode } = useCamera();
+  const { capturedImage, captureMode } = useCamera();
 
   const { error, log } = useLogger();
   const { showToast } = useToast();
@@ -194,7 +198,7 @@ export default function HomeScreen() {
     setShowNewMarkerOptions(false);
     setShowTempMarker(false);
     router.navigate("/camera");
-    setCaptureMode(CameraMode.Addition);
+    captureMode.current = CameraMode.Addition;
   };
 
   const handleAddFromCameraRollToMarker = async () => {
@@ -235,7 +239,7 @@ export default function HomeScreen() {
     if (!selectedMarkerId) return;
     setShowNewMarkerOptions(false);
     router.navigate("/camera");
-    setCaptureMode(CameraMode.Addition);
+    captureMode.current = CameraMode.Addition;
   };
 
   const handleDeletePhoto = (photo: PhotoData) => {
@@ -290,10 +294,18 @@ export default function HomeScreen() {
       }
     );
 
+  const onResumablePlacementUpdate = (state: CommonZoomState<number>) => {
+    "worklet";
+    onResumableUpdate(state);
+    const { x, y, width, height } = getVisibleRectFromState(state);
+    previewMarker.x.value = x + width / 2;
+    previewMarker.y.value = y + height / 2;
+  };
+
   // Runs whenever capturedImage updates e.g. when a new photo is taken using camera.tsx
   useEffect(() => {
     if (!capturedImage) return;
-    if (captureMode === CameraMode.Placement && resumableRef.current) {
+    if (captureMode.current === CameraMode.Placement && resumableRef.current) {
       // Image should be added to a user-selected marker or used to create a new marker at a user-defined position
       const { x, y, width, height } = resumableRef.current.getVisibleRect();
       // Change the preview marker coordinates to the center of the (element in) ResumableZoom
@@ -301,7 +313,7 @@ export default function HomeScreen() {
       previewMarker.x.value = x + width / 2;
       previewMarker.y.value = y + height / 2;
       findImagePlacementTarget(previewMarker.x.value, previewMarker.y.value);
-    } else if (captureMode === CameraMode.Addition) {
+    } else if (captureMode.current === CameraMode.Addition) {
       // Image should be added to the currently selected marker or used to create a new marker at the preview
       const imageDate = new Date().toISOString().split("T")[0];
       withLoadingOverlay("Running blur detection...", async () => {
@@ -329,7 +341,7 @@ export default function HomeScreen() {
           throw caughtError;
         });
       // Addition complete. Unset the mode but keep the URI
-      setCaptureMode(CameraMode.None);
+      captureMode.current = CameraMode.None;
     }
   }, [capturedImage]);
 
@@ -420,24 +432,18 @@ export default function HomeScreen() {
           ref={resumableRef}
           extendGestures // This should be used with extendBorders or it might act weird.
           extendBorders // extendBorders is our own addition. Don't forget to apply the patch!
-          onUpdate={(state) => {
-            "worklet";
-            if (captureMode === CameraMode.Placement) {
-              onResumableUpdate(state);
-              const { x, y, width, height } = getVisibleRectFromState(state);
-              previewMarker.x.value = x + width / 2;
-              previewMarker.y.value = y + height / 2;
-            } else {
-              onResumableUpdate(state);
-            }
-          }}
+          onUpdate={
+            captureMode.current === CameraMode.Placement
+              ? onResumablePlacementUpdate
+              : onResumableUpdate
+          }
           onLongPress={(event) => {
-            if (captureMode === CameraMode.Placement) {
+            if (captureMode.current === CameraMode.Placement) {
               // Confirm the image placement if one is ongoing
               console.info(`Confirming image placement via long press..`);
               const imageDate = new Date().toISOString().split("T")[0];
               setPendingPhotos([{ uri: capturedImage, date: imageDate }]);
-              setCaptureMode(CameraMode.None);
+              captureMode.current = CameraMode.None;
             }
           }}
           onTap={(event) => {
@@ -460,7 +466,7 @@ export default function HomeScreen() {
                 // Abort if the tap was outside the child element
                 return;
               }
-              if (captureMode === CameraMode.Placement) {
+              if (captureMode.current === CameraMode.Placement) {
                 // Move to the position of the tap for quick navigation
                 resumableRef.current.zoom(scale, { x: event.x, y: event.y });
                 // Check if a marker was hit and select it
@@ -472,7 +478,7 @@ export default function HomeScreen() {
             }
           }}
           onGestureEnd={() => {
-            if (captureMode === CameraMode.Placement) {
+            if (captureMode.current === CameraMode.Placement) {
               findImagePlacementTarget(
                 previewMarker.x.value,
                 previewMarker.y.value
@@ -498,7 +504,7 @@ export default function HomeScreen() {
             ))}
 
             {/* Preview of marker to camera-first create */}
-            {captureMode === CameraMode.Placement || showTempMarker ? (
+            {captureMode.current === CameraMode.Placement || showTempMarker ? (
               <MarkerElement
                 x={previewMarker.x}
                 y={previewMarker.y}
@@ -565,7 +571,7 @@ export default function HomeScreen() {
         </View>
 
         <Text style={styles.instructions}>
-          {`${captureMode === CameraMode.Placement ? `Tap and hold to ${selectedMarkerId ? "add the image" : "create marker"}` : "Tap on the floor plan to place a marker"}`}
+          {`${captureMode.current === CameraMode.Placement ? `Tap and hold to ${selectedMarkerId ? "add the image" : "create marker"}` : "Tap on the floor plan to place a marker"}`}
         </Text>
         {(loadingText || isSavingMarkers) && (
           <LoadingOverlay text={loadingText ?? "Saving marker..."} />
