@@ -1,5 +1,5 @@
 import { yupResolver } from "@hookform/resolvers/yup";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useForm, Controller, ControllerRenderProps } from "react-hook-form";
 //Expected photo data format to make it easier to pass over including only the most necessary. Also works in unison with yup validator.
 import {
@@ -15,10 +15,11 @@ import * as yup from "yup";
 
 import FloatingHelpButton from "./FloatingHelpButton";
 import FullscreenImage from "./FullscreenImage";
-import { Overlay } from "../context/Overlays";
+import { Overlay, useOverlays } from "../context/Overlays";
 import { styles } from "../css/photoForm";
 import { styles as listStyles } from "../css/photo_list";
 import { PhotoData } from "../models/PhotoFormModel";
+import { isImageBlurry } from "../utils/blurDetection";
 import { hashNameToColor } from "../utils/stringColor";
 //Photo form to take data from index.tsx and opening and closing modal
 type PhotoFormProps = {
@@ -58,6 +59,22 @@ export const PhotoFormModal = ({
   date,
   onSubmit,
 }: PhotoFormProps) => {
+  const [open, setOpen] = useState(false);
+  const [showOtherInputForm, setShowOtherInputForm] = useState(false);
+  const { showToast } = useOverlays();
+
+  useEffect(() => {
+    // To run an async function in a useEffect, we need to define it inside
+    const toastBlur = async () => {
+      const blurry = await isImageBlurry(photoUri);
+      showToast(
+        blurry ? "Is the image clear?" : "Image looks sharp!",
+        blurry ? "Info" : "Success"
+      );
+    };
+    toastBlur();
+  }, []);
+
   //Is used for controlling variables (e.g. when we update a value the yup resolver will take note of that).
   //Also for including errors in yup validator based on schema provided above, and also handling submit button.
   const {

@@ -22,10 +22,8 @@ import { PhotoFormModal } from "../../components/photoForm";
 import { useCamera, CameraMode } from "../../context/CameraContext";
 import { useFloorplan } from "../../context/FloorplanContext";
 import { useLogger } from "../../context/LoggerContext";
-import { useOverlays } from "../../context/Overlays";
 import { styles } from "../../css/indexStyle";
 import { PhotoData } from "../../models/PhotoFormModel";
-import { getBlurScore, IMAGE_BLUR_THRESHOLD } from "../../utils/blurDetection";
 import { getVisibleRectFromState } from "../../utils/getVisibleRect";
 import { preparePhotosForUpload } from "../../utils/imageDataHelpers";
 
@@ -59,7 +57,6 @@ export default function HomeScreen() {
   const { capturedImage, captureMode } = useCamera();
 
   const { error, log } = useLogger();
-  const { showToast } = useOverlays();
 
   const [showNewMarkerOptions, setShowNewMarkerOptions] = useState(false);
   const [pendingPhotos, setPendingPhotos] = useState<
@@ -80,22 +77,6 @@ export default function HomeScreen() {
   useEffect(() => {
     savedPhotos.current = markers.flatMap((marker) => marker.photos);
   }, [markers]);
-
-  async function scoreAndToastBlur(uri: string): Promise<number> {
-    const score = await getBlurScore(uri);
-    const isBlurry = score < IMAGE_BLUR_THRESHOLD;
-    const roundedScore = Math.round(score);
-
-    showToast(
-      `Blur score: ${roundedScore} (${isBlurry ? "blurry" : "sharp"})`,
-      isBlurry ? "Error" : "Info"
-    );
-    log(
-      `Blur detection result | score: ${score} | threshold: ${IMAGE_BLUR_THRESHOLD} | blurry: ${isBlurry}`
-    );
-
-    return score;
-  }
 
   async function withLoadingOverlay<T>(
     text: string,
@@ -134,8 +115,6 @@ export default function HomeScreen() {
         Alert.alert("Picture is older than 14 days: " + dateTaken);
         continue;
       }
-
-      await scoreAndToastBlur(image.uri);
       validImages.push({ image, date: dateTaken });
     }
     return validImages;
@@ -248,8 +227,7 @@ export default function HomeScreen() {
     } else if (captureMode.current === CameraMode.Addition) {
       // Image should be added to the currently selected marker or used to create a new marker at the preview
       const imageDate = new Date().toISOString().split("T")[0];
-      withLoadingOverlay("Running blur detection...", async () => {
-        await scoreAndToastBlur(capturedImage);
+      withLoadingOverlay("Preparing photos for upload...", async () => {
         log("Preparing photos for upload");
         return preparePhotosForUpload([capturedImage]);
       })
@@ -322,7 +300,6 @@ export default function HomeScreen() {
                 }
                 describedPhotos.current = []; // Prep for next marker creation.
               }
-              //setShowPhotoForm(false);
             }} // Skip one URI on close.
             photoUri={pendingPhotos[0].uri}
             date={pendingPhotos[0].date}
