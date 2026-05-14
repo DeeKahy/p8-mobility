@@ -1,4 +1,7 @@
-import { Modal, TouchableOpacity, View, Text, StyleSheet } from "react-native";
+import { TouchableOpacity, View, Text, StyleSheet } from "react-native";
+import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
+
+import { Overlay } from "../context/ToastProvider";
 
 type SaveFormModalProps = {
   visible: boolean;
@@ -13,9 +16,10 @@ export const SaveFormModal = ({
   onSave,
   onSaveNext,
 }: SaveFormModalProps) => {
+  if (!visible) return null;
   return (
-    <Modal animationType="fade" transparent visible={visible}>
-      <View style={styles.overlay}>
+    <Overlay>
+      <Animated.View style={styles.overlay} entering={FadeIn} exiting={FadeOut}>
         <View style={styles.card}>
           <Text style={styles.title}>Save Floorplan</Text>
           <Text style={styles.message}>
@@ -49,8 +53,8 @@ export const SaveFormModal = ({
             </Text>
           </TouchableOpacity>
         </View>
-      </View>
-    </Modal>
+      </Animated.View>
+    </Overlay>
   );
 };
 

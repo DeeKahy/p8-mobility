@@ -2,13 +2,13 @@ import { File } from "expo-file-system";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useMemo, useRef, useState } from "react";
 import {
-  Modal,
   Text,
   TextInput,
   TouchableOpacity,
   View,
   StyleSheet,
 } from "react-native";
+import Animated, { SlideInDown, SlideOutDown } from "react-native-reanimated";
 import Svg, { G, Polygon, Text as SvgText } from "react-native-svg";
 import ViewShot, { captureRef } from "react-native-view-shot";
 
@@ -17,7 +17,7 @@ import { RotationControls } from "../../components/RotationControls";
 import { SaveFormModal } from "../../components/SaveModal";
 import { useFloorplan } from "../../context/FloorplanContext";
 import { useLogger } from "../../context/LoggerContext";
-import { useToast } from "../../context/ToastProvider";
+import { Overlay, useToast } from "../../context/ToastProvider";
 import { Point3D } from "../../models/3Dpoints";
 import { createFloorplanImage } from "../../utils/api";
 import {
@@ -155,12 +155,12 @@ export default function SvgComponent() {
 
   if (pointList.length <= 2) {
     return (
-      <Modal
-        visible
-        onRequestClose={() => router.push("/ar")}
-        animationType="slide"
-      >
-        <View style={styles.emptyContainer}>
+      <Overlay>
+        <Animated.View
+          style={styles.emptyContainer}
+          entering={SlideInDown}
+          exiting={SlideOutDown}
+        >
           <Text style={styles.emptyTitle}>No valid points found</Text>
 
           <Text style={styles.emptyText}>
@@ -174,8 +174,8 @@ export default function SvgComponent() {
           >
             <Text style={styles.buttonText}>Redo</Text>
           </TouchableOpacity>
-        </View>
-      </Modal>
+        </Animated.View>
+      </Overlay>
     );
   }
 
@@ -241,8 +241,8 @@ export default function SvgComponent() {
   );
 
   return (
-    <Modal visible onRequestClose={() => router.push("/ar")}>
-      <View style={styles.container}>
+    <Overlay>
+      <Animated.View style={styles.container}>
         {isSavingFloorplan && <LoadingOverlay text="Uploading floorplan..." />}
         <SaveFormModal
           visible={showSaveModal}
@@ -289,8 +289,8 @@ export default function SvgComponent() {
             <Text style={styles.buttonText}>Reset</Text>
           </TouchableOpacity>
         </View>
-      </View>
-    </Modal>
+      </Animated.View>
+    </Overlay>
   );
 }
 
