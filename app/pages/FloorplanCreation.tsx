@@ -235,7 +235,9 @@ export default function SvgComponent() {
 
   return (
     <View style={styles.container}>
-      {isSavingFloorplan && <LoadingOverlay text="Uploading floorplan..." />}
+      {isSavingFloorplan ? (
+        <LoadingOverlay text="Uploading floorplan..." />
+      ) : null}
       {showSaveModal ? (
         <SaveFormModal
           onClose={() => setShowSaveModal(false)}

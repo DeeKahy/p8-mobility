@@ -23,12 +23,13 @@ type ToastMessage = {
   type: "Success" | "Error" | "Info";
 };
 
+type OverlayItem = { id: number; node: React.ReactNode };
+
 type OverlayContextProps = {
   showToast: (message: string, type: "Success" | "Error" | "Info") => void;
-  register: (
-    overlay: React.ReactElement<{ style?: StyleProp<ViewStyle> }>
-  ) => number;
+  register: (node: React.ReactNode) => number;
   unregister: (id: number) => void;
+  update: (id: number, node: React.ReactNode) => void;
 };
 
 const OverlayContext = createContext<OverlayContextProps | null>(null);
@@ -54,33 +55,36 @@ export const OverlayProvider: FC<OverlayProviderProps> = ({ children }) => {
     setToast((prev) => prev.filter((toast) => toast.id !== id));
   };
 
-  const [overlays, setOverlays] = useState<
-    { id: number; component: React.ReactNode }[]
-  >([]);
+  const [overlays, setOverlays] = useState<OverlayItem[]>([]);
 
-  const register = useCallback(
-    (component: React.ReactElement<{ style?: StyleProp<ViewStyle> }>) => {
-      const id = ++idRef.current;
-      // Existing elements are immutable so we clone to set the positioning and key
-      const style = component.props.style;
-      component = React.cloneElement(component, {
-        style: [style, { position: "absolute" }],
-        key: id,
-      });
-      setOverlays((prev) => [...prev, { id, component }]);
-      return id;
-    },
-    []
-  );
+  const register = useCallback((node: React.ReactNode) => {
+    const id = ++idRef.current;
+    setOverlays((prev) => [...prev, { id, node }]);
+    return id;
+  }, []);
 
   const unregister = useCallback((id: number) => {
     setOverlays((prev) => prev.filter((overlay) => overlay.id !== id));
   }, []);
 
+  const update = useCallback((id: number, node: React.ReactNode) => {
+    setOverlays((prev) =>
+      prev.map((overlay) => {
+        if (overlay.id === id) {
+          return { id, node };
+        } else return overlay;
+      })
+    );
+  }, []);
+
   return (
-    <OverlayContext.Provider value={{ showToast, register, unregister }}>
+    <OverlayContext.Provider
+      value={{ showToast, register, unregister, update }}
+    >
       <View style={StyleSheet.absoluteFill}>{children}</View>
-      {overlays.map(({ component }) => component)}
+      {overlays.map(({ id, node }) => (
+        <React.Fragment key={id}>{node}</React.Fragment>
+      ))}
       {toast.map(({ id, message, type }) => (
         <Toast
           key={id}
@@ -102,11 +106,11 @@ export const useOverlays = () => {
 };
 
 type OverlayAnimationType = "none" | "slide" | "fade";
-type OverlayProps = {
-  children: React.ReactNode;
+type OverlayProps = React.PropsWithChildren<{
   style?: StyleProp<ViewStyle>;
   animationType?: OverlayAnimationType;
-};
+  dependencies?: React.DependencyList;
+}>;
 
 const getAnimationSet = (animationType: OverlayAnimationType) => {
   switch (animationType) {
@@ -119,27 +123,32 @@ const getAnimationSet = (animationType: OverlayAnimationType) => {
   }
 };
 
-// Wraps a component and moves it to the overlay modal on mount.
+// Wraps a ReactNode and moves it to the overlay modal on mount.
 // This moves it to a modal-like layer removed from the normal layout.
 // Real modal components still render above this layer.
 export const Overlay = ({
   children,
   style,
   animationType = "none",
+  dependencies = [],
 }: OverlayProps) => {
   const idRef = useRef<number>(null);
-  const { register, unregister } = useOverlays();
+  const mounted = useRef(false);
+  const { register, unregister, update } = useOverlays();
+
+  const component = (
+    <Animated.View
+      style={[style, { position: "absolute" }]}
+      {...getAnimationSet(animationType)}
+    >
+      {children}
+    </Animated.View>
+  );
 
   useEffect(() => {
-    idRef.current = register(
-      <Animated.View
-        style={[style, { position: "absolute" }]}
-        {...getAnimationSet(animationType)}
-      >
-        {children}
-      </Animated.View>
-    );
+    idRef.current = register(component);
     console.log(`Registered overlay ${idRef.current}`);
+
     return () => {
       if (idRef.current != null) {
         console.log(`Unregistered overlay ${idRef.current}`);
@@ -147,5 +156,17 @@ export const Overlay = ({
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (mounted.current) {
+      // TODO: Update React version and make this a useEffectEvent-callback instead of using mounted.current.
+      // See https://stackoverflow.com/questions/55724642/react-useeffect-hook-when-only-one-of-the-effects-deps-changes-but-not-the-oth
+      if (idRef.current != null) update(idRef.current, component);
+      console.log(`Updated overlay ${idRef.current}`);
+    } else {
+      mounted.current = true;
+    }
+  }, dependencies);
+
   return null;
 };
