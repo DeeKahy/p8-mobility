@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import {
   Alert,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -8,6 +9,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import * as FileSystem from "expo-file-system/legacy";
 
 import FloatingHelpButton from "../../components/FloatingHelpButton";
 import HelpItemsContent from "../../components/HelpItemsContent";
@@ -17,6 +19,7 @@ import { useFloorplan } from "../../context/FloorplanContext";
 import { type LogEntry, useLogger } from "../../context/LoggerContext";
 import {
   type ApiMode,
+  getPdfExportUrl,
   getApiSettings,
   resetLocalApiBaseUrl,
   setApiLogger,
@@ -174,6 +177,59 @@ export default function Settings() {
     setApiSettings(getApiSettings());
   };
 
+  // Downloads the server PDF export to the phone.
+  const downloadPdfExport = async () => {
+    try {
+      if (!FileSystem.cacheDirectory) {
+        throw new Error("No cache directory");
+      }
+
+      const tempPdfUri = `${FileSystem.cacheDirectory}p8-export.pdf`;
+      const downloadedFile = await FileSystem.downloadAsync(
+        getPdfExportUrl(),
+        tempPdfUri
+      );
+
+      if (Platform.OS !== "android") {
+        log(`Downloaded PDF export to ${downloadedFile.uri}`);
+        Alert.alert("PDF downloaded", downloadedFile.uri);
+        return;
+      }
+
+      const permissions =
+        await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync(
+          FileSystem.StorageAccessFramework.getUriForDirectoryInRoot("Download")
+        );
+
+      if (!permissions.granted) {
+        return;
+      }
+
+      const pdfBase64 = await FileSystem.readAsStringAsync(
+        downloadedFile.uri,
+        { encoding: FileSystem.EncodingType.Base64 }
+      );
+      const savedPdfUri =
+        await FileSystem.StorageAccessFramework.createFileAsync(
+          permissions.directoryUri,
+          "p8-export",
+          "application/pdf"
+        );
+
+      await FileSystem.StorageAccessFramework.writeAsStringAsync(
+        savedPdfUri,
+        pdfBase64,
+        { encoding: FileSystem.EncodingType.Base64 }
+      );
+      log(`Downloaded PDF export to ${savedPdfUri}`);
+      Alert.alert("PDF downloaded", savedPdfUri);
+    } catch (caughtError) {
+      const errorMessage =
+        caughtError instanceof Error ? caughtError.message : "Unknown error";
+      error(`Downloading PDF export failed: ${errorMessage}`);
+    }
+  };
+
   const page = (
     <View style={styles.container}>
       <FloatingHelpButton />
@@ -202,6 +258,15 @@ export default function Settings() {
       >
         <Text style={styles.clearText}>Clear All User Data</Text>
       </Pressable>
+
+      <Pressable
+        style={styles.exportButton}
+        onPress={downloadPdfExport}
+        nativeID="Button-to-download-pdf-export"
+      >
+        <Text style={styles.clearText}>Download PDF</Text>
+      </Pressable>
+
       <View style={styles.apiSettings}>
         <View style={styles.apiButtons}>
           <Pressable
@@ -365,6 +430,14 @@ const styles = StyleSheet.create({
 
   deleteButton: {
     backgroundColor: "#8b0000",
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+    marginBottom: 20,
+  },
+
+  exportButton: {
+    backgroundColor: "#2196F3",
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 8,
