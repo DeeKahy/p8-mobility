@@ -8,7 +8,6 @@ import {
   View,
   StyleSheet,
 } from "react-native";
-import Animated, { SlideInDown, SlideOutDown } from "react-native-reanimated";
 import Svg, { G, Polygon, Text as SvgText } from "react-native-svg";
 import ViewShot, { captureRef } from "react-native-view-shot";
 
@@ -155,12 +154,8 @@ export default function SvgComponent() {
 
   if (pointList.length <= 2) {
     return (
-      <Overlay>
-        <Animated.View
-          style={styles.emptyContainer}
-          entering={SlideInDown}
-          exiting={SlideOutDown}
-        >
+      <Overlay style={styles.emptyContainer} animationType="slide">
+        <View>
           <Text style={styles.emptyTitle}>No valid points found</Text>
 
           <Text style={styles.emptyText}>
@@ -174,7 +169,7 @@ export default function SvgComponent() {
           >
             <Text style={styles.buttonText}>Redo</Text>
           </TouchableOpacity>
-        </Animated.View>
+        </View>
       </Overlay>
     );
   }
@@ -241,8 +236,8 @@ export default function SvgComponent() {
   );
 
   return (
-    <Overlay>
-      <Animated.View style={styles.container}>
+    <Overlay style={styles.container} animationType="slide">
+      <View>
         {isSavingFloorplan && <LoadingOverlay text="Uploading floorplan..." />}
         <SaveFormModal
           visible={showSaveModal}
@@ -289,14 +284,14 @@ export default function SvgComponent() {
             <Text style={styles.buttonText}>Reset</Text>
           </TouchableOpacity>
         </View>
-      </Animated.View>
+      </View>
     </Overlay>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    ...StyleSheet.absoluteFillObject,
     backgroundColor: "#F8FAFC",
   },
 
@@ -409,7 +404,7 @@ const styles = StyleSheet.create({
     color: "#0F172A",
   },
   emptyContainer: {
-    flex: 1,
+    ...StyleSheet.absoluteFillObject,
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 30,

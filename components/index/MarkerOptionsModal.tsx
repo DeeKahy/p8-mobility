@@ -1,5 +1,4 @@
 import { Pressable, Text, TouchableOpacity } from "react-native";
-import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 
 import { Overlay } from "../../context/Overlays";
 import { styles } from "../../css/indexStyle";
@@ -14,8 +13,6 @@ interface MarkerOptionsModalProps {
   handleAddFromCameraRollToMarker: () => void;
 }
 
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
-
 export const MarkerOptionsModal = (props: MarkerOptionsModalProps) => {
   const {
     marker,
@@ -27,13 +24,8 @@ export const MarkerOptionsModal = (props: MarkerOptionsModalProps) => {
   } = props;
   if (!showModal) return null;
   return (
-    <Overlay>
-      <AnimatedPressable
-        style={styles.modalOverlay}
-        onPress={closeAllModals}
-        entering={FadeIn}
-        exiting={FadeOut}
-      >
+    <Overlay style={styles.modalOverlay} animationType="fade">
+      <Pressable onPress={closeAllModals}>
         <Pressable
           style={styles.optionsModal}
           onPress={(e) => e.stopPropagation()}
@@ -66,7 +58,7 @@ export const MarkerOptionsModal = (props: MarkerOptionsModalProps) => {
             <Text style={styles.optionCancelText}>Cancel</Text>
           </TouchableOpacity>
         </Pressable>
-      </AnimatedPressable>
+      </Pressable>
     </Overlay>
   );
 };

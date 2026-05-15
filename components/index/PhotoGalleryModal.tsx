@@ -1,5 +1,4 @@
 import { Image, ScrollView, Text, TouchableOpacity, View } from "react-native";
-import Animated, { SlideInDown, SlideOutDown } from "react-native-reanimated";
 
 import { Overlay } from "../../context/Overlays";
 import { styles } from "../../css/indexStyle";
@@ -17,12 +16,8 @@ export const PhotoGalleryModal = (props: PhotoGalleryModalProps) => {
   const { showModal, marker, handleDeletePhoto, closeAllModals } = props;
   if (!showModal) return null;
   return (
-    <Overlay>
-      <Animated.View
-        style={styles.photosModal}
-        entering={SlideInDown}
-        exiting={SlideOutDown}
-      >
+    <Overlay style={styles.photosModal} animationType="slide">
+      <View>
         <View style={styles.photosHeader}>
           <Text style={styles.photosTitle}>
             Photos ({marker?.photos.length})
@@ -47,7 +42,7 @@ export const PhotoGalleryModal = (props: PhotoGalleryModalProps) => {
             </View>
           ))}
         </ScrollView>
-      </Animated.View>
+      </View>
     </Overlay>
   );
 };
