@@ -1,4 +1,5 @@
 import { Stack } from "expo-router";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { CameraContextProvider } from "../context/CameraContext";
@@ -8,16 +9,18 @@ import { OverlayProvider } from "../context/Overlays";
 
 export default function RootLayout() {
   return (
-    <SafeAreaProvider>
-      <LoggerProvider>
-        <CameraContextProvider>
-          <OverlayProvider>
-            <FloorplanProvider>
-              <Stack screenOptions={{ headerShown: false }} />
-            </FloorplanProvider>
-          </OverlayProvider>
-        </CameraContextProvider>
-      </LoggerProvider>
-    </SafeAreaProvider>
+    <GestureHandlerRootView>
+      <SafeAreaProvider>
+        <LoggerProvider>
+          <CameraContextProvider>
+            <OverlayProvider>
+              <FloorplanProvider>
+                <Stack screenOptions={{ headerShown: false }} />
+              </FloorplanProvider>
+            </OverlayProvider>
+          </CameraContextProvider>
+        </LoggerProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }

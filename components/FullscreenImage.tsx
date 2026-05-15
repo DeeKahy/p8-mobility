@@ -1,11 +1,13 @@
 import { Dispatch, SetStateAction } from "react";
-import { View, StyleSheet, Image } from "react-native";
+import { StyleSheet, Image } from "react-native";
 import { Pressable } from "react-native-gesture-handler";
 import {
   fitContainer,
   ResumableZoom,
   useImageResolution,
 } from "react-native-zoom-toolkit";
+
+import { Overlay } from "../context/Overlays";
 
 interface FullscreenImageProps {
   uri: string;
@@ -29,13 +31,14 @@ const FullscreenImage = ({ uri, setUri }: FullscreenImageProps) => {
   });
 
   return (
-    <View
+    <Overlay
       style={{
         ...StyleSheet.absoluteFillObject,
         justifyContent: "center",
         alignItems: "center",
         backgroundColor: "#0000005b",
       }}
+      animationType="fade"
     >
       <Pressable style={StyleSheet.absoluteFill} onPress={exit} />
       <ResumableZoom style={{ maxWidth: "80%", maxHeight: "80%" }}>
@@ -50,7 +53,7 @@ const FullscreenImage = ({ uri, setUri }: FullscreenImageProps) => {
           resizeMode="contain"
         />
       </ResumableZoom>
-    </View>
+    </Overlay>
   );
 };
 
