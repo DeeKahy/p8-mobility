@@ -1,5 +1,4 @@
 import { TouchableOpacity, View, Text, StyleSheet } from "react-native";
-import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 
 import { Overlay } from "../context/Overlays";
 
@@ -18,8 +17,8 @@ export const SaveFormModal = ({
 }: SaveFormModalProps) => {
   if (!visible) return null;
   return (
-    <Overlay>
-      <Animated.View style={styles.overlay} entering={FadeIn} exiting={FadeOut}>
+    <Overlay style={styles.overlay} animationType="fade">
+      <>
         <View style={styles.card}>
           <Text style={styles.title}>Save Floorplan</Text>
           <Text style={styles.message}>
@@ -53,14 +52,14 @@ export const SaveFormModal = ({
             </Text>
           </TouchableOpacity>
         </View>
-      </Animated.View>
+      </>
     </Overlay>
   );
 };
 
 const styles = StyleSheet.create({
   overlay: {
-    flex: 1,
+    ...StyleSheet.absoluteFillObject,
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "rgba(0, 0, 0, 0.45)",
