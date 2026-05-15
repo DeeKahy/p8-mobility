@@ -16,7 +16,7 @@ import { RotationControls } from "../../components/RotationControls";
 import { SaveFormModal } from "../../components/SaveModal";
 import { useFloorplan } from "../../context/FloorplanContext";
 import { useLogger } from "../../context/LoggerContext";
-import { Overlay, useOverlays } from "../../context/Overlays";
+import { useOverlays } from "../../context/Overlays";
 import { Point3D } from "../../models/3Dpoints";
 import { createFloorplanImage } from "../../utils/api";
 import {
@@ -154,23 +154,21 @@ export default function SvgComponent() {
 
   if (pointList.length <= 2) {
     return (
-      <Overlay style={styles.emptyContainer} animationType="slide">
-        <View>
-          <Text style={styles.emptyTitle}>No valid points found</Text>
+      <View style={styles.emptyContainer}>
+        <Text style={styles.emptyTitle}>No valid points found</Text>
 
-          <Text style={styles.emptyText}>
-            Your floorplan needs at least 3 valid points to generate a polygon.
-            Please redo the scan.
-          </Text>
+        <Text style={styles.emptyText}>
+          Your floorplan needs at least 3 valid points to generate a polygon.
+          Please redo the scan.
+        </Text>
 
-          <TouchableOpacity
-            onPress={() => router.push("/ar")}
-            style={styles.redoButton}
-          >
-            <Text style={styles.buttonText}>Redo</Text>
-          </TouchableOpacity>
-        </View>
-      </Overlay>
+        <TouchableOpacity
+          onPress={() => router.push("/ar")}
+          style={styles.redoButton}
+        >
+          <Text style={styles.buttonText}>Redo</Text>
+        </TouchableOpacity>
+      </View>
     );
   }
 
@@ -236,56 +234,55 @@ export default function SvgComponent() {
   );
 
   return (
-    <Overlay style={styles.container} animationType="slide">
-      <View>
-        {isSavingFloorplan && <LoadingOverlay text="Uploading floorplan..." />}
+    <View style={styles.container}>
+      {isSavingFloorplan && <LoadingOverlay text="Uploading floorplan..." />}
+      {showSaveModal ? (
         <SaveFormModal
-          visible={showSaveModal}
           onClose={() => setShowSaveModal(false)}
           onSave={handleSaveOnly}
           onSaveNext={handleSaveAndNext}
         />
-        <View style={styles.header}>
-          <Text style={styles.title}>Floorplan Preview</Text>
+      ) : null}
+      <View style={styles.header}>
+        <Text style={styles.title}>Floorplan Preview</Text>
 
-          <TextInput
-            placeholder="Enter room name..."
-            onChangeText={(newText) => setName(newText)}
-            defaultValue={name}
-            style={styles.input}
-          />
-        </View>
-        <View style={styles.svgContainer}>
-          <ViewShot ref={viewShotRef} style={{ flex: 1 }}>
-            <CreateSvg inputString={turnPointsToString()} />
-          </ViewShot>
-        </View>
-
-        {/* Buttons for what to do for the floorplan */}
-        <RotationControls
-          rotation={rotation}
-          startRotating={startRotating}
-          stopRotating={stopRotating}
+        <TextInput
+          placeholder="Enter room name..."
+          onChangeText={(newText) => setName(newText)}
+          defaultValue={name}
+          style={styles.input}
         />
-
-        <View style={styles.footer}>
-          <TouchableOpacity
-            onPress={() => setShowSaveModal(true)}
-            disabled={isSavingFloorplan}
-            style={styles.saveButton}
-          >
-            <Text style={styles.buttonText}>Save</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            onPress={() => router.push("/ar")}
-            style={styles.resetButton}
-          >
-            <Text style={styles.buttonText}>Reset</Text>
-          </TouchableOpacity>
-        </View>
       </View>
-    </Overlay>
+      <View style={styles.svgContainer}>
+        <ViewShot ref={viewShotRef} style={{ flex: 1 }}>
+          <CreateSvg inputString={turnPointsToString()} />
+        </ViewShot>
+      </View>
+
+      {/* Buttons for what to do for the floorplan */}
+      <RotationControls
+        rotation={rotation}
+        startRotating={startRotating}
+        stopRotating={stopRotating}
+      />
+
+      <View style={styles.footer}>
+        <TouchableOpacity
+          onPress={() => setShowSaveModal(true)}
+          disabled={isSavingFloorplan}
+          style={styles.saveButton}
+        >
+          <Text style={styles.buttonText}>Save</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={() => router.push("/ar")}
+          style={styles.resetButton}
+        >
+          <Text style={styles.buttonText}>Reset</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
   );
 }
 
