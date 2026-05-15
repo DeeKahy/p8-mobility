@@ -1,3 +1,4 @@
+import * as FileSystem from "expo-file-system/legacy";
 import { useEffect, useState } from "react";
 import {
   Alert,
@@ -9,7 +10,6 @@ import {
   TextInput,
   View,
 } from "react-native";
-import * as FileSystem from "expo-file-system/legacy";
 
 import FloatingHelpButton from "../../components/FloatingHelpButton";
 import HelpItemsContent from "../../components/HelpItemsContent";
@@ -205,10 +205,9 @@ export default function Settings() {
         return;
       }
 
-      const pdfBase64 = await FileSystem.readAsStringAsync(
-        downloadedFile.uri,
-        { encoding: FileSystem.EncodingType.Base64 }
-      );
+      const pdfBase64 = await FileSystem.readAsStringAsync(downloadedFile.uri, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
       const savedPdfUri =
         await FileSystem.StorageAccessFramework.createFileAsync(
           permissions.directoryUri,
