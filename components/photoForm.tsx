@@ -63,8 +63,6 @@ export const PhotoFormModal = ({
   date,
   onSubmit,
 }: PhotoFormProps) => {
-  const [open, setOpen] = useState(false);
-  const [showOtherInputForm, setShowOtherInputForm] = useState(false);
   const { showToast } = useOverlays();
 
   useEffect(() => {
