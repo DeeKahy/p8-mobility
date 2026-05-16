@@ -1,5 +1,5 @@
 import { router, useFocusEffect } from "expo-router";
-import { useCallback, useRef, useState } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import { TouchableOpacity, View, Text, SectionList, Image } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import PieChart from "react-native-pie-chart";
@@ -28,7 +28,7 @@ type IndexedPhotoData = {
 // Section type for the list
 type ImageListSection = { key: string; data: IndexedPhotoData[] };
 
-interface SectionDataArgument {
+interface SectionHeaderProps {
   section: {
     key: string;
     data: IndexedPhotoData[];
@@ -125,28 +125,30 @@ export default function ImagesScreen() {
       ? makeGroupSections(markers)
       : makeMarkerSections(markers);
 
-  const ListButton = ({ text, action, enable = true }: ListButtonProps) => {
-    return (
-      <TouchableOpacity
-        style={[photoListStyles.card, { width: "40%" }]}
-        onPress={action}
-        disabled={!enable}
-      >
-        <Text
-          style={[
-            indexStyles.headerButton,
-            { textAlign: "center", flex: 1 },
-            enable ? null : { color: "#0000005b" },
-          ]}
+  const ListButton = React.memo(
+    ({ text, action, enable = true }: ListButtonProps) => {
+      return (
+        <TouchableOpacity
+          style={[photoListStyles.card, { width: "40%" }]}
+          onPress={action}
+          disabled={!enable}
         >
-          {text}
-        </Text>
-      </TouchableOpacity>
-    );
-  };
+          <Text
+            style={[
+              indexStyles.headerButton,
+              { textAlign: "center", flex: 1 },
+              enable ? null : { color: "#0000005b" },
+            ]}
+          >
+            {text}
+          </Text>
+        </TouchableOpacity>
+      );
+    }
+  );
 
   // Header for the entire list. Contains buttons to change the sorting mode.
-  const SortingSelector = () => {
+  const SortingSelector = React.memo(() => {
     return (
       <View style={[photoListStyles.card, { justifyContent: "center" }]}>
         {sections.length > 0 ? (
@@ -170,10 +172,10 @@ export default function ImagesScreen() {
         )}
       </View>
     );
-  };
+  });
 
   //Footer for the list. Contains a button to jump to the top and to clear selectedMarkerId
-  const ListResetter = () => {
+  const ListResetter = React.memo(() => {
     return (
       <View style={[photoListStyles.card, { justifyContent: "center" }]}>
         <ListButton
@@ -193,47 +195,51 @@ export default function ImagesScreen() {
         />
       </View>
     );
-  };
+  });
 
-  const MarkerHeader = ({ section: { key, data } }: SectionDataArgument) => {
-    const imageCount = data.length;
-    return (
-      <TouchableOpacity
-        style={[
-          photoListStyles.card,
-          { marginTop: "5%", alignItems: "center" },
-        ]}
-        onPress={() => navigateToMarker(key)}
-      >
-        <PieChart
-          widthAndHeight={25}
-          series={makePieChartSeries(data)}
-          cover={{ radius: 0.4 }}
-          padAngle={0.1}
-        />
-        <Text
-          style={indexStyles.headerButton}
-        >{`Marker with ${imageCount} ${imageCount > 1 ? "images" : "image"}`}</Text>
-      </TouchableOpacity>
-    );
-  };
+  const MarkerHeader = React.memo(
+    ({ section: { key, data } }: SectionHeaderProps) => {
+      const imageCount = data.length;
+      return (
+        <TouchableOpacity
+          style={[
+            photoListStyles.card,
+            { marginTop: "5%", alignItems: "center" },
+          ]}
+          onPress={() => navigateToMarker(key)}
+        >
+          <PieChart
+            widthAndHeight={25}
+            series={makePieChartSeries(data)}
+            cover={{ radius: 0.4 }}
+            padAngle={0.1}
+          />
+          <Text
+            style={indexStyles.headerButton}
+          >{`Marker with ${imageCount} ${imageCount > 1 ? "images" : "image"}`}</Text>
+        </TouchableOpacity>
+      );
+    }
+  );
 
-  const GroupHeader = ({ section: { key, data } }: SectionDataArgument) => {
-    const imageCount = data.length;
-    return (
-      <View style={[photoListStyles.card, { alignItems: "center" }]}>
-        <PieChart
-          widthAndHeight={25}
-          series={[{ value: 1, color: hashNameToColor(key) }]}
-        />
-        <Text
-          style={indexStyles.headerButton}
-        >{`${key} with ${imageCount} ${imageCount > 1 ? "images" : "image"}`}</Text>
-      </View>
-    );
-  };
+  const GroupHeader = React.memo(
+    ({ section: { key, data } }: SectionHeaderProps) => {
+      const imageCount = data.length;
+      return (
+        <View style={[photoListStyles.card, { alignItems: "center" }]}>
+          <PieChart
+            widthAndHeight={25}
+            series={[{ value: 1, color: hashNameToColor(key) }]}
+          />
+          <Text
+            style={indexStyles.headerButton}
+          >{`${key} with ${imageCount} ${imageCount > 1 ? "images" : "image"}`}</Text>
+        </View>
+      );
+    }
+  );
 
-  const SectionItem = ({ item, expand }: ImageListItemProps) => {
+  const SectionItem = React.memo(({ item, expand }: ImageListItemProps) => {
     const IMAGE_WIDTH = 50;
     const IMAGE_HEIGHT = 75;
     const EXPAND_SCALE = 4;
@@ -304,7 +310,18 @@ export default function ImagesScreen() {
         ) : null}
       </View>
     );
-  };
+  });
+
+  const renderItem = ({ item }: { item: IndexedPhotoData }) => (
+    <SectionItem item={item} expand={selected === item.index} />
+  );
+
+  const renderSectionHeader =
+    sortBy === SortBy.Group
+      ? ({ section }: SectionHeaderProps) => <GroupHeader section={section} />
+      : ({ section }: SectionHeaderProps) => <MarkerHeader section={section} />;
+
+  const renderSectionFooter = () => <View style={{ height: 7.5 }} />;
 
   return (
     <GestureHandlerRootView>
@@ -313,16 +330,13 @@ export default function ImagesScreen() {
         <SectionList
           ref={listRef}
           sections={sections}
-          renderItem={({ item }) => (
-            <SectionItem item={item} expand={selected === item.index} />
-          )}
-          renderSectionHeader={
-            sortBy === SortBy.Group ? GroupHeader : MarkerHeader
-          }
-          renderSectionFooter={() => <View style={{ height: 7.5 }} />}
+          renderItem={renderItem}
+          renderSectionHeader={renderSectionHeader}
+          renderSectionFooter={renderSectionFooter}
           ListHeaderComponent={SortingSelector}
           ListFooterComponent={sections.length > 0 ? ListResetter : undefined}
           stickySectionHeadersEnabled
+          removeClippedSubviews
         />
         {fullscreenImage ? (
           <FullscreenImage uri={fullscreenImage} setUri={setFullscreenImage} />
