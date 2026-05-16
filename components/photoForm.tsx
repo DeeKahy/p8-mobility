@@ -43,12 +43,16 @@ const schema = yup
 // Generates icons based on item names
 const generateIcon = (s: string) => (
   <View
-    style={{
-      width: 20, // Dynamic sizing doesn't work here
-      height: 20,
-      borderRadius: "50%",
-      backgroundColor: hashNameToColor(s),
-    }}
+    style={[
+      {
+        width: 20, // Dynamic sizing doesn't work here
+        height: 20,
+        borderRadius: "50%",
+      },
+      s // Highlight the edge if there's no string to get a color with
+        ? { backgroundColor: hashNameToColor(s) }
+        : { borderWidth: 2, borderColor: "#0000005b" },
+    ]}
   />
 );
 
@@ -78,30 +82,28 @@ export const PhotoFormModal = ({
   });
 
   // Area group names. // TODO: Add the user's own to this if we let them declare some
-  const names: string[] = [
-    "Kitchen",
-    "Living Room",
-    "Bathroom",
-    "Bedroom",
-    "Other",
-  ];
+  const names: string[] = ["Kitchen", "Living Room", "Bathroom", "Bedroom"];
 
-  const makeItem = (s: string) => ({
-    label: s,
-    value: s,
-    icon: () => generateIcon(s),
+  const makeSimpleItem = (value: string) => ({
+    label: value,
+    value,
+    icon: () => generateIcon(value),
   });
 
-  const [items, setItems] = useState<ItemType<string>[]>(
-    names.map((s: string) => makeItem(s))
-  );
+  const [items, setItems] = useState<ItemType<string>[]>(() => {
+    return names
+      .map((s: string) => makeSimpleItem(s))
+      .concat([
+        { label: "Other", value: "Other", icon: () => generateIcon("") },
+      ]);
+  });
 
   const [fullscreenImage, setFullscreenImage] = useState("");
   return (
     <Overlay
       style={styles.fullscreenOverlay}
       animationType="slide"
-      dependencies={[errors, fullscreenImage]}
+      dependencies={[errors, fullscreenImage, items]}
     >
       <FloatingHelpButton />
       <View style={{ flex: 1 }}>
@@ -253,24 +255,52 @@ interface GroupPickerProps {
 const GroupPicker = React.memo(
   ({ field, items, setItems }: GroupPickerProps) => {
     const [open, setOpen] = useState(false);
+    const [value, setValue] = useState(field.value);
+    const [showCustomInput, setShowCustomInput] = useState(false);
+
+    const updateOther = (s: string) => {
+      setItems((prev) =>
+        prev.map((item) =>
+          item.label === "Other"
+            ? { ...item, icon: () => generateIcon(s) }
+            : item
+        )
+      );
+    };
 
     return (
-      <DropDownPicker
-        open={open}
-        value={field.value}
-        items={items}
-        setOpen={setOpen}
-        setItems={setItems}
-        setValue={(callback) => {
-          field.onChange(callback(field.value));
-        }}
-        searchable
-        closeAfterSelecting
-        closeOnBackPressed
-        listMode="SCROLLVIEW"
-        placeholder="Select group"
-        searchPlaceholder="Enter group"
-      />
+      <View>
+        <DropDownPicker
+          open={open}
+          value={value}
+          items={items}
+          setOpen={setOpen}
+          setItems={setItems}
+          setValue={setValue}
+          closeAfterSelecting
+          closeOnBackPressed
+          listMode="SCROLLVIEW"
+          placeholder="Select group..."
+          onSelectItem={(item) => {
+            if (item.label === "Other") {
+              field.onChange("");
+            } else {
+              field.onChange(item.value);
+              if (showCustomInput) updateOther("");
+            }
+            setShowCustomInput(item.label === "Other");
+          }}
+        />
+        {showCustomInput ? (
+          <TextInput
+            style={styles.input}
+            placeholder="Enter group..."
+            value={field.value}
+            onChangeText={field.onChange}
+            onEndEditing={() => updateOther(field.value)}
+          />
+        ) : null}
+      </View>
     );
   }
 );
