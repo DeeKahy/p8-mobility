@@ -149,16 +149,25 @@ export default function ImagesScreen() {
   const SortingSelector = () => {
     return (
       <View style={[photoListStyles.card, { justifyContent: "center" }]}>
-        <ListButton
-          text={SortBy.Group}
-          action={() => setSortBy(SortBy.Group)}
-          enable={sortBy !== SortBy.Group}
-        />
-        <ListButton
-          text={SortBy.Marker}
-          action={() => setSortBy(SortBy.Marker)}
-          enable={sortBy !== SortBy.Marker}
-        />
+        {sections.length > 0 ? (
+          <>
+            <ListButton
+              text={SortBy.Group}
+              action={() => setSortBy(SortBy.Group)}
+              enable={sortBy !== SortBy.Group}
+            />
+            <ListButton
+              text={SortBy.Marker}
+              action={() => setSortBy(SortBy.Marker)}
+              enable={sortBy !== SortBy.Marker}
+            />
+          </>
+        ) : (
+          <ListButton
+            text="No images yet"
+            action={() => router.navigate("/")}
+          />
+        )}
       </View>
     );
   };
@@ -167,30 +176,21 @@ export default function ImagesScreen() {
   const ListResetter = () => {
     return (
       <View style={[photoListStyles.card, { justifyContent: "center" }]}>
-        {sections.length > 0 ? (
-          <View>
-            <ListButton
-              text="To the top"
-              action={() =>
-                listRef?.current?.scrollToLocation({
-                  sectionIndex: 0,
-                  itemIndex: 0,
-                  animated: true,
-                })
-              }
-            />
-            <ListButton
-              text="Show all"
-              action={() => setSelectedMarkerId(null)}
-              enable={!!selectedMarkerId}
-            />
-          </View>
-        ) : (
-          <ListButton
-            text="No images yet"
-            action={() => router.navigate("/")}
-          />
-        )}
+        <ListButton
+          text="To the top"
+          action={() =>
+            listRef?.current?.scrollToLocation({
+              sectionIndex: 0,
+              itemIndex: 0,
+              animated: true,
+            })
+          }
+        />
+        <ListButton
+          text="Show all"
+          action={() => setSelectedMarkerId(null)}
+          enable={!!selectedMarkerId}
+        />
       </View>
     );
   };
@@ -221,12 +221,7 @@ export default function ImagesScreen() {
   const GroupHeader = ({ section: { key, data } }: SectionDataArgument) => {
     const imageCount = data.length;
     return (
-      <View
-        style={[
-          photoListStyles.card,
-          { marginTop: "5%", alignItems: "center" },
-        ]}
-      >
+      <View style={[photoListStyles.card, { alignItems: "center" }]}>
         <PieChart
           widthAndHeight={25}
           series={[{ value: 1, color: hashNameToColor(key) }]}
@@ -324,8 +319,9 @@ export default function ImagesScreen() {
           renderSectionHeader={
             sortBy === SortBy.Group ? GroupHeader : MarkerHeader
           }
+          renderSectionFooter={() => <View style={{ height: 7.5 }} />}
           ListHeaderComponent={SortingSelector}
-          ListFooterComponent={ListResetter}
+          ListFooterComponent={sections.length > 0 ? ListResetter : undefined}
           stickySectionHeadersEnabled
         />
         {fullscreenImage ? (
