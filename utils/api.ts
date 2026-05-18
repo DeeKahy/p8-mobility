@@ -112,6 +112,15 @@ function markerCoordinatesUrl(floorplanId: string, markerId: string): string {
 }
 
 /**
+ * Build the URL for exporting the current API user's data as PDF.
+ */
+export function getPdfExportUrl(): string {
+  const apiUrl = `${getApiBaseUrl()}/users/${API_USER}/images/pdf`;
+  apiLogger?.(`Using API URL: ${apiUrl}`);
+  return apiUrl;
+}
+
+/**
  * Read the server error message from a failed response.
  *
  * The response input is the failed fetch response. If the body does not contain
