@@ -1,13 +1,15 @@
+import { Ionicons } from "@expo/vector-icons";
 import { Dispatch, SetStateAction } from "react";
-import { StyleSheet, Image } from "react-native";
-import { Pressable } from "react-native-gesture-handler";
+import { StyleSheet, Image, View, TouchableOpacity } from "react-native";
 import {
   fitContainer,
   ResumableZoom,
   useImageResolution,
+  useTransformationState,
 } from "react-native-zoom-toolkit";
 
 import { Overlay } from "../context/Overlays";
+import Downscale from "./index/Downscale";
 
 interface FullscreenImageProps {
   uri: string;
@@ -20,6 +22,8 @@ const FullscreenImage = ({ uri, setUri }: FullscreenImageProps) => {
   const exit = () => {
     setUri("");
   };
+  const { onUpdate: onResumableUpdate, state: resumableState } =
+    useTransformationState("resumable");
 
   const { resolution } = useImageResolution({ uri });
   if (!resolution?.height) return null; // Height must be defined and nonzero
@@ -40,18 +44,47 @@ const FullscreenImage = ({ uri, setUri }: FullscreenImageProps) => {
       }}
       animationType="fade"
     >
-      <Pressable style={StyleSheet.absoluteFill} onPress={exit} />
-      <ResumableZoom style={{ maxWidth: "80%", maxHeight: "80%" }}>
-        <Image
-          source={{ uri }}
+      <TouchableOpacity style={StyleSheet.absoluteFill} onPress={exit} />
+      <ResumableZoom
+        onUpdate={onResumableUpdate}
+        style={{ maxWidth: "80%", maxHeight: "80%" }}
+      >
+        <View
           style={{
             width,
             height,
-            backgroundColor: "#0000005b",
           }}
-          resizeMethod="scale"
-          resizeMode="contain"
-        />
+        >
+          <Image
+            source={{ uri }}
+            style={{
+              width,
+              height,
+              backgroundColor: "#0000005b",
+            }}
+            resizeMethod="scale"
+            resizeMode="contain"
+          />
+          <Downscale
+            style={{
+              position: "absolute",
+              alignSelf: "flex-end",
+              top: -15,
+              right: -15,
+            }}
+            scale={resumableState.scale}
+          >
+            <TouchableOpacity
+              onPress={exit}
+              style={{
+                backgroundColor: "#ff3355",
+                borderRadius: "50%",
+              }}
+            >
+              <Ionicons name="close-outline" size={30} color="#ffffff" />
+            </TouchableOpacity>
+          </Downscale>
+        </View>
       </ResumableZoom>
     </Overlay>
   );
