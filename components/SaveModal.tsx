@@ -1,62 +1,60 @@
-import { Modal, TouchableOpacity, View, Text, StyleSheet } from "react-native";
+import { TouchableOpacity, View, Text, StyleSheet } from "react-native";
+
+import { Overlay } from "../context/Overlays";
 
 type SaveFormModalProps = {
-  visible: boolean;
   onClose: () => void;
   onSave: () => void;
   onSaveNext: () => void;
 };
 
 export const SaveFormModal = ({
-  visible,
   onClose,
   onSave,
   onSaveNext,
 }: SaveFormModalProps) => {
   return (
-    <Modal animationType="fade" transparent visible={visible}>
-      <View style={styles.overlay}>
-        <View style={styles.card}>
-          <Text style={styles.title}>Save Floorplan</Text>
-          <Text style={styles.message}>
-            Choose what to do after saving this room.
-          </Text>
+    <Overlay style={styles.overlay} animationType="fade">
+      <View style={styles.card}>
+        <Text style={styles.title}>Save Floorplan</Text>
+        <Text style={styles.message}>
+          Choose what to do after saving this room.
+        </Text>
 
-          <View style={styles.actionColumn}>
-            <TouchableOpacity
-              onPress={onSave}
-              style={[styles.button, styles.primaryButton]}
-            >
-              <Text style={[styles.buttonText, styles.primaryButtonText]}>
-                Save and review floorplan
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={onSaveNext}
-              style={[styles.button, styles.primaryButton]}
-            >
-              <Text style={[styles.buttonText, styles.primaryButtonText]}>
-                Save and measure next room
-              </Text>
-            </TouchableOpacity>
-          </View>
+        <View style={styles.actionColumn}>
           <TouchableOpacity
-            onPress={onClose}
-            style={[styles.button, styles.secondaryButton]}
+            onPress={onSave}
+            style={[styles.button, styles.primaryButton]}
           >
-            <Text style={[styles.buttonText, styles.secondaryButtonText]}>
-              Cancel
+            <Text style={[styles.buttonText, styles.primaryButtonText]}>
+              Save and review floorplan
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={onSaveNext}
+            style={[styles.button, styles.primaryButton]}
+          >
+            <Text style={[styles.buttonText, styles.primaryButtonText]}>
+              Save and measure next room
             </Text>
           </TouchableOpacity>
         </View>
+        <TouchableOpacity
+          onPress={onClose}
+          style={[styles.button, styles.secondaryButton]}
+        >
+          <Text style={[styles.buttonText, styles.secondaryButtonText]}>
+            Cancel
+          </Text>
+        </TouchableOpacity>
       </View>
-    </Modal>
+    </Overlay>
   );
 };
 
 const styles = StyleSheet.create({
   overlay: {
-    flex: 1,
+    ...StyleSheet.absoluteFillObject,
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "rgba(0, 0, 0, 0.45)",

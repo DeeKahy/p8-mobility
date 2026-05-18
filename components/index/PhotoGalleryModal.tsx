@@ -1,12 +1,6 @@
-import {
-  Image,
-  Modal,
-  ScrollView,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { Image, ScrollView, Text, TouchableOpacity, View } from "react-native";
 
+import { Overlay } from "../../context/Overlays";
 import { styles } from "../../css/indexStyle";
 import { Marker } from "../../hooks/useMarkers";
 import { PhotoData } from "../../models/PhotoFormModel";
@@ -20,10 +14,10 @@ interface PhotoGalleryModalProps {
 
 export const PhotoGalleryModal = (props: PhotoGalleryModalProps) => {
   const { showModal, marker, handleDeletePhoto, closeAllModals } = props;
-
+  if (!showModal) return null;
   return (
-    <Modal visible={showModal} transparent animationType="slide">
-      <View style={styles.photosModal}>
+    <Overlay style={styles.photosModal} animationType="slide">
+      <View>
         <View style={styles.photosHeader}>
           <Text style={styles.photosTitle}>
             Photos ({marker?.photos.length})
@@ -49,6 +43,6 @@ export const PhotoGalleryModal = (props: PhotoGalleryModalProps) => {
           ))}
         </ScrollView>
       </View>
-    </Modal>
+    </Overlay>
   );
 };

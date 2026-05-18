@@ -1,5 +1,6 @@
-import { Modal, Pressable, Text, TouchableOpacity } from "react-native";
+import { Pressable, Text, TouchableOpacity } from "react-native";
 
+import { Overlay } from "../../context/Overlays";
 import { styles } from "../../css/indexStyle";
 import { Marker } from "../../hooks/useMarkers";
 
@@ -14,17 +15,17 @@ interface MarkerOptionsModalProps {
 
 export const MarkerOptionsModal = (props: MarkerOptionsModalProps) => {
   const {
-    showModal,
     marker,
+    showModal,
     handleShowPhotos,
     closeAllModals,
     handleAddFromPictureToMarker,
     handleAddFromCameraRollToMarker,
   } = props;
-
+  if (!showModal) return null;
   return (
-    <Modal visible={showModal} transparent animationType="fade">
-      <Pressable style={styles.modalOverlay} onPress={closeAllModals}>
+    <Overlay style={styles.modalOverlay} animationType="fade">
+      <Pressable onPress={closeAllModals}>
         <Pressable
           style={styles.optionsModal}
           onPress={(e) => e.stopPropagation()}
@@ -58,6 +59,6 @@ export const MarkerOptionsModal = (props: MarkerOptionsModalProps) => {
           </TouchableOpacity>
         </Pressable>
       </Pressable>
-    </Modal>
+    </Overlay>
   );
 };

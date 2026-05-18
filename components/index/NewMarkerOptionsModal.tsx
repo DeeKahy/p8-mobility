@@ -1,6 +1,7 @@
 import { Dispatch, SetStateAction } from "react";
-import { Modal, Pressable, Text, TouchableOpacity } from "react-native";
+import { Pressable, Text, TouchableOpacity } from "react-native";
 
+import { Overlay } from "../../context/Overlays";
 import { styles } from "../../css/indexStyle";
 
 interface NewMarkerOptionsModalProps {
@@ -19,13 +20,10 @@ export const NewMarkerOptionsModal = (props: NewMarkerOptionsModalProps) => {
     handleNewMarkerFromPicture,
     handleNewMarkerFromCameraRoll,
   } = props;
-
+  if (!showModal) return null;
   return (
-    <Modal visible={showModal} transparent animationType="fade">
-      <Pressable
-        style={styles.modalOverlay}
-        onPress={() => setShowNewMarkerOptions(false)}
-      >
+    <Overlay style={styles.modalOverlay} animationType="fade">
+      <Pressable onPress={() => setShowNewMarkerOptions(false)}>
         <Pressable
           style={styles.optionsModal}
           onPress={(e) => e.stopPropagation()}
@@ -54,6 +52,6 @@ export const NewMarkerOptionsModal = (props: NewMarkerOptionsModalProps) => {
           </TouchableOpacity>
         </Pressable>
       </Pressable>
-    </Modal>
+    </Overlay>
   );
 };

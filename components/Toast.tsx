@@ -8,7 +8,6 @@ import Animated, {
   withSequence,
   withTiming,
 } from "react-native-reanimated";
-import { SafeAreaProvider } from "react-native-safe-area-context";
 import { scheduleOnRN } from "react-native-worklets";
 
 type ToastType = "Success" | "Error" | "Info";
@@ -64,18 +63,16 @@ export const Toast = (props: ToastMessage) => {
   }));
 
   return (
-    <SafeAreaProvider>
-      <Animated.View
-        style={[
-          opacityStyle,
-          styles.container,
-          { backgroundColor: getTypeColor(props.type) },
-        ]}
-      >
-        <Text style={styles.typetext}>{props.type}</Text>
-        <Text style={styles.text}>{props.message}</Text>
-      </Animated.View>
-    </SafeAreaProvider>
+    <Animated.View
+      style={[
+        opacityStyle,
+        styles.container,
+        { backgroundColor: getTypeColor(props.type) },
+      ]}
+    >
+      <Text style={styles.text}>{props.type}</Text>
+      <Text style={styles.text}>{props.message}</Text>
+    </Animated.View>
   );
 };
 
@@ -90,11 +87,6 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   text: {
-    fontSize: 20,
-    color: "white",
-    textAlign: "center",
-  },
-  typetext: {
     fontSize: 20,
     color: "white",
     textAlign: "center",

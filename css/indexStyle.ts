@@ -136,7 +136,7 @@ export const styles = StyleSheet.create({
     borderTopColor: "#fff",
   },
   modalOverlay: {
-    flex: 1,
+    ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(0,0,0,0.5)",
     justifyContent: "center",
     alignItems: "center",
@@ -174,7 +174,7 @@ export const styles = StyleSheet.create({
     fontSize: 15,
   },
   photosModal: {
-    flex: 1,
+    ...StyleSheet.absoluteFillObject,
     backgroundColor: "#fff",
     marginTop: 50,
     borderTopLeftRadius: 20,

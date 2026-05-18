@@ -1,7 +1,7 @@
 import { StyleSheet } from "react-native";
 export const styles = StyleSheet.create({
   container: {
-    padding: 20,
+    flex: 1,
     backgroundColor: "#fff",
   },
   formCard: {
@@ -59,16 +59,20 @@ export const styles = StyleSheet.create({
     marginBottom: 5,
   },
   fullscreenOverlay: {
-    flex: 1,
+    ...StyleSheet.absoluteFillObject,
     backgroundColor: "#fff",
   },
   buttonRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: "center",
     gap: 10,
   },
 
-  buttonWrapper: {
+  buttonText: {
     flex: 1,
+    color: "#ffffff",
+    fontSize: 16,
+    fontWeight: "600",
+    textAlign: "center",
   },
 });

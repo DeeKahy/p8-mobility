@@ -23,7 +23,7 @@ import { PhotoFormModal } from "../../components/photoForm";
 import { useCamera, CameraMode } from "../../context/CameraContext";
 import { useFloorplan } from "../../context/FloorplanContext";
 import { useLogger } from "../../context/LoggerContext";
-import { useToast } from "../../context/ToastProvider";
+import { useOverlays } from "../../context/Overlays";
 import { styles } from "../../css/indexStyle";
 import type { Marker } from "../../hooks/useMarkers";
 import { PhotoData } from "../../models/PhotoFormModel";
@@ -62,7 +62,7 @@ export default function HomeScreen() {
   const { capturedImage, captureMode } = useCamera();
 
   const { error, log } = useLogger();
-  const { showToast } = useToast();
+  const { showToast } = useOverlays();
 
   const [showPhotos, setShowPhotos] = useState(false);
   const [showNewMarkerOptions, setShowNewMarkerOptions] = useState(false);
@@ -197,6 +197,7 @@ export default function HomeScreen() {
     setShowTempMarker(false);
     router.navigate("/camera");
     captureMode.current = CameraMode.Addition;
+    closeAllModals();
   };
 
   const handleAddFromCameraRollToMarker = async () => {
@@ -238,6 +239,7 @@ export default function HomeScreen() {
     setShowNewMarkerOptions(false);
     router.navigate("/camera");
     captureMode.current = CameraMode.Addition;
+    closeAllModals();
   };
 
   const handleDeletePhoto = (photo: PhotoData) => {
@@ -271,7 +273,6 @@ export default function HomeScreen() {
   const closeAllModals = () => {
     setShowPhotos(false);
     setPhotoGalleryMarkerId(null);
-    setSelectedMarkerId(null);
     setShowMarkerOptions(false);
     setShowTempMarker(false);
   };
