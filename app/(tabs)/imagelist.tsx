@@ -23,7 +23,8 @@ enum SortBy {
 type IndexedPhotoData = {
   index: number; // Unique index in the list
   markerId: string; // ID of the marker this picture is associated with
-} & PhotoData;
+  data: PhotoData; // Original PhotoData object
+};
 
 // Section type for the list
 type ImageListSection = { key: string; data: IndexedPhotoData[] };
@@ -85,9 +86,9 @@ export default function ImagesScreen() {
         sections.push({
           key: marker.id,
           data: marker.photos.map((pd) => ({
-            ...pd,
             index: newIndex(),
             markerId: marker.id,
+            data: pd,
           })),
         });
     });
@@ -103,9 +104,9 @@ export default function ImagesScreen() {
         marker.photos.forEach((pd: PhotoData) => {
           const ps = groups.get(pd.areaGroup) ?? [];
           ps.push({
-            ...pd,
             index: newIndex(),
             markerId: marker.id,
+            data: pd,
           });
           groups.set(pd.areaGroup, ps);
         });
@@ -198,8 +199,8 @@ export default function ImagesScreen() {
   });
 
   const MarkerHeader = React.memo(
-    ({ section: { key, data } }: SectionHeaderProps) => {
-      const imageCount = data.length;
+    ({ section: { key, data: items } }: SectionHeaderProps) => {
+      const imageCount = items.length;
       return (
         <TouchableOpacity
           style={[
@@ -210,7 +211,7 @@ export default function ImagesScreen() {
         >
           <PieChart
             widthAndHeight={25}
-            series={makePieChartSeries(data)}
+            series={makePieChartSeries(items.map((item) => item.data))}
             cover={{ radius: 0.4 }}
             padAngle={0.1}
           />
@@ -223,8 +224,8 @@ export default function ImagesScreen() {
   );
 
   const GroupHeader = React.memo(
-    ({ section: { key, data } }: SectionHeaderProps) => {
-      const imageCount = data.length;
+    ({ section: { key, data: items } }: SectionHeaderProps) => {
+      const imageCount = items.length;
       return (
         <View style={[photoListStyles.card, { alignItems: "center" }]}>
           <PieChart
@@ -246,11 +247,7 @@ export default function ImagesScreen() {
     const {
       index,
       markerId,
-      pictureName,
-      dateTaken,
-      photoUri,
-      areaGroup,
-      description,
+      data: { pictureName, dateTaken, photoUri, areaGroup, description },
     } = item;
 
     return (
@@ -292,7 +289,7 @@ export default function ImagesScreen() {
           <View style={{ flexDirection: "row" }}>
             <TouchableOpacity
               style={{ flex: 1, alignSelf: "flex-start" }}
-              onPress={() => removePhoto(markerId, item)}
+              onPress={() => removePhoto(markerId, item.data)}
             >
               <Text style={[indexStyles.headerButton, { color: "#f32121" }]}>
                 Delete image
