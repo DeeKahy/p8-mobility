@@ -1,7 +1,7 @@
 import * as ImagePicker from "expo-image-picker";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Alert, Image, Text, TouchableOpacity, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import {
@@ -211,6 +211,17 @@ export default function HomeScreen() {
     previewMarker.x.value = x + width / 2;
     previewMarker.y.value = y + height / 2;
   };
+
+  useFocusEffect(
+    useCallback(() => {
+      return () => {
+        // If you exit this tab while in Placement-mode, unset the mode.
+        if (captureMode.current === CameraMode.Placement) {
+          captureMode.current = CameraMode.None;
+        }
+      };
+    }, [])
+  );
 
   // Runs whenever capturedImage updates e.g. when a new photo is taken using camera.tsx
   useEffect(() => {
