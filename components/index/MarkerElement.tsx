@@ -14,7 +14,7 @@ import Animated, {
 
 import Downscale from "./Downscale";
 import { styles } from "../../css/indexStyle";
-import { Marker } from "../../hooks/useMarkers";
+import { Marker, MarkerContent } from "../../hooks/useMarkers";
 import { PhotoData } from "../../models/PhotoFormModel";
 import { hashNameToColor } from "../../utils/stringColor";
 
@@ -28,9 +28,16 @@ interface MarkerPropsWithMarker extends MarkerProps {
   x?: never;
   y?: never;
 }
-// or MarkerElement can hold a shared x and y-coordinate
+// MarkerElement can hold a shared x and y-coordinate
 interface MarkerPropsWithFreePosition extends MarkerProps {
   marker?: never;
+  x: SharedValue<number>;
+  y: SharedValue<number>;
+}
+
+// MarkerElement can hold marker content and coordinates, and coordinates will be used for position
+interface MarkerPropsWithContent extends MarkerProps {
+  marker: MarkerContent;
   x: SharedValue<number>;
   y: SharedValue<number>;
 }
@@ -39,11 +46,11 @@ const MAX_HIGHLIGHT_SCALE = 1.25;
 const BASE_HIGHTLIGHT_SCALE = 1;
 const HIGHTLIGHT_LOOP_MS = 400;
 
-export function makePieChartSeries(photos?: PhotoData[]) {
+export function makePieChartSeries(photos: PhotoData[]) {
   const hashedColors = new Map<string, number>();
   const series: Slice[] = [];
 
-  if (photos) {
+  if (photos.length > 0) {
     // Count how many times each color hash appears
     photos.forEach((p: PhotoData) => {
       const c = hashNameToColor(p.areaGroup);
@@ -62,11 +69,15 @@ export function makePieChartSeries(photos?: PhotoData[]) {
 }
 
 export const MarkerElement = (
-  props: MarkerPropsWithMarker | MarkerPropsWithFreePosition
+  props:
+    | MarkerPropsWithMarker
+    | MarkerPropsWithFreePosition
+    | MarkerPropsWithContent
 ) => {
   const DEFAULT_SCALE = useSharedValue(1); // Don't transform if scale isn't given
   const extraScale = useSharedValue(BASE_HIGHTLIGHT_SCALE);
-  const { marker, highlight = false, scale = DEFAULT_SCALE } = props;
+  const { x, y, marker, highlight = false, scale = DEFAULT_SCALE } = props;
+  const photos = marker?.photos ?? [];
 
   useEffect(() => {
     // Start highlight animation on mount
@@ -103,14 +114,11 @@ export const MarkerElement = (
       /* (x,y) should be the center of the marker so we transform backwards by half its width and height */
       /* If no marker is given, use the x and y-values shared with us instead */
       transform: [
-        {
-          translateX:
-            (marker ? marker.x : props.x.value) - styles.marker.width / 2,
-        },
-        {
-          translateY:
-            (marker ? marker.y : props.y.value) - styles.marker.height / 2,
-        },
+        { translateX: x ? x.value : marker.x },
+        { translateX: -styles.marker.width / 2 },
+
+        { translateY: y ? y.value : marker.y },
+        { translateY: -styles.marker.height / 2 },
       ],
     };
   });
@@ -129,15 +137,15 @@ export const MarkerElement = (
           <View style={stylesheet.content}>
             <PieChart
               widthAndHeight={(styles.marker.width * 2) / 3}
-              series={makePieChartSeries(marker?.photos)}
+              series={makePieChartSeries(photos)}
               style={{ transform: [{ scale: 0.9 }] }}
               cover={{ radius: 0.4 }} // This fraction of the radius is transparent
               padAngle={0.1} // Slices are separated by this much
             />
           </View>
         </Animated.View>
-        {marker?.photos ? (
-          <Text style={styles.markerCount}>{marker.photos.length}</Text>
+        {photos.length > 0 ? (
+          <Text style={styles.markerCount}>{photos.length}</Text>
         ) : null}
       </Downscale>
     </Animated.View>

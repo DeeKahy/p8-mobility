@@ -17,7 +17,7 @@ import {
 } from "react-native-zoom-toolkit";
 
 import { useLogger } from "./LoggerContext";
-import { Marker, useMarkers } from "../hooks/useMarkers";
+import { Marker, MarkerContent, useMarkers } from "../hooks/useMarkers";
 import { PhotoData } from "../models/PhotoFormModel";
 import {
   createFloorplanImage,
@@ -74,6 +74,9 @@ interface FloorplanContextReturn {
   onResumableUpdate: (state: CommonZoomState<number>) => void;
 
   withMarkerAt: withMarkerAtType;
+
+  movePayload: MarkerContent | null;
+  setMovePayload: Dispatch<SetStateAction<MarkerContent | null>>;
 }
 
 export type Point<T> = {
@@ -124,6 +127,7 @@ export const FloorplanProvider = ({
   // This holds key-value pairs of marker IDs and the types of edits that have been made to those markers.
   type editType = "create" | "delete" | "replace" | "move";
   const markerEdits = useRef<Map<string, editType>>(new Map());
+  const [movePayload, setMovePayload] = useState<MarkerContent | null>(null);
 
   useEffect(() => {
     refreshStoredFloorplans().catch((error: unknown) => {
@@ -516,6 +520,8 @@ export const FloorplanProvider = ({
         resumableState,
         onResumableUpdate,
         withMarkerAt,
+        movePayload,
+        setMovePayload,
       }}
     >
       {children}
