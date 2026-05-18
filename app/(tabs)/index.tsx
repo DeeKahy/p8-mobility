@@ -41,7 +41,9 @@ export default function HomeScreen() {
     deleteStoredFloorplan,
     handleCanvasPress,
     addPhotos,
+    deleteMarker,
     addMarker,
+    editMarker,
     previewMarker,
     showTempMarker,
     setSelectedMarkerId,
@@ -52,6 +54,8 @@ export default function HomeScreen() {
     resumableState, // Persistent CommonZoomState updated by onResumableUpdate
     onResumableUpdate, // Pass to ResumableZoom's onUpdate-callback
     withMarkerAt,
+    movePayload,
+    setMovePayload,
   } = useFloorplan();
 
   const { capturedImage, captureMode } = useCamera();
@@ -63,7 +67,6 @@ export default function HomeScreen() {
     { uri: string; date: string }[]
   >([]);
   const [loadingText, setLoadingText] = useState<string | null>(null);
-  // Keep the gallery tied to the marker it opened for while selection/modal state changes.
 
   const resumableRef = useRef<ResumableZoomRefType>(null);
   const describedPhotos = useRef<PhotoData[]>([]);
@@ -185,6 +188,14 @@ export default function HomeScreen() {
     setShowMarkerOptions(false);
   };
 
+  const handleMove = () => {
+    captureMode.current = CameraMode.Placement;
+    if (selectedMarker) setMovePayload(selectedMarker);
+    closeAllModals();
+    centerPreview();
+    findImagePlacementTarget(previewMarker.x.value, previewMarker.y.value);
+  };
+
   const closeAllModals = () => {
     setShowMarkerOptions(false);
     setShowTempMarker(false);
@@ -213,12 +224,24 @@ export default function HomeScreen() {
     previewMarker.y.value = y + height / 2;
   };
 
+  // Put the preview marker in the center of the ResumableZoom
+  const centerPreview = () => {
+    if (resumableRef.current) {
+      const { x, y, width, height } = resumableRef.current.getVisibleRect();
+      // Change the preview marker coordinates to the center of the (element in) ResumableZoom
+      // Note that dividing by 2 with extendBorders = True returns element-space coordinates instead of container-space coordinates.
+      previewMarker.x.value = x + width / 2;
+      previewMarker.y.value = y + height / 2;
+    }
+  };
+
   useFocusEffect(
     useCallback(() => {
       return () => {
         // If you exit this tab while in Placement-mode, unset the mode.
         if (captureMode.current === CameraMode.Placement) {
           captureMode.current = CameraMode.None;
+          setMovePayload(null);
         }
       };
     }, [])
@@ -227,13 +250,9 @@ export default function HomeScreen() {
   // Runs whenever capturedImage updates e.g. when a new photo is taken using camera.tsx
   useEffect(() => {
     if (!capturedImage) return;
-    if (captureMode.current === CameraMode.Placement && resumableRef.current) {
+    if (captureMode.current === CameraMode.Placement) {
       // Image should be added to a user-selected marker or used to create a new marker at a user-defined position
-      const { x, y, width, height } = resumableRef.current.getVisibleRect();
-      // Change the preview marker coordinates to the center of the (element in) ResumableZoom
-      // Note that dividing by 2 with extendBorders = True returns element-space coordinates instead of container-space coordinates.
-      previewMarker.x.value = x + width / 2;
-      previewMarker.y.value = y + height / 2;
+      centerPreview();
       findImagePlacementTarget(previewMarker.x.value, previewMarker.y.value);
     } else if (captureMode.current === CameraMode.Addition) {
       // Image should be added to the currently selected marker or used to create a new marker at the preview
@@ -353,10 +372,30 @@ export default function HomeScreen() {
           }
           onLongPress={(event) => {
             if (captureMode.current === CameraMode.Placement) {
-              // Confirm the image placement if one is ongoing
-              console.info(`Confirming image placement via long press..`);
-              const imageDate = new Date().toISOString().split("T")[0];
-              setPendingPhotos([{ uri: capturedImage, date: imageDate }]);
+              if (!movePayload) {
+                // Confirm the image placement if one is ongoing
+                console.info(`Confirming image placement via long press..`);
+                const imageDate = new Date().toISOString().split("T")[0];
+                setPendingPhotos([{ uri: capturedImage, date: imageDate }]);
+              } else {
+                // Confirm the move if one is ongoing
+                const { id, photos } = movePayload;
+                setMovePayload(null);
+                if (selectedMarkerId) {
+                  // Combine the moving marker with the selected one
+                  if (selectedMarkerId !== id) {
+                    addPhotos(selectedMarkerId, photos); // TODO: Filter based on more than just URI
+                    deleteMarker(id);
+                  }
+                } else {
+                  // Modify the coordinates of the moving marker
+                  editMarker(id, (marker) => ({
+                    ...marker,
+                    x: previewMarker.x.value,
+                    y: previewMarker.y.value,
+                  }));
+                }
+              }
               captureMode.current = CameraMode.None;
             }
           }}
@@ -410,7 +449,11 @@ export default function HomeScreen() {
             {/* Render markers */}
             {markers.map((marker) => (
               <MarkerElement
-                marker={marker}
+                marker={
+                  movePayload?.id === marker.id
+                    ? { ...marker, photos: [] }
+                    : marker
+                }
                 key={marker.id}
                 highlight={selectedMarkerId === marker.id}
                 scale={resumableState.scale}
@@ -422,6 +465,7 @@ export default function HomeScreen() {
               <MarkerElement
                 x={previewMarker.x}
                 y={previewMarker.y}
+                marker={movePayload ?? undefined}
                 highlight={showTempMarker}
                 scale={resumableState.scale}
               />
@@ -461,6 +505,7 @@ export default function HomeScreen() {
           closeAllModals={closeAllModals}
           handleAddFromPictureToMarker={handleAddPictureToMarker}
           handleAddFromCameraRollToMarker={handleAddFromCameraRollToMarker}
+          handleMove={handleMove}
         />
 
         <Text style={styles.instructions}>
