@@ -158,11 +158,11 @@ export function varianceOfLaplacian(
 
       // For each pixel we compare it to its four neighbours:
       // The data is an flat array of all pixels. And one pixel has 4 values: red green blue and opacity hence why we do +4
-      const center = mean_rgb_value(data, i);
-      const left = mean_rgb_value(data, i - 4);
-      const right = mean_rgb_value(data, i + 4);
-      const up = mean_rgb_value(data, i - width * 4);
-      const down = mean_rgb_value(data, i + width * 4);
+      const center = grey_scale(data, i);
+      const left = grey_scale(data, i - 4);
+      const right = grey_scale(data, i + 4);
+      const up = grey_scale(data, i - width * 4);
+      const down = grey_scale(data, i + width * 4);
 
       // If the center pixel is very different from its neighbors the result becomes large.
       const lap = 4 * center - left - right - up - down;
@@ -191,7 +191,7 @@ export function varianceOfLaplacian(
  *
  * @returns average GBR value
  */
-function mean_rgb_value(data: Uint8Array, index: number): number {
+function grey_scale(data: Uint8Array, index: number): number {
   const r = data[index];
   const g = data[index + 1];
   const b = data[index + 2];
