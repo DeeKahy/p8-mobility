@@ -158,11 +158,11 @@ export function varianceOfLaplacian(
 
       // For each pixel we compare it to its four neighbours:
       // The data is an flat array of all pixels. And one pixel has 4 values: red green blue and opacity hence why we do +4
-      const center = luminanceAt(data, i);
-      const left = luminanceAt(data, i - 4);
-      const right = luminanceAt(data, i + 4);
-      const up = luminanceAt(data, i - width * 4);
-      const down = luminanceAt(data, i + width * 4);
+      const center = mean_rgb_value(data, i);
+      const left = mean_rgb_value(data, i - 4);
+      const right = mean_rgb_value(data, i + 4);
+      const up = mean_rgb_value(data, i - width * 4);
+      const down = mean_rgb_value(data, i + width * 4);
 
       // If the center pixel is very different from its neighbors the result becomes large.
       const lap = 4 * center - left - right - up - down;
@@ -182,23 +182,18 @@ export function varianceOfLaplacian(
 }
 
 /**
- * Calculates the luminance (perceived brightness) of a pixel.
- * We need this calculated value as pesived brightness change in pixel can be seen as blurry
+ * Calculates the average "luminesences"
+ * Called grey Scale, as its all colors mixed togther.
  *
- * Uses the standard Rec. 601 luma formula:
- * https://www.imatest.com/docs/luminance/
- *
- * Y = 0.299R + 0.587G + 0.114B
  *
  * @param data - RGBA pixel buffer
  * @param index - Index of the pixel's red channel
  *
- * @returns Luminance value
+ * @returns average GBR value
  */
-function luminanceAt(data: Uint8Array, index: number): number {
+function mean_rgb_value(data: Uint8Array, index: number): number {
   const r = data[index];
   const g = data[index + 1];
   const b = data[index + 2];
-
-  return 0.299 * r + 0.587 * g + 0.114 * b;
+  return (r + g + b) / 3;
 }
