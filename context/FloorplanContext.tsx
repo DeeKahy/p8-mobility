@@ -43,7 +43,7 @@ interface FloorplanContextReturn {
   setFloorplan: Dispatch<SetStateAction<string | null>>;
   storedFloorplans: FloorplanImage[];
   isLoadingStoredFloorplans: boolean;
-  isSavingMarkers: boolean;
+  isSavingMarkers: number;
   pickFloorplan: () => Promise<void>;
   pickFromMyFloorplan: (storedFloorplan: FloorplanImage) => Promise<void>;
   refreshStoredFloorplans: () => Promise<void>;
@@ -106,7 +106,10 @@ export const FloorplanProvider = ({
   );
   const [isLoadingStoredFloorplans, setIsLoadingStoredFloorplans] =
     useState(true);
-  const [isSavingMarkers, setIsSavingMarkers] = useState(false);
+
+  // Semaphore isSavingMarkers is incremented when a marker-related API call starts and decremented when it finishes.
+  // Treat it as a boolean elsewhere, as its default value 0 is falsy.
+  const [isSavingMarkers, setIsSavingMarkers] = useState(0);
   const marker = useMarkers();
   const { debug, error, log } = useLogger();
 
@@ -218,14 +221,14 @@ export const FloorplanProvider = ({
       const id = marker.addMarker(x, y, photos);
       log(`Locally created marker ${id}`);
       const res = marker.getById(id) as Marker;
-      setIsSavingMarkers(true);
+      setIsSavingMarkers(isSavingMarkers + 1);
       await createFloorplanMarker(floorplanId, markerForServer(res));
       log(`Server created marker ${id}`);
     } catch (e) {
       const errorMessage = e instanceof Error ? e.message : "Unknown error";
       error(errorMessage);
     } finally {
-      setIsSavingMarkers(false);
+      setIsSavingMarkers(isSavingMarkers - 1);
     }
   }
 
@@ -256,7 +259,7 @@ export const FloorplanProvider = ({
         JSON.stringify({ ...oldMarker, x: undefined, y: undefined }) !==
         JSON.stringify({ ...newMarker, x: undefined, y: undefined });
 
-      setIsSavingMarkers(true);
+      setIsSavingMarkers(isSavingMarkers + 1);
       if (otherFieldsChanged) {
         await replaceFloorplanMarker(floorplanId, markerForServer(newMarker));
       } else if (coordinatesChanged) {
@@ -270,7 +273,7 @@ export const FloorplanProvider = ({
       const errorMessage = e instanceof Error ? e.message : "Unknown error";
       error(errorMessage);
     } finally {
-      setIsSavingMarkers(false);
+      setIsSavingMarkers(isSavingMarkers - 1);
     }
   }
 
@@ -291,14 +294,14 @@ export const FloorplanProvider = ({
       log(`Locally added photos to marker ${id}`);
       // Now synchronize with the server
       const res = marker.getById(id) as Marker; // We know this will succeed if addPhotos did
-      setIsSavingMarkers(true);
+      setIsSavingMarkers(isSavingMarkers + 1);
       await replaceFloorplanMarker(floorplanId, markerForServer(res));
       log(`Server added photos to marker ${id}`);
     } catch (e) {
       const errorMessage = e instanceof Error ? e.message : "Unknown error";
       error(errorMessage);
     } finally {
-      setIsSavingMarkers(false);
+      setIsSavingMarkers(isSavingMarkers - 1);
     }
   }
 
@@ -316,7 +319,7 @@ export const FloorplanProvider = ({
 
     try {
       marker.removePhoto(id, photo);
-      setIsSavingMarkers(true);
+      setIsSavingMarkers(isSavingMarkers + 1);
       const res = marker.getById(id);
       log(`Locally removed photo from marker ${id}`);
       if (res) // Returns undefined if marker was deleted.
@@ -330,7 +333,7 @@ export const FloorplanProvider = ({
       const errorMessage = e instanceof Error ? e.message : "Unknown error";
       error(errorMessage);
     } finally {
-      setIsSavingMarkers(false);
+      setIsSavingMarkers(isSavingMarkers - 1);
     }
   }
 
@@ -346,14 +349,14 @@ export const FloorplanProvider = ({
     try {
       marker.deleteMarker(id);
       log(`Locally deleted marker ${id}`);
-      setIsSavingMarkers(true);
+      setIsSavingMarkers(isSavingMarkers + 1);
       deleteFloorplanMarker(floorplanId, id);
       log(`Server deleted marker ${id}`);
     } catch (e) {
       const errorMessage = e instanceof Error ? e.message : "Unknown error";
       error(errorMessage);
     } finally {
-      setIsSavingMarkers(false);
+      setIsSavingMarkers(isSavingMarkers - 1);
     }
   }
 
