@@ -24,6 +24,7 @@ app = Flask(__name__)
 @app.route("/api/users/<username>/floorplans", methods=["GET"])
 def list_floorplans(username):
     """Return all floorplans for the given username."""
+    print(f"[route] list_floorplans hit: username={username}")
     try:
         username = safe_name(username)
     except ValueError:
@@ -59,6 +60,7 @@ def list_markers(username, floorplan_id):
     floorplan folder inside that user. The route checks that the floorplan
     exists, then reads every marker JSON file from markers/ and returns them.
     """
+    print(f"[route] list_markers hit: username={username}, floorplan_id={floorplan_id}")
     try:
         username = safe_name(username)
         floorplan_id = safe_name(floorplan_id)
@@ -101,6 +103,7 @@ def create_floorplan(username):
     once, adds createdAt metadata, and rejects the request if the floorplan
     already exists.
     """
+    print(f"[route] create_floorplan hit: username={username}")
     try:
         username = safe_name(username)
         body = json_body()
@@ -136,6 +139,7 @@ def create_marker(username, floorplan_id):
     marker file name inside markers/. The logic is append-only: it adds
     createdAt metadata and fails if the marker file already exists.
     """
+    print(f"[route] create_marker hit: username={username}, floorplan_id={floorplan_id}")
     try:
         username = safe_name(username)
         floorplan_id = safe_name(floorplan_id)
@@ -173,6 +177,7 @@ def delete_floorplan(username, floorplan_id):
     floorplan folder to remove. The logic deletes the whole floorplan directory,
     which also removes floorplan.json and all marker files in markers/.
     """
+    print(f"[route] delete_floorplan hit: username={username}, floorplan_id={floorplan_id}")
     try:
         username = safe_name(username)
         floorplan_id = safe_name(floorplan_id)
@@ -199,6 +204,10 @@ def delete_marker(username, floorplan_id, marker_id):
     exact marker JSON file path. The logic only removes that single marker file
     and leaves the rest of the floorplan data unchanged.
     """
+    print(
+        "[route] delete_marker hit: "
+        f"username={username}, floorplan_id={floorplan_id}, marker_id={marker_id}"
+    )
     try:
         username = safe_name(username)
         floorplan_id = safe_name(floorplan_id)
@@ -230,6 +239,10 @@ def update_marker_coordinates(username, floorplan_id, marker_id):
     fields. The logic reads the existing marker, overwrites only the coordinate
     fields, and writes the marker back without replacing the rest of the data.
     """
+    print(
+        "[route] update_marker_coordinates hit: "
+        f"username={username}, floorplan_id={floorplan_id}, marker_id={marker_id}"
+    )
     try:
         username = safe_name(username)
         floorplan_id = safe_name(floorplan_id)
@@ -263,6 +276,7 @@ def reset_user(username):
     removes that whole directory so every floorplan and marker for that user is
     deleted in one operation.
     """
+    print(f"[route] reset_user hit: username={username}")
     try:
         username = safe_name(username)
     except ValueError:
