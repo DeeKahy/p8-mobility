@@ -37,7 +37,6 @@ export default function HomeScreen() {
     markers,
     storedFloorplans,
     isLoadingStoredFloorplans,
-    isSavingMarkers,
     floorplan,
     selectedMarkerId,
     pickFloorplan,
@@ -551,7 +550,7 @@ export default function HomeScreen() {
         <Text style={styles.instructions}>
           {`${captureMode.current === CameraMode.Placement ? `Tap and hold to ${selectedMarkerId ? "add the image" : "create marker"}` : "Tap on the floor plan to place a marker"}`}
         </Text>
-        {(loadingText || isSavingMarkers) && (
+        {loadingText && (
           <LoadingOverlay text={loadingText ?? "Saving marker..."} />
         )}
       </View>
