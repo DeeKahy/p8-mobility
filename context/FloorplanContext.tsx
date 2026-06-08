@@ -176,6 +176,8 @@ export const FloorplanProvider = ({
   async function loadMarkersForStoredFloorplan(
     nextFloorplanId: string
   ): Promise<void> {
+    // The function argument ensures that multiple updates to the same state before the next render are applied properly.
+    setIsSavingMarkers((n) => n + 1);
     try {
       const floorplanMarkers = await getFloorplanMarkers(nextFloorplanId);
       log(`Successfully fetched markers for floorplan ${nextFloorplanId}`);
@@ -195,6 +197,8 @@ export const FloorplanProvider = ({
         );
         debug(`Could not fetch markers for floorplan: ${errorMessage}`);
       }
+    } finally {
+      setIsSavingMarkers((n) => n - 1);
     }
   }
 
@@ -217,18 +221,17 @@ export const FloorplanProvider = ({
       error("No id for the selected floorplan");
       return;
     }
+    setIsSavingMarkers((n) => n + 1);
     try {
-      const id = marker.addMarker(x, y, photos);
-      log(`Locally created marker ${id}`);
-      const res = marker.getById(id) as Marker;
-      setIsSavingMarkers(isSavingMarkers + 1);
-      await createFloorplanMarker(floorplanId, markerForServer(res));
-      log(`Server created marker ${id}`);
+      const newMarker = marker.addMarker(x, y, photos); // Can't use getById here as setMarkers may not have run yet!
+      log(`Locally created marker ${newMarker.id}`);
+      await createFloorplanMarker(floorplanId, markerForServer(newMarker));
+      log(`Server created marker ${newMarker.id}`);
     } catch (e) {
       const errorMessage = e instanceof Error ? e.message : "Unknown error";
       error(errorMessage);
     } finally {
-      setIsSavingMarkers(isSavingMarkers - 1);
+      setIsSavingMarkers((n) => n - 1);
     }
   }
 
@@ -247,11 +250,12 @@ export const FloorplanProvider = ({
       error("No id for the selected floorplan");
       return;
     }
+    setIsSavingMarkers((n) => n + 1);
     try {
-      const oldMarker = marker.getById(id) as Marker; // editMarker throws if this is undefined so it's safe to assume Marker
+      const oldMarker = marker.getById(id); // editMarker throws if this is undefined so it's safe to assume Marker
       marker.editMarker(id, editorFnc);
       log(`Locally edited marker ${id}`);
-      const newMarker = marker.getById(id) as Marker;
+      const newMarker = marker.getById(id);
 
       const coordinatesChanged =
         oldMarker.x !== newMarker.x || oldMarker.y !== newMarker.y;
@@ -259,7 +263,6 @@ export const FloorplanProvider = ({
         JSON.stringify({ ...oldMarker, x: undefined, y: undefined }) !==
         JSON.stringify({ ...newMarker, x: undefined, y: undefined });
 
-      setIsSavingMarkers(isSavingMarkers + 1);
       if (otherFieldsChanged) {
         await replaceFloorplanMarker(floorplanId, markerForServer(newMarker));
       } else if (coordinatesChanged) {
@@ -273,7 +276,7 @@ export const FloorplanProvider = ({
       const errorMessage = e instanceof Error ? e.message : "Unknown error";
       error(errorMessage);
     } finally {
-      setIsSavingMarkers(isSavingMarkers - 1);
+      setIsSavingMarkers((n) => n - 1);
     }
   }
 
@@ -289,19 +292,19 @@ export const FloorplanProvider = ({
       return;
     }
     // TODO: Add rollback on local or serverside error
+    setIsSavingMarkers((n) => n + 1);
     try {
       marker.addPhotos(id, photos);
       log(`Locally added photos to marker ${id}`);
       // Now synchronize with the server
-      const res = marker.getById(id) as Marker; // We know this will succeed if addPhotos did
-      setIsSavingMarkers(isSavingMarkers + 1);
+      const res = marker.getById(id); // We know this will succeed if addPhotos did
       await replaceFloorplanMarker(floorplanId, markerForServer(res));
       log(`Server added photos to marker ${id}`);
     } catch (e) {
       const errorMessage = e instanceof Error ? e.message : "Unknown error";
       error(errorMessage);
     } finally {
-      setIsSavingMarkers(isSavingMarkers - 1);
+      setIsSavingMarkers((n) => n - 1);
     }
   }
 
@@ -317,9 +320,9 @@ export const FloorplanProvider = ({
       return;
     }
 
+    setIsSavingMarkers((n) => n + 1);
     try {
       marker.removePhoto(id, photo);
-      setIsSavingMarkers(isSavingMarkers + 1);
       const res = marker.getById(id);
       log(`Locally removed photo from marker ${id}`);
       if (res) // Returns undefined if marker was deleted.
@@ -333,7 +336,7 @@ export const FloorplanProvider = ({
       const errorMessage = e instanceof Error ? e.message : "Unknown error";
       error(errorMessage);
     } finally {
-      setIsSavingMarkers(isSavingMarkers - 1);
+      setIsSavingMarkers((n) => n - 1);
     }
   }
 
@@ -345,18 +348,17 @@ export const FloorplanProvider = ({
       error("No id for the selected floorplan");
       return;
     }
-
+    setIsSavingMarkers((n) => n + 1);
     try {
       marker.deleteMarker(id);
       log(`Locally deleted marker ${id}`);
-      setIsSavingMarkers(isSavingMarkers + 1);
       deleteFloorplanMarker(floorplanId, id);
       log(`Server deleted marker ${id}`);
     } catch (e) {
       const errorMessage = e instanceof Error ? e.message : "Unknown error";
       error(errorMessage);
     } finally {
-      setIsSavingMarkers(isSavingMarkers - 1);
+      setIsSavingMarkers((n) => n - 1);
     }
   }
 

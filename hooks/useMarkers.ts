@@ -29,7 +29,9 @@ export const useMarkers = () => {
   };
 
   const getById = (id: string) => {
-    return markers.find((currentMarker) => currentMarker.id === id);
+    const res = markers.find((currentMarker) => currentMarker.id === id);
+    if (!res) throw new RangeError(`Marker ${id} not found`);
+    return res;
   };
 
   const addMarker = (x: number, y: number, photos: PhotoData[]) => {
@@ -41,7 +43,7 @@ export const useMarkers = () => {
       y,
     };
     setMarkers((curr) => curr.concat(newMarker));
-    return id;
+    return newMarker;
   };
 
   const editMarker = (id: string, editorFnc: (old: Marker) => Marker) => {
