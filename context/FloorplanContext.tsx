@@ -6,6 +6,7 @@ import {
   SetStateAction,
   useContext,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import { SharedValue, useSharedValue } from "react-native-reanimated";
@@ -59,6 +60,7 @@ interface FloorplanContextReturn {
   removePhoto: (id: string, photo: PhotoData) => void;
   tryGetMarker: (x: number, y: number) => Marker | null;
   deleteMarker: (id: string) => void;
+  moveMarker: (id: string, x: number, y: number) => void;
   selectedMarkerId: string | null;
   setSelectedMarkerId: Dispatch<SetStateAction<string | null>>;
   previewMarker: SharedPoint;
@@ -118,6 +120,10 @@ export const FloorplanProvider = ({
   const [showTempMarker, setShowTempMarker] = useState(false);
 
   const [selectedMarkerId, setSelectedMarkerId] = useState<string | null>(null);
+
+  // This holds key-value pairs of marker IDs and the types of edits that have been made to those markers.
+  type editType = "create" | "delete" | "replace" | "move";
+  const markerEdits = useRef<Map<string, editType>>(new Map());
 
   useEffect(() => {
     refreshStoredFloorplans().catch((error: unknown) => {
@@ -209,158 +215,121 @@ export const FloorplanProvider = ({
     return prepareMarkersForServer([currentMarker])[0];
   }
 
-  /**
-   * Create one new marker locally and on the server with a single POST request.
-   */
-  async function addMarkerAtomically(
-    x: number,
-    y: number,
-    photos: PhotoData[]
-  ) {
-    if (!floorplanId) {
-      error("No id for the selected floorplan");
-      return;
-    }
-    setIsSavingMarkers((n) => n + 1);
-    try {
-      const newMarker = marker.addMarker(x, y, photos); // Can't use getById here as setMarkers may not have run yet!
-      log(`Locally created marker ${newMarker.id}`);
-      await createFloorplanMarker(floorplanId, markerForServer(newMarker));
-      log(`Server created marker ${newMarker.id}`);
-    } catch (e) {
-      const errorMessage = e instanceof Error ? e.message : "Unknown error";
-      error(errorMessage);
-    } finally {
-      setIsSavingMarkers((n) => n - 1);
-    }
-  }
+  /** Tell the server that we have created a marker with the given ID. */
+  const syncCreate = (id: string) => {
+    if (markerEdits.current.has(id))
+      throw new Error("Attempted to create marker that already exists!");
+    markerEdits.current.set(id, "create");
+  };
 
-  /**
-   * Update one marker through the most specific server call we can use.
-   *
-   * If only coordinates changed we use PATCH. If other fields changed we
-   * replace the marker with delete+create because the server does not allow
-   * general overwrite.
-   */
-  async function editMarkerAtomically(
-    id: string,
-    editorFnc: (old: Marker) => Marker
-  ) {
-    if (!floorplanId) {
-      error("No id for the selected floorplan");
-      return;
-    }
-    setIsSavingMarkers((n) => n + 1);
-    try {
-      const oldMarker = marker.getById(id); // editMarker throws if this is undefined so it's safe to assume Marker
-      marker.editMarker(id, editorFnc);
-      log(`Locally edited marker ${id}`);
-      const newMarker = marker.getById(id);
+  /** Tell the server that we have deleted the marker with the given ID. */
+  const syncDelete = (id: string) => {
+    markerEdits.current.set(id, "delete");
+  };
 
-      const coordinatesChanged =
-        oldMarker.x !== newMarker.x || oldMarker.y !== newMarker.y;
-      const otherFieldsChanged =
-        JSON.stringify({ ...oldMarker, x: undefined, y: undefined }) !==
-        JSON.stringify({ ...newMarker, x: undefined, y: undefined });
+  /** Tell the server to replace the marker with the given ID. */
+  const syncReplace = (id: string) => {
+    if (markerEdits.current.get(id) === "delete")
+      throw new Error("Attempted to replace marker that was deleted!");
+    markerEdits.current.set(id, "replace");
+  };
 
-      if (otherFieldsChanged) {
-        await replaceFloorplanMarker(floorplanId, markerForServer(newMarker));
-      } else if (coordinatesChanged) {
-        await updateFloorplanMarkerCoordinates(
-          floorplanId,
-          markerForServer(newMarker)
-        );
-      }
-      log(`Server edited marker ${id}`);
-    } catch (e) {
-      const errorMessage = e instanceof Error ? e.message : "Unknown error";
-      error(errorMessage);
-    } finally {
-      setIsSavingMarkers((n) => n - 1);
+  /** Tell the server to move the marker with the given ID if it's not getting replaced. */
+  const syncMove = (id: string) => {
+    const editType = markerEdits.current.get(id);
+    if (editType === "delete") {
+      throw new Error("Attempted to move marker that was deleted!");
+    } else if (editType !== "replace") {
+      markerEdits.current.set(id, "move");
     }
-  }
+  };
 
-  /**
-   * Add photos to one marker by replacing the full marker payload on the server.
-   *
-   * Photo changes are not coordinate-only updates, so they must use the
-   * replace flow instead of PATCH.
-   */
-  async function addPhotosAtomically(id: string, photos: PhotoData[]) {
-    if (!floorplanId) {
-      error("No id for the selected floorplan");
-      return;
-    }
-    // TODO: Add rollback on local or serverside error
-    setIsSavingMarkers((n) => n + 1);
-    try {
-      marker.addPhotos(id, photos);
-      log(`Locally added photos to marker ${id}`);
-      // Now synchronize with the server
-      const res = marker.getById(id); // We know this will succeed if addPhotos did
-      await replaceFloorplanMarker(floorplanId, markerForServer(res));
-      log(`Server added photos to marker ${id}`);
-    } catch (e) {
-      const errorMessage = e instanceof Error ? e.message : "Unknown error";
-      error(errorMessage);
-    } finally {
-      setIsSavingMarkers((n) => n - 1);
-    }
-  }
+  // Runs when markers change, a floor plan is selected, and edits have been specified.
+  // Invokes async functions to update the server state if any edits were made, then clears the edits.
+  useEffect(() => {
+    if (floorplanId && markerEdits.current.size) {
+      markerEdits.current.forEach(async (edit: editType, id: string) => {
+        setIsSavingMarkers((n) => n + 1);
+        try {
+          switch (edit) {
+            case "create":
+              await createFloorplanMarker(
+                floorplanId,
+                markerForServer(marker.getById(id))
+              );
+              log(`Server created marker ${id}`);
+              break;
 
-  /**
-   * Remove one photo from one marker and keep the server in sync.
-   *
-   * If the last photo is removed, the whole marker is deleted. Otherwise the
-   * marker is replaced with an updated photo list.
-   */
-  async function removePhotoAtomically(id: string, photo: PhotoData) {
-    if (!floorplanId) {
-      error("No id for the selected floorplan");
-      return;
-    }
+            case "delete":
+              await deleteFloorplanMarker(floorplanId, id);
+              log(`Server deleted marker ${id}`);
+              break;
 
-    setIsSavingMarkers((n) => n + 1);
-    try {
+            case "move":
+              await updateFloorplanMarkerCoordinates(
+                floorplanId,
+                marker.getById(id)
+              );
+              log(`Server moved marker ${id}`);
+              break;
+            case "replace":
+              await replaceFloorplanMarker(
+                floorplanId,
+                markerForServer(marker.getById(id))
+              );
+              log(`Server replaced marker ${id}`);
+              break;
+          }
+        } catch (e) {
+          error(e instanceof Error ? e.message : "Unknown error");
+        } finally {
+          setIsSavingMarkers((n) => n - 1);
+        }
+      });
+      markerEdits.current.clear();
+    }
+  }, [marker.markers]);
+
+  const addMarkerSynced = (x: number, y: number, photos: PhotoData[]) => {
+    const { id } = marker.addMarker(x, y, photos);
+    syncCreate(id);
+    log(`Locally created marker ${id}`);
+  };
+
+  const editMarkerSynced = (id: string, editorFnc: (old: Marker) => Marker) => {
+    marker.editMarker(id, editorFnc);
+    syncReplace(id);
+    log(`Locally edited marker ${id}`);
+  };
+
+  const addPhotosSynced = (id: string, photos: PhotoData[]) => {
+    marker.addPhotos(id, photos);
+    syncReplace(id);
+    log(`Locally added photos to marker ${id}`);
+  };
+
+  const removePhotoSynced = (id: string, photo: PhotoData) => {
+    if (marker.getById(id).photos.length > 1) {
       marker.removePhoto(id, photo);
-      const res = marker.getById(id);
+      syncReplace(id);
       log(`Locally removed photo from marker ${id}`);
-      if (res) // Returns undefined if marker was deleted.
-      {
-        await replaceFloorplanMarker(floorplanId, markerForServer(res));
-      } else {
-        await deleteFloorplanMarker(floorplanId, id);
-      }
-      log(`Server removed photo from marker ${id}`);
-    } catch (e) {
-      const errorMessage = e instanceof Error ? e.message : "Unknown error";
-      error(errorMessage);
-    } finally {
-      setIsSavingMarkers((n) => n - 1);
+    } else {
+      // Delete instead if the last photo is to be removed
+      deleteMarkerSynced(id);
     }
-  }
+  };
 
-  /**
-   * Delete one marker locally and on the server with a single DELETE request.
-   */
-  function deleteMarkerAtomically(id: string): void {
-    if (!floorplanId) {
-      error("No id for the selected floorplan");
-      return;
-    }
-    setIsSavingMarkers((n) => n + 1);
-    try {
-      marker.deleteMarker(id);
-      log(`Locally deleted marker ${id}`);
-      deleteFloorplanMarker(floorplanId, id);
-      log(`Server deleted marker ${id}`);
-    } catch (e) {
-      const errorMessage = e instanceof Error ? e.message : "Unknown error";
-      error(errorMessage);
-    } finally {
-      setIsSavingMarkers((n) => n - 1);
-    }
-  }
+  const deleteMarkerSynced = (id: string) => {
+    marker.deleteMarker(id);
+    syncDelete(id);
+    log(`Locally deleted marker ${id}`);
+  };
+
+  const moveMarkerSynced = (id: string, x: number, y: number) => {
+    marker.moveMarker(id, x, y);
+    syncMove(id);
+    log(`Locally moved marker ${id}`);
+  };
 
   const { onUpdate: onResumableUpdate, state: resumableState } =
     useTransformationState("resumable");
@@ -527,11 +496,12 @@ export const FloorplanProvider = ({
         clearAllUserData,
         deleteStoredFloorplan,
         handleCanvasPress,
-        addMarker: addMarkerAtomically,
-        editMarker: editMarkerAtomically,
-        addPhotos: addPhotosAtomically,
-        removePhoto: removePhotoAtomically,
-        deleteMarker: deleteMarkerAtomically,
+        addMarker: addMarkerSynced,
+        editMarker: editMarkerSynced,
+        addPhotos: addPhotosSynced,
+        removePhoto: removePhotoSynced,
+        deleteMarker: deleteMarkerSynced,
+        moveMarker: moveMarkerSynced,
         selectedMarker: selectedMarkerId
           ? marker.markers.find((m) => m.id === selectedMarkerId)
           : undefined,
