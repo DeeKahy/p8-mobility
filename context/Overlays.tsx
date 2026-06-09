@@ -8,12 +8,7 @@ import React, {
   useState,
 } from "react";
 import { StyleProp, StyleSheet, View, ViewStyle } from "react-native";
-import Animated, {
-  FadeIn,
-  FadeOut,
-  SlideInDown,
-  SlideOutDown,
-} from "react-native-reanimated";
+import Animated from "react-native-reanimated";
 
 import { Toast } from "../components/Toast";
 
@@ -113,6 +108,8 @@ type OverlayProps = React.PropsWithChildren<{
 }>;
 
 const getAnimationSet = (animationType: OverlayAnimationType) => {
+  return { entering: undefined, exiting: undefined };
+  /*
   switch (animationType) {
     case "none":
       return { entering: undefined, exiting: undefined };
@@ -121,6 +118,7 @@ const getAnimationSet = (animationType: OverlayAnimationType) => {
     case "fade":
       return { entering: FadeIn, exiting: FadeOut };
   }
+  */
 };
 
 // Wraps a ReactNode and moves it to the overlay modal on mount.
