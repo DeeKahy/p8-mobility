@@ -8,12 +8,7 @@ import React, {
   useState,
 } from "react";
 import { StyleProp, StyleSheet, View, ViewStyle } from "react-native";
-import Animated, {
-  FadeIn,
-  FadeOut,
-  SlideInDown,
-  SlideOutDown,
-} from "react-native-reanimated";
+import Animated from "react-native-reanimated";
 
 import { Toast } from "../components/Toast";
 
