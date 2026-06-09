@@ -113,6 +113,8 @@ type OverlayProps = React.PropsWithChildren<{
 }>;
 
 const getAnimationSet = (animationType: OverlayAnimationType) => {
+  return { entering: undefined, exiting: undefined };
+  /*
   switch (animationType) {
     case "none":
       return { entering: undefined, exiting: undefined };
@@ -121,6 +123,7 @@ const getAnimationSet = (animationType: OverlayAnimationType) => {
     case "fade":
       return { entering: FadeIn, exiting: FadeOut };
   }
+  */
 };
 
 // Wraps a ReactNode and moves it to the overlay modal on mount.
