@@ -13,7 +13,7 @@ interface FloorplanHeaderProps {
 const CLOUD_INDICATOR_SIZE = 28;
 
 const FloorplanHeader = ({ showHelpButton = false }: FloorplanHeaderProps) => {
-  const { setFloorplan, isSavingMarkers } = useFloorplan();
+  const { setFloorplan, isSyncingMarkers } = useFloorplan();
 
   return (
     <View style={styles.header}>
@@ -26,7 +26,7 @@ const FloorplanHeader = ({ showHelpButton = false }: FloorplanHeaderProps) => {
           gap: 12,
         }}
       >
-        {isSavingMarkers ? ( // Show a spinner if the server is working, otherwise show a checkmark
+        {isSyncingMarkers ? ( // Show a spinner if the server is working, otherwise show a checkmark
           <ActivityIndicator size={CLOUD_INDICATOR_SIZE} color="#2196F3" />
         ) : (
           <Ionicons

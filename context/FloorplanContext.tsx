@@ -44,7 +44,7 @@ interface FloorplanContextReturn {
   setFloorplan: Dispatch<SetStateAction<string | null>>;
   storedFloorplans: FloorplanImage[];
   isLoadingStoredFloorplans: boolean;
-  isSavingMarkers: number;
+  isSyncingMarkers: number;
   pickFloorplan: () => Promise<void>;
   pickFromMyFloorplan: (storedFloorplan: FloorplanImage) => Promise<void>;
   refreshStoredFloorplans: () => Promise<void>;
@@ -109,9 +109,9 @@ export const FloorplanProvider = ({
   const [isLoadingStoredFloorplans, setIsLoadingStoredFloorplans] =
     useState(true);
 
-  // Semaphore isSavingMarkers is incremented when a marker-related API call starts and decremented when it finishes.
+  // Semaphore isSyncingMarkers is incremented when a marker-related API call starts and decremented when it finishes.
   // Treat it as a boolean elsewhere, as its default value 0 is falsy.
-  const [isSavingMarkers, setIsSavingMarkers] = useState(0);
+  const [isSyncingMarkers, setIsSyncingMarkers] = useState(0);
   const marker = useMarkers();
   const { debug, error, log } = useLogger();
 
@@ -183,7 +183,7 @@ export const FloorplanProvider = ({
     nextFloorplanId: string
   ): Promise<void> {
     // The function argument ensures that multiple updates to the same state before the next render are applied properly.
-    setIsSavingMarkers((n) => n + 1);
+    setIsSyncingMarkers((n) => n + 1);
     try {
       const floorplanMarkers = await getFloorplanMarkers(nextFloorplanId);
       log(`Successfully fetched markers for floorplan ${nextFloorplanId}`);
@@ -204,7 +204,7 @@ export const FloorplanProvider = ({
         debug(`Could not fetch markers for floorplan: ${errorMessage}`);
       }
     } finally {
-      setIsSavingMarkers((n) => n - 1);
+      setIsSyncingMarkers((n) => n - 1);
     }
   }
 
@@ -249,7 +249,7 @@ export const FloorplanProvider = ({
   useEffect(() => {
     if (floorplanId && markerEdits.current.size) {
       markerEdits.current.forEach(async (edit: editType, id: string) => {
-        setIsSavingMarkers((n) => n + 1);
+        setIsSyncingMarkers((n) => n + 1);
         try {
           switch (edit) {
             case "create":
@@ -283,7 +283,7 @@ export const FloorplanProvider = ({
         } catch (e) {
           error(e instanceof Error ? e.message : "Unknown error");
         } finally {
-          setIsSavingMarkers((n) => n - 1);
+          setIsSyncingMarkers((n) => n - 1);
         }
       });
       markerEdits.current.clear();
@@ -489,7 +489,7 @@ export const FloorplanProvider = ({
         setFloorplan,
         storedFloorplans,
         isLoadingStoredFloorplans,
-        isSavingMarkers,
+        isSyncingMarkers,
         pickFloorplan,
         pickFromMyFloorplan,
         refreshStoredFloorplans,
