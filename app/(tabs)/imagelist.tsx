@@ -289,7 +289,10 @@ export default function ImagesScreen() {
           <View style={{ flexDirection: "row" }}>
             <TouchableOpacity
               style={{ flex: 1, alignSelf: "flex-start" }}
-              onPress={() => removePhoto(markerId, item.data)}
+              onPress={() => {
+                removePhoto(markerId, item.data);
+                setSelected(-1);
+              }}
             >
               <Text style={[indexStyles.headerButton, { color: "#f32121" }]}>
                 Delete image

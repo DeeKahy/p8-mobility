@@ -320,6 +320,7 @@ export const FloorplanProvider = ({
   };
 
   const deleteMarkerSynced = (id: string) => {
+    if (selectedMarkerId === id) setSelectedMarkerId(null); // Unset selected marker if it's getting deleted
     marker.deleteMarker(id);
     syncDelete(id);
     log(`Locally deleted marker ${id}`);
