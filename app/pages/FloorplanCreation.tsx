@@ -1,6 +1,6 @@
 import { File } from "expo-file-system";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import { useMemo, useRef, useState } from "react";
+import { useRouter } from "expo-router";
+import { useRef, useState } from "react";
 import {
   Text,
   TextInput,
@@ -14,16 +14,12 @@ import ViewShot, { captureRef } from "react-native-view-shot";
 import LoadingOverlay from "../../components/LoadingOverlay";
 import { RotationControls } from "../../components/RotationControls";
 import { SaveFormModal } from "../../components/SaveModal";
+import { useAR } from "../../context/ARContext";
 import { useFloorplan } from "../../context/FloorplanContext";
 import { useLogger } from "../../context/LoggerContext";
 import { useOverlays } from "../../context/Overlays";
-import { Point3D } from "../../models/3Dpoints";
 import { createFloorplanImage } from "../../utils/api";
-import {
-  calculateDistanceMeters,
-  calculateMidPoint,
-  isValidPoint,
-} from "../../utils/arMath";
+import { calculateDistanceMeters, calculateMidPoint } from "../../utils/arMath";
 import { toImageDataUri } from "../../utils/imageDataHelpers";
 import useRotation from "../hooks/useRotation";
 
@@ -33,34 +29,17 @@ type CreateSvgProps = {
 };
 
 export default function SvgComponent() {
-  const { points: rawPointList } = useLocalSearchParams<{
-    points?: string | string[];
-  }>();
   const router = useRouter();
   const { showToast } = useOverlays();
   const { refreshStoredFloorplans } = useFloorplan();
   const { error, log } = useLogger();
-
-  const pointList: Point3D[] = useMemo(() => {
-    const value = Array.isArray(rawPointList) ? rawPointList[0] : rawPointList;
-
-    if (!value) return [];
-
-    try {
-      const parsed: unknown = JSON.parse(value);
-      if (!Array.isArray(parsed)) return [];
-
-      return parsed.filter(isValidPoint);
-    } catch {
-      return [];
-    }
-  }, [rawPointList]);
 
   const { rotation, startRotating, stopRotating } = useRotation();
   const viewShotRef = useRef(null);
   const [name, setName] = useState<string>("");
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [isSavingFloorplan, setIsSavingFloorplan] = useState(false);
+  const [pointList] = useState(useAR().points); // Copy points from context on mount
 
   /*Issue with smaller polygons not being visible on screen and too large can overtake screen, so we want to take min and max and give it to viewbox.
   Viewbox has  viewBox="x y maxHeight maxWidth".
@@ -152,20 +131,20 @@ export default function SvgComponent() {
     }
   }
 
+  const onRedo = () => {
+    router.push("/ar");
+  };
+
   if (pointList.length <= 2) {
     return (
       <View style={styles.emptyContainer}>
-        <Text style={styles.emptyTitle}>No valid points found</Text>
+        <Text style={styles.emptyTitle}>Not enough points</Text>
 
         <Text style={styles.emptyText}>
-          Your floorplan needs at least 3 valid points to generate a polygon.
-          Please redo the scan.
+          At least 3 points are needed to generate a room. Please redo the scan.
         </Text>
 
-        <TouchableOpacity
-          onPress={() => router.push("/ar")}
-          style={styles.redoButton}
-        >
+        <TouchableOpacity onPress={onRedo} style={styles.redoButton}>
           <Text style={styles.buttonText}>Redo</Text>
         </TouchableOpacity>
       </View>
@@ -277,11 +256,8 @@ export default function SvgComponent() {
           <Text style={styles.buttonText}>Save</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity
-          onPress={() => router.push("/ar")}
-          style={styles.resetButton}
-        >
-          <Text style={styles.buttonText}>Reset</Text>
+        <TouchableOpacity onPress={onRedo} style={styles.resetButton}>
+          <Text style={styles.buttonText}>Redo</Text>
         </TouchableOpacity>
       </View>
     </View>
