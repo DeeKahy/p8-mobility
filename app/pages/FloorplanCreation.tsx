@@ -88,14 +88,14 @@ export default function SvgComponent() {
         imageBase64,
         imageFileExtension: "png",
       });
-      log(`Successfully saved ARCore floorplan ${nextFloorplanId} to API`);
+      log(`Successfully saved floor plan ${nextFloorplanId} to server`);
 
       await refreshStoredFloorplans();
-      log("Successfully refreshed stored floorplans after ARCore save");
+      log("Successfully refreshed stored floor plans after save");
     } catch (caughtError) {
       const errorMessage =
         caughtError instanceof Error ? caughtError.message : "Unknown error";
-      error(`Saving ARCore floorplan failed: ${errorMessage}`);
+      error(`Saving floor plan failed: ${errorMessage}`);
       throw caughtError;
     } finally {
       setIsSavingFloorplan(false);
@@ -106,15 +106,12 @@ export default function SvgComponent() {
     try {
       await saveToServer();
       setShowSaveModal(false);
-      showToast(
-        "Floorplan uploaded! You can find it under Floorplan page!",
-        "Success"
-      );
+      showToast("Floor plan uploaded!", "Success");
       router.push({
         pathname: "/",
       });
     } catch {
-      showToast("Floorplan upload failed. Please try again.", "Error");
+      showToast("Floor plan upload failed. Please try again.", "Error");
     }
   }
 
@@ -122,12 +119,12 @@ export default function SvgComponent() {
     try {
       await saveToServer();
       setShowSaveModal(false);
-      showToast("Floorplan uploaded!", "Success");
+      showToast("Floor plan uploaded!", "Success");
       router.push({
         pathname: "/ar",
       });
     } catch {
-      showToast("Floorplan upload failed. Please try again.", "Error");
+      showToast("Floor plan upload failed. Please try again.", "Error");
     }
   }
 
@@ -215,7 +212,7 @@ export default function SvgComponent() {
   return (
     <View style={styles.container}>
       {isSavingFloorplan ? (
-        <LoadingOverlay text="Uploading floorplan..." />
+        <LoadingOverlay text="Uploading floor plan..." />
       ) : null}
       {showSaveModal ? (
         <SaveFormModal
@@ -225,10 +222,10 @@ export default function SvgComponent() {
         />
       ) : null}
       <View style={styles.header}>
-        <Text style={styles.title}>Floorplan Preview</Text>
+        <Text style={styles.title}>Preview</Text>
 
         <TextInput
-          placeholder="Enter room name..."
+          placeholder="Enter name..."
           onChangeText={(newText) => setName(newText)}
           defaultValue={name}
           style={styles.input}

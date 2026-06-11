@@ -81,14 +81,7 @@ export default function ARView() {
     return null;
   }
 
-  const handleStop = () => {
-    router.push({
-      pathname: "pages/FloorplanCreation",
-      params: {
-        points: JSON.stringify(points),
-      },
-    });
-  };
+  const handleStop = () => router.push({ pathname: "pages/FloorplanCreation" });
 
   const handleAdd = () => {
     if (nextPoint) {
@@ -112,7 +105,7 @@ export default function ARView() {
   if (status === "unsupported") {
     return (
       <View style={styles.centered}>
-        <Text style={styles.title}>AR is not available yet</Text>
+        <Text style={styles.title}>AR support not found</Text>
         <Text style={styles.body}>
           Google Play Services for AR (ARCore) is required for this screen.
         </Text>
@@ -128,7 +121,7 @@ export default function ARView() {
             )
           }
         >
-          <Text style={styles.buttonText}>Open ARCore page</Text>
+          <Text style={styles.buttonText}>Open Google Play</Text>
         </Pressable>
       </View>
     );

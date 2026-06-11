@@ -13,6 +13,7 @@ import React, { useMemo, useRef } from "react";
 import { StyleSheet } from "react-native";
 
 import { useAR } from "../context/ARContext";
+import { useOverlays } from "../context/Overlays";
 import { Point3D } from "../models/3Dpoints";
 import { ACCEPTED_HIT_TYPES } from "../models/ArCoreAcceptedTypes";
 import {
@@ -22,6 +23,7 @@ import {
 } from "../utils/arMath";
 //type Point3D = [number, number, number];
 
+const MAX_FAILED_ATTEMPTS = 50;
 const BOX_SIZE = 0.025;
 const TEXT_SIZE = 0.2;
 const LINE_THICKNESS = BOX_SIZE / 4;
@@ -71,8 +73,10 @@ function extractHitPosition(results: ViroARHitTestResult[]): Point3D | null {
 // }
 
 export default function MeasureScene() {
+  const { showToast } = useOverlays();
   const { points, nextPoint, setNextPoint } = useAR();
   const arSceneRef = useRef<ViroARScene | null>(null);
+  const hitTestAttempts = useRef(0);
 
   const distanceLabel = useMemo(() => {
     if (points.length < 2) return "";
@@ -91,8 +95,19 @@ export default function MeasureScene() {
         if (hitTestResults.length) {
           const hitPosition = extractHitPosition(hitTestResults);
           if (hitPosition) {
+            hitTestAttempts.current = 0;
             setNextPoint(hitPosition);
+            return;
           }
+        }
+        // At a certain number of failed attempts in a row, show a toast to help troubleshoot.
+        // Possibly affected by framerate but shouldn't freeze the app like setTimeout inexplicably does.
+        if (++hitTestAttempts.current === MAX_FAILED_ATTEMPTS) {
+          showToast(
+            "Make sure the space is well-lit and don't move too close or too far away.",
+            "Info",
+            "Poor tracking?"
+          );
         }
       }}
       onTrackingUpdated={(
