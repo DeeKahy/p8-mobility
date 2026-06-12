@@ -37,7 +37,7 @@ export const RotationControls: FC<RotationControlsProps> = ({
           textAlign: "center",
         }}
       >
-        {`${((rotation % 360) + 360) % 360}°`}
+        {`${rotation}°`}
       </Text>
 
       <TouchableOpacity

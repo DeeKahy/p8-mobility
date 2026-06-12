@@ -1,5 +1,8 @@
 import { useRef, useState } from "react";
 
+// Keep the rotation angle at 0-359
+const normalizeAngle = (deg: number) => ((deg % 360) + 360) % 360;
+
 export default function useRotation() {
   const [rotation, setRotation] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -7,10 +10,10 @@ export default function useRotation() {
   // Start spinning while finger is held down
   //-1 and 1 is due to the fact that we can either rotate clockwise or counter clockwise
   function startRotating(dir: 1 | -1) {
-    setRotation((r) => r + dir);
+    setRotation((r) => normalizeAngle(r + dir));
     //Spins every 75ms
     intervalRef.current = setInterval(() => {
-      setRotation((r) => r + dir);
+      setRotation((r) => normalizeAngle(r + dir));
     }, 75);
   }
 

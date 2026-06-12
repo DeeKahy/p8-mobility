@@ -18,14 +18,21 @@ import { useAR } from "../../context/ARContext";
 import { useFloorplan } from "../../context/FloorplanContext";
 import { useLogger } from "../../context/LoggerContext";
 import { useOverlays } from "../../context/Overlays";
+import { Point2D } from "../../models/3Dpoints";
 import { createFloorplanImage } from "../../utils/api";
-import { calculateDistanceMeters, calculateMidPoint } from "../../utils/arMath";
+import {
+  distance2D,
+  lerp2D,
+  rotate2D,
+  to2D,
+  toRadians,
+} from "../../utils/arMath";
 import { toImageDataUri } from "../../utils/imageDataHelpers";
+import { hashNameToColor } from "../../utils/stringColor";
 import useRotation from "../hooks/useRotation";
 
-// Type to ensure that component CreateSvg only takes type of string
 type CreateSvgProps = {
-  inputString: string;
+  inputPoints: Point2D[];
 };
 
 export default function SvgComponent() {
@@ -39,28 +46,45 @@ export default function SvgComponent() {
   const [name, setName] = useState<string>("");
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [isSavingFloorplan, setIsSavingFloorplan] = useState(false);
-  const [pointList] = useState(useAR().points); // Copy points from context on mount
+  const [pointList] = useState(useAR().points.map(to2D)); // Copy points from context on mount and make them 2D
 
   /*Issue with smaller polygons not being visible on screen and too large can overtake screen, so we want to take min and max and give it to viewbox.
   Viewbox has  viewBox="x y maxHeight maxWidth".
   */
   const minX = Math.min(...pointList.map((p) => p[0]));
-  const minZ = Math.min(...pointList.map((p) => p[2]));
+  const minY = Math.min(...pointList.map((p) => p[1]));
   const maxX = Math.max(...pointList.map((p) => p[0]));
-  const maxZ = Math.max(...pointList.map((p) => p[2]));
+  const maxY = Math.max(...pointList.map((p) => p[1]));
+  const dX = maxX - minX;
+  const dY = maxY - minY;
 
-  // Roomsize for the padding and other stuff so the room is rendered prop
-  const roomSize = Math.max(maxX - minX, maxZ - minZ);
-  const padding = roomSize * 0.1;
-  const fontSize = roomSize * 0.05;
-  const stroke = roomSize * 0.008;
-  const offset = fontSize * 0.1;
+  // SVGs break at very small scales, so we have to scale our points' coordinates up to fit the viewBox dimensions:
+  const VB_WIDTH = 200;
+  const VB_HEIGHT = 200;
+  const VB_PADDING = 20;
+  const VB_CENTER: Point2D = [
+    (VB_WIDTH + VB_PADDING) / 2,
+    (VB_HEIGHT + VB_PADDING) / 2,
+  ];
+  // Compute scaling factors:
+  const scaleX = VB_WIDTH / dX;
+  const scaleY = VB_HEIGHT / dY;
+  // Select the minimum to preserve aspect ratio:
+  const scale = Math.min(scaleX, scaleY);
+  // Compute offsets to center the content:
+  const centeringOffsetX = (VB_WIDTH - dX * scale) / 2 + VB_PADDING * 0.5;
+  const centeringOffsetY = (VB_HEIGHT - dY * scale) / 2 + VB_PADDING * 0.5;
+  // Define function to scale the points accordingly and apply the offsets:
+  const normalize = (p: Point2D): Point2D => [
+    centeringOffsetX + (p[0] - minX) * scale,
+    centeringOffsetY + (p[1] - minY) * scale,
+  ];
 
   //Take the captured points and turn them into string format of "x1,y1 x2,y2 ...xn,yn", because Polygon points={} needs points string in that format.
-  function turnPointsToString(): string {
+  function turnPointsToString(points: Point2D[]): string {
     let output = "";
-    for (const point of pointList) {
-      output += `${point[0]},${point[2]} `;
+    for (const point of points) {
+      output += `${point[0]},${point[1]} `;
     }
     return output;
   }
@@ -148,66 +172,74 @@ export default function SvgComponent() {
     );
   }
 
-  const CreateSvg = ({ inputString }: CreateSvgProps) => (
-    <Svg
-      height="100%"
-      width="100%"
-      preserveAspectRatio="xMidYMid meet"
-      viewBox={`${minX - padding} ${minZ - padding} ${maxX - minX + padding * 2} ${maxZ - minZ + padding * 4}`}
-    >
-      {/* The element is a container used to group other SVG elements. Transformations applied to the g element are performed on all of its child elements. 
+  const CreateSvg = ({ inputPoints }: CreateSvgProps) => {
+    // Rotate the points before drawing the SVG so we can determine if extra scaling is needed to keep everything in view
+    const points = rotate2D(
+      inputPoints.map(normalize),
+      VB_CENTER,
+      toRadians(rotation)
+    );
+
+    // Scale down the content based on how far away the furthest point is from the center.
+    // This value becomes <1 iff a point is outside the VB_WIDTH x VB_HEIGHT bounding box and is otherwise 1.
+    const downscale =
+      1 /
+      Math.max(
+        1,
+        ...points.map((p) => Math.abs(p[0] - VB_CENTER[0]) / (VB_WIDTH / 2)),
+        ...points.map((p) => Math.abs(p[1] - VB_CENTER[0]) / (VB_HEIGHT / 2))
+      );
+
+    return (
+      <Svg
+        height="100%"
+        width="100%"
+        preserveAspectRatio="xMidYMid meet"
+        viewBox={`0 0 ${VB_WIDTH + VB_PADDING} ${VB_HEIGHT + VB_PADDING}`}
+      >
+        {/* The G element is a container used to group other SVG elements. Transformations applied to the G element are performed on all of its child elements. 
         So when we rotate, everything rotates with.
       */}
-      <G
-        transform={`rotate(${rotation}, ${(minX + maxX) / 2}, ${(minZ + maxZ) / 2})`}
-      >
-        <Polygon
-          points={inputString}
-          stroke="black"
-          strokeWidth={stroke}
-          fill="white"
-        />
-        {/* Sets distance between points on each edge between points and sets in the middle of the edge*/}
-        {pointList.map((point, index) => {
-          //To get next point, we dont start at 0, but at index 1 and then end at 0. This also ensures we don't go out of bounds.
-          const next = pointList[(index + 1) % pointList.length];
-          const dist = calculateDistanceMeters([point, next]);
-          const mid = calculateMidPoint(point, next, offset);
-          // To rotate the text according to the edge, we calculate the angle of the edge and then rotate the text accordingly.
-          const rawAngle =
-            Math.atan2(next[2] - point[2], next[0] - point[0]) *
-            (180 / Math.PI);
-          const textAngle =
-            rawAngle > 90 || rawAngle < -90 ? rawAngle + 180 : rawAngle;
-          return (
-            <SvgText
-              key={index} //Unique length to render, so if we have 4 points we get 4 different lengths
-              //Position of text
-              x={mid.x}
-              y={mid.z * 1.3}
-              fontSize={fontSize}
-              fill="black"
-              alignmentBaseline="middle"
-              // To rotate the text according to the edge.
-              transform={`rotate(${textAngle}, ${mid.x}, ${mid.z})`}
-            >
-              {`${dist.toFixed(1)} m`}
-            </SvgText>
-          );
-        })}
-      </G>
-      <View
-        style={{
-          top: 400,
-          position: "relative",
-          justifyContent: "center",
-          alignItems: "center",
-        }}
-      >
-        <Text style={{ fontSize: 20 }}>{name}</Text>
-      </View>
-    </Svg>
-  );
+        <G
+          transform={
+            `scale(${downscale})` + // Scale down the content and translate to compensate for the center shifting.
+            `translate(${VB_CENTER[0] - VB_CENTER[0] * downscale} ${VB_CENTER[1] - VB_CENTER[1] * downscale})`
+          }
+        >
+          <Polygon
+            points={turnPointsToString(points)}
+            stroke="#505050" // Edges are grey instead of black so overlapping text is legible.
+            strokeWidth={1}
+            fill={hashNameToColor(name) + "50"} // Name color becomes semitransparent by adding "50"
+          />
+          {/* Sets distance between points on each edge between points and sets in the middle of the edge*/}
+          {points.map((point, index) => {
+            //To get next point, we dont start at 0, but at index 1 and then end at 0. This also ensures we don't go out of bounds.
+            const next = points[(index + 1) % points.length];
+            const dist = distance2D(point, next) / scale; // Scale the distance back down, don't forget!
+            const mid = lerp2D(point, next, 0.5);
+            return (
+              <G
+                key={index} //Unique length to render, so if we have 4 points we get 4 different lengths
+              >
+                <SvgText
+                  x={mid[0]}
+                  y={mid[1]}
+                  fill="black"
+                  fontSize={12}
+                  transform={`rotate(${0}, ${mid[0]}, ${mid[1]})`}
+                  textAnchor="middle"
+                  alignmentBaseline="middle"
+                >
+                  {`${dist.toFixed(1)}m`}
+                </SvgText>
+              </G>
+            );
+          })}
+        </G>
+      </Svg>
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -233,7 +265,7 @@ export default function SvgComponent() {
       </View>
       <View style={styles.svgContainer}>
         <ViewShot ref={viewShotRef} style={{ flex: 1 }}>
-          <CreateSvg inputString={turnPointsToString()} />
+          <CreateSvg inputPoints={pointList} />
         </ViewShot>
       </View>
 
