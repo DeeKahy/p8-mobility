@@ -77,3 +77,11 @@ export function rotate2D(
     return [cx + dx * cos - dy * sin, cy + dx * sin + dy * cos];
   });
 }
+
+export function boundingBox(ps: Point2D[]) {
+  const minX = Math.min(...ps.map((p) => p[0]));
+  const minY = Math.min(...ps.map((p) => p[1]));
+  const maxX = Math.max(...ps.map((p) => p[0]));
+  const maxY = Math.max(...ps.map((p) => p[1]));
+  return { minX, minY, maxX, maxY };
+}

@@ -21,6 +21,7 @@ import { useOverlays } from "../../context/Overlays";
 import { Point2D } from "../../models/3Dpoints";
 import { createFloorplanImage } from "../../utils/api";
 import {
+  boundingBox,
   distance2D,
   lerp2D,
   rotate2D,
@@ -51,34 +52,15 @@ export default function SvgComponent() {
   /*Issue with smaller polygons not being visible on screen and too large can overtake screen, so we want to take min and max and give it to viewbox.
   Viewbox has  viewBox="x y maxHeight maxWidth".
   */
-  const minX = Math.min(...pointList.map((p) => p[0]));
-  const minY = Math.min(...pointList.map((p) => p[1]));
-  const maxX = Math.max(...pointList.map((p) => p[0]));
-  const maxY = Math.max(...pointList.map((p) => p[1]));
+  const { minX, minY, maxX, maxY } = boundingBox(pointList);
   const dX = maxX - minX;
   const dY = maxY - minY;
+  const pointsCenter: Point2D = [dX / 2, dY / 2];
 
   // SVGs break at very small scales, so we have to scale our points' coordinates up to fit the viewBox dimensions:
   const VB_WIDTH = 200;
-  const VB_HEIGHT = 200;
-  const VB_PADDING = 20;
-  const VB_CENTER: Point2D = [
-    (VB_WIDTH + VB_PADDING) / 2,
-    (VB_HEIGHT + VB_PADDING) / 2,
-  ];
-  // Compute scaling factors:
-  const scaleX = VB_WIDTH / dX;
-  const scaleY = VB_HEIGHT / dY;
-  // Select the minimum to preserve aspect ratio:
-  const scale = Math.min(scaleX, scaleY);
-  // Compute offsets to center the content:
-  const centeringOffsetX = (VB_WIDTH - dX * scale) / 2 + VB_PADDING * 0.5;
-  const centeringOffsetY = (VB_HEIGHT - dY * scale) / 2 + VB_PADDING * 0.5;
-  // Define function to scale the points accordingly and apply the offsets:
-  const normalize = (p: Point2D): Point2D => [
-    centeringOffsetX + (p[0] - minX) * scale,
-    centeringOffsetY + (p[1] - minY) * scale,
-  ];
+  const VB_HEIGHT = 250;
+  const VB_PADDING = 40;
 
   //Take the captured points and turn them into string format of "x1,y1 x2,y2 ...xn,yn", because Polygon points={} needs points string in that format.
   function turnPointsToString(points: Point2D[]): string {
@@ -174,21 +156,27 @@ export default function SvgComponent() {
 
   const CreateSvg = ({ inputPoints }: CreateSvgProps) => {
     // Rotate the points before drawing the SVG so we can determine if extra scaling is needed to keep everything in view
-    const points = rotate2D(
-      inputPoints.map(normalize),
-      VB_CENTER,
+    const rotatedPoints = rotate2D(
+      inputPoints,
+      pointsCenter,
       toRadians(rotation)
     );
 
-    // Scale down the content based on how far away the furthest point is from the center.
-    // This value becomes <1 iff a point is outside the VB_WIDTH x VB_HEIGHT bounding box and is otherwise 1.
-    const downscale =
-      1 /
-      Math.max(
-        1,
-        ...points.map((p) => Math.abs(p[0] - VB_CENTER[0]) / (VB_WIDTH / 2)),
-        ...points.map((p) => Math.abs(p[1] - VB_CENTER[0]) / (VB_HEIGHT / 2))
-      );
+    const { minX, minY, maxX, maxY } = boundingBox(rotatedPoints);
+    const dX = maxX - minX;
+    const dY = maxY - minY;
+    // Compute scaling factors and select the minimum to preserve aspect ratio:
+    const scale = Math.min(VB_WIDTH / dX, VB_HEIGHT / dY);
+    // Compute offsets to center the content:
+    const centeringOffsetX = (VB_WIDTH - dX * scale) / 2 + VB_PADDING * 0.5;
+    const centeringOffsetY = (VB_HEIGHT - dY * scale) / 2 + VB_PADDING * 0.5;
+    // Define function to scale the points accordingly and apply the offsets:
+    const transform = (p: Point2D): Point2D => [
+      centeringOffsetX + (p[0] - minX) * scale,
+      centeringOffsetY + (p[1] - minY) * scale,
+    ];
+
+    const points = rotatedPoints.map(transform);
 
     return (
       <Svg
@@ -200,12 +188,7 @@ export default function SvgComponent() {
         {/* The G element is a container used to group other SVG elements. Transformations applied to the G element are performed on all of its child elements. 
         So when we rotate, everything rotates with.
       */}
-        <G
-          transform={
-            `scale(${downscale})` + // Scale down the content and translate to compensate for the center shifting.
-            `translate(${VB_CENTER[0] - VB_CENTER[0] * downscale} ${VB_CENTER[1] - VB_CENTER[1] * downscale})`
-          }
-        >
+        <G>
           <Polygon
             points={turnPointsToString(points)}
             stroke="#505050" // Edges are grey instead of black so overlapping text is legible.
