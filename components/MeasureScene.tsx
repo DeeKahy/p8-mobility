@@ -23,7 +23,7 @@ import {
 } from "../utils/arMath";
 //type Point3D = [number, number, number];
 
-const MAX_FAILED_ATTEMPTS = 50;
+const MAX_FAILED_ATTEMPTS = 75;
 const BOX_SIZE = 0.025;
 const TEXT_SIZE = 0.2;
 const LINE_THICKNESS = BOX_SIZE / 4;

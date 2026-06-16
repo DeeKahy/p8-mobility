@@ -184,7 +184,10 @@ export default function ARView() {
         </TouchableOpacity>
         <TouchableOpacity
           onPress={handleAdd}
-          style={[styles.button, styles.buttonResume]}
+          style={[
+            styles.button,
+            nextPoint ? styles.buttonResume : styles.buttonStop,
+          ]}
         >
           <Text style={styles.buttonText}>Add point</Text>
         </TouchableOpacity>
@@ -218,7 +221,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   buttonStop: {
-    backgroundColor: "#e63946",
+    backgroundColor: "#505050",
   },
   buttonResume: {
     backgroundColor: "#2a9d8f",

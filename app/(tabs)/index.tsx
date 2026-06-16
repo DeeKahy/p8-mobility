@@ -162,7 +162,6 @@ export default function HomeScreen() {
   const handleAddPictureToMarker = async () => {
     router.navigate("/camera");
     captureMode.current = CameraMode.Addition;
-    closeAllModals();
   };
 
   /**
@@ -184,7 +183,6 @@ export default function HomeScreen() {
     if (selectedMarkerId) {
       router.navigate("/imagelist");
     }
-    setShowMarkerOptions(false);
   };
 
   const handleMove = () => {
@@ -196,6 +194,7 @@ export default function HomeScreen() {
   };
 
   const closeAllModals = () => {
+    setShowNewMarkerOptions(false);
     setShowMarkerOptions(false);
     setShowTempMarker(false);
   };
@@ -237,6 +236,7 @@ export default function HomeScreen() {
   useFocusEffect(
     useCallback(() => {
       return () => {
+        closeAllModals();
         // If you exit this tab while in Placement-mode, unset the mode.
         if (captureMode.current === CameraMode.Placement) {
           captureMode.current = CameraMode.None;

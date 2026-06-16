@@ -21,7 +21,10 @@ export const SaveFormModal = ({
 
         <View style={styles.actionColumn}>
           <TouchableOpacity
-            onPress={onSave}
+            onPress={() => {
+              onSave();
+              onClose();
+            }}
             style={[styles.button, styles.primaryButton]}
           >
             <Text style={[styles.buttonText, styles.primaryButtonText]}>
@@ -29,7 +32,10 @@ export const SaveFormModal = ({
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            onPress={onSaveNext}
+            onPress={() => {
+              onSaveNext();
+              onClose();
+            }}
             style={[styles.button, styles.primaryButton]}
           >
             <Text style={[styles.buttonText, styles.primaryButtonText]}>

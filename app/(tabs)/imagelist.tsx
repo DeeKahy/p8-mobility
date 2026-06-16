@@ -208,6 +208,7 @@ export default function ImagesScreen() {
             { marginTop: "5%", alignItems: "center" },
           ]}
           onPress={() => navigateToMarker(key)}
+          disabled={!!selectedMarkerId}
         >
           <PieChart
             widthAndHeight={25}
@@ -217,7 +218,7 @@ export default function ImagesScreen() {
           />
           <Text
             style={indexStyles.headerButton}
-          >{`Marker with ${imageCount} ${imageCount > 1 ? "images" : "image"}`}</Text>
+          >{`${selectedMarkerId ? "Selected marker" : "Marker"} with ${imageCount} ${imageCount > 1 ? "images" : "image"}`}</Text>
         </TouchableOpacity>
       );
     }
@@ -234,7 +235,7 @@ export default function ImagesScreen() {
           />
           <Text
             style={indexStyles.headerButton}
-          >{`${key} with ${imageCount} ${imageCount > 1 ? "images" : "image"}`}</Text>
+          >{`${key} with ${imageCount} ${imageCount > 1 ? "images" : "image"}${selectedMarkerId ? "\nfrom the selected marker" : ""}`}</Text>
         </View>
       );
     }
@@ -251,15 +252,17 @@ export default function ImagesScreen() {
     } = item;
 
     return (
-      <View style={[photoListStyles.card, { flexDirection: "column" }]}>
+      <TouchableOpacity
+        style={[photoListStyles.card, { flexDirection: "column" }]}
+        onPress={() => setSelected(index)}
+        disabled={expand}
+      >
         <View style={{ flexDirection: "row" }}>
           <View style={photoListStyles.textContainer}>
             <Text
               style={photoListStyles.subtitle}
             >{`${areaGroup}\n${dateTaken}`}</Text>
-            <TouchableOpacity onPress={() => setSelected(index)}>
-              <Text style={photoListStyles.title}>{pictureName}</Text>
-            </TouchableOpacity>
+            <Text style={photoListStyles.title}>{pictureName}</Text>
             {expand && description ? (
               <Text style={photoListStyles.subtitle}>{description}</Text>
             ) : null}
@@ -308,7 +311,7 @@ export default function ImagesScreen() {
             </TouchableOpacity>
           </View>
         ) : null}
-      </View>
+      </TouchableOpacity>
     );
   });
 
