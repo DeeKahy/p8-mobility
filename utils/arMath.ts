@@ -28,20 +28,6 @@ export function distance2D(p1: Point2D, p2: Point2D): number {
   return Math.sqrt(dx ** 2 + dz ** 2);
 }
 
-export function calculateTurf(points: Point3D[]) {
-  if (!points || points.length < 3) return 0;
-  const listOfPoints = [];
-  for (const point of points) {
-    listOfPoints.push([point[0], point[1]]);
-  }
-  listOfPoints.push([points[0][0], points[0][1]]);
-  return listOfPoints;
-}
-
-export function formatDistanceCm(distanceMeters: number) {
-  return `${(distanceMeters * 100).toFixed(2)}cm`;
-}
-
 export function lerp(v1: number, v2: number, a: number): number {
   return (v2 - v1) * a + v1;
 }

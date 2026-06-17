@@ -60,19 +60,6 @@ function extractHitPosition(
   return null;
 }
 
-//Measuring distance formula (Euclidean distance)
-// function calculateDistanceMeters(points: [Point3D, Point3D]) {
-//   const [p1, p2] = points;
-//   const dx = p2[0] - p1[0];
-//   const dy = p2[1] - p1[1];
-//   const dz = p2[2] - p1[2];
-//   return Math.sqrt(dx ** 2 + dy ** 2 + dz ** 2);
-// }
-
-// function formatDistanceCm(distanceMeters: number) {
-//   return `${(distanceMeters * 100).toFixed(2)} cm`;
-// }
-
 export default function MeasureScene() {
   const { showToast } = useOverlays();
   const { points, nextPoint, setNextPoint } = useAR();
