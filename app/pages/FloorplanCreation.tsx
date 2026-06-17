@@ -214,7 +214,7 @@ export default function SvgComponent() {
                   textAnchor="middle"
                   alignmentBaseline="middle"
                 >
-                  {`${dist.toFixed(1)}m`}
+                  {`${dist.toFixed(2)}m`}
                 </SvgText>
               </G>
             );
