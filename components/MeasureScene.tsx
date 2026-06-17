@@ -16,13 +16,10 @@ import { useAR } from "../context/ARContext";
 import { useOverlays } from "../context/Overlays";
 import { Point3D } from "../models/3Dpoints";
 import { ACCEPTED_HIT_TYPES } from "../models/ArCoreAcceptedTypes";
-import {
-  calculateDistanceMeters,
-  formatDistanceCm,
-  isValidPoint,
-} from "../utils/arMath";
+import { distance3D, formatDistanceCm, isValidPoint } from "../utils/arMath";
 //type Point3D = [number, number, number];
 
+const MAX_HIT_DISTANCE = 50;
 const MAX_FAILED_ATTEMPTS = 75;
 const BOX_SIZE = 0.025;
 const TEXT_SIZE = 0.2;
@@ -46,15 +43,19 @@ const styles = StyleSheet.create({
 });
 
 // Extracts the first valid hit position from AR hit test results
-function extractHitPosition(results: ViroARHitTestResult[]): Point3D | null {
+function extractHitPosition(
+  results: ViroARHitTestResult[],
+  cameraPosition?: Point3D
+): Point3D | null {
   for (const result of results) {
     const position = result.transform.position;
-    if (!ACCEPTED_HIT_TYPES.has(result.type)) {
-      continue;
-    }
-    if (isValidPoint(position)) {
-      return position;
-    }
+    if (
+      cameraPosition &&
+      distance3D(position, cameraPosition) > MAX_HIT_DISTANCE
+    )
+      return null; // results are sorted by increasing distance so the next result will also be too far
+    if (!ACCEPTED_HIT_TYPES.has(result.type)) continue;
+    if (isValidPoint(position)) return position;
   }
   return null;
 }
@@ -75,7 +76,7 @@ function extractHitPosition(results: ViroARHitTestResult[]): Point3D | null {
 export default function MeasureScene() {
   const { showToast } = useOverlays();
   const { points, nextPoint, setNextPoint } = useAR();
-  const arSceneRef = useRef<ViroARScene | null>(null);
+  const arSceneRef = useRef<ViroARScene>(null);
   const hitTestAttempts = useRef(0);
 
   const distanceLabel = useMemo(() => {
@@ -84,7 +85,7 @@ export default function MeasureScene() {
     const last = points[points.length - 1];
     const prev = points[points.length - 2];
 
-    const distanceMeters = calculateDistanceMeters([prev, last]);
+    const distanceMeters = distance3D(prev, last);
     return formatDistanceCm(distanceMeters);
   }, [points]);
 
@@ -93,7 +94,10 @@ export default function MeasureScene() {
       ref={arSceneRef}
       onCameraARHitTest={({ hitTestResults, cameraOrientation }) => {
         if (hitTestResults.length) {
-          const hitPosition = extractHitPosition(hitTestResults);
+          const hitPosition = extractHitPosition(
+            hitTestResults,
+            cameraOrientation.position
+          );
           if (hitPosition) {
             hitTestAttempts.current = 0;
             setNextPoint(hitPosition);

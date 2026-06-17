@@ -11,8 +11,7 @@ export function isValidPoint(position: unknown): position is Point3D {
 }
 
 //Measuring distance formula (Euclidean distance)
-export function calculateDistanceMeters(points: [Point3D, Point3D]) {
-  const [p1, p2] = points;
+export function distance3D(p1: Point3D, p2: Point3D) {
   const dx = p2[0] - p1[0];
   const dy = p2[1] - p1[1];
   const dz = p2[2] - p1[2];
