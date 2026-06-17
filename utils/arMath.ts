@@ -39,7 +39,7 @@ export function calculateTurf(points: Point3D[]) {
 }
 
 export function formatDistanceCm(distanceMeters: number) {
-  return `${(distanceMeters * 100).toFixed(2)} cm`;
+  return `${(distanceMeters * 100).toFixed(2)}cm`;
 }
 
 export function lerp(v1: number, v2: number, a: number): number {

@@ -16,7 +16,7 @@ import { useAR } from "../context/ARContext";
 import { useOverlays } from "../context/Overlays";
 import { Point3D } from "../models/3Dpoints";
 import { ACCEPTED_HIT_TYPES } from "../models/ArCoreAcceptedTypes";
-import { distance3D, formatDistanceCm, isValidPoint } from "../utils/arMath";
+import { distance3D, isValidPoint, lerp3D } from "../utils/arMath";
 //type Point3D = [number, number, number];
 
 const MAX_HIT_DISTANCE = 50;
@@ -29,13 +29,13 @@ const LINE_THICKNESS = BOX_SIZE / 4;
 ViroMaterials.createMaterials({
   pointMarker: { diffuseColor: "#ff0303", lightingModel: "Constant" },
   pointMarkerPreview: { diffuseColor: "#ff030340", lightingModel: "Constant" },
-  secondPointMarker: { diffuseColor: "#03ff03", lightingModel: "Constant" },
+  lastPointMarker: { diffuseColor: "#ffffff", lightingModel: "Constant" },
 });
 
 const styles = StyleSheet.create({
   distanceLabel: {
     fontFamily: "Roboto",
-    fontSize: 56,
+    fontSize: 40,
     color: "#ffffff",
     textAlign: "center",
     textAlignVertical: "center",
@@ -86,7 +86,7 @@ export default function MeasureScene() {
     const prev = points[points.length - 2];
 
     const distanceMeters = distance3D(prev, last);
-    return formatDistanceCm(distanceMeters);
+    return `${distanceMeters.toFixed(2)}m`;
   }, [points]);
 
   return (
@@ -127,7 +127,11 @@ export default function MeasureScene() {
           <ViroBox
             key={index}
             position={p}
-            materials={["pointMarker"]}
+            materials={
+              index === points.length - 1
+                ? ["lastPointMarker"]
+                : ["pointMarker"]
+            }
             scale={[BOX_SIZE, BOX_SIZE, BOX_SIZE]}
           />
         ))}
@@ -166,14 +170,19 @@ export default function MeasureScene() {
             scale={[BOX_SIZE, BOX_SIZE, BOX_SIZE]}
           />
         ) : null}
-        <ViroText
-          text={distanceLabel}
-          position={points[points.length - 1]}
-          scale={[TEXT_SIZE, TEXT_SIZE, TEXT_SIZE]}
-          style={styles.distanceLabel}
-          transformBehaviors={["billboard"]}
-          visible={points.length >= 2}
-        />
+        {points.length > 1 ? (
+          <ViroText
+            text={distanceLabel}
+            position={lerp3D(
+              points[points.length - 2],
+              points[points.length - 1],
+              0.66
+            )}
+            scale={[TEXT_SIZE, TEXT_SIZE, TEXT_SIZE]}
+            style={styles.distanceLabel}
+            transformBehaviors={["billboard"]}
+          />
+        ) : null}
       </ViroNode>
     </ViroARScene>
   );
