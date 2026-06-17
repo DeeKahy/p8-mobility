@@ -28,14 +28,26 @@ export const useMarkers = () => {
     setMarkers(nextMarkers);
   };
 
+  /** Get a marker by ID.
+   *  Note that changes made via setMarkers require a state update to be visible,
+   *  so changes made by e.g. addMarker will not be immediately accessible using this function.
+   */
+  const getById = (id: string) => {
+    const res = markers.find((currentMarker) => currentMarker.id === id);
+    if (!res) throw new RangeError(`Marker ${id} not found`);
+    return res;
+  };
+
   const addMarker = (x: number, y: number, photos: PhotoData[]) => {
+    const id = Date.now().toString();
     const newMarker: Marker = {
-      id: Date.now().toString(),
+      id,
       photos,
       x,
       y,
     };
     setMarkers((curr) => curr.concat(newMarker));
+    return newMarker;
   };
 
   const editMarker = (id: string, editorFnc: (old: Marker) => Marker) => {
@@ -84,6 +96,12 @@ export const useMarkers = () => {
     });
   };
 
+  const moveMarker = (id: string, x: number, y: number) => {
+    editMarker(id, (old) => {
+      return { ...old, x, y };
+    });
+  };
+
   const removePhoto = (id: string, photo: PhotoData) => {
     editMarker(id, (old) => {
       const index = old.photos.indexOf(photo);
@@ -120,12 +138,14 @@ export const useMarkers = () => {
   return {
     markers,
     replaceMarkers,
+    getById,
     addMarker,
     deleteMarker,
     clearMarkers,
     editMarker,
     addPhotos,
     removePhoto,
+    moveMarker,
     tryGetMarker,
   };
 };
