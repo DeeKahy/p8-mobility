@@ -16,26 +16,30 @@ export const SaveFormModal = ({
   return (
     <Overlay style={styles.overlay} animationType="fade">
       <View style={styles.card}>
-        <Text style={styles.title}>Save Floorplan</Text>
-        <Text style={styles.message}>
-          Choose what to do after saving this room.
-        </Text>
+        <Text style={styles.title}>Save floor plan</Text>
+        <Text style={styles.message}>Choose what to do after saving:</Text>
 
         <View style={styles.actionColumn}>
           <TouchableOpacity
-            onPress={onSave}
+            onPress={() => {
+              onSave();
+              onClose();
+            }}
             style={[styles.button, styles.primaryButton]}
           >
             <Text style={[styles.buttonText, styles.primaryButtonText]}>
-              Save and review floorplan
+              Save and return to listing
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            onPress={onSaveNext}
+            onPress={() => {
+              onSaveNext();
+              onClose();
+            }}
             style={[styles.button, styles.primaryButton]}
           >
             <Text style={[styles.buttonText, styles.primaryButtonText]}>
-              Save and measure next room
+              Save and start a new scan
             </Text>
           </TouchableOpacity>
         </View>

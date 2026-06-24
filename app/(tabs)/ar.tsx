@@ -3,8 +3,8 @@ import {
   isARSupportedOnDevice,
   ViroARSceneNavigator,
 } from "@reactvision/react-viro";
-import { useRouter } from "expo-router";
-import React, { useEffect, useRef, useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Linking,
@@ -16,11 +16,12 @@ import {
 } from "react-native";
 
 import MeasureScene from "../../components/MeasureScene";
+import { useAR } from "../../context/ARContext";
 import { useLogger } from "../../context/LoggerContext";
-import { Point3D } from "../../models/3Dpoints";
+import { styles as indexStyles } from "../../css/indexStyle";
 
 export default function ARView() {
-  const pointsRef = useRef<Point3D[]>([]);
+  const { points, setPoints, nextPoint, setNextPoint } = useAR();
   const isFocused = useIsFocused();
   const { custom } = useLogger();
   const [status, setStatus] = useState<
@@ -29,11 +30,16 @@ export default function ARView() {
   const [errorMessage, setErrorMessage] = useState("");
   const router = useRouter();
 
-  useEffect(() => {
-    custom(`AR focus: ${isFocused}`, "camera");
-  }, [isFocused]);
+  // Reset points when the AR tab enters focus
+  useFocusEffect(
+    useCallback(() => {
+      setPoints([]);
+      setNextPoint(null);
+    }, [])
+  );
 
   useEffect(() => {
+    custom(`AR focus: ${isFocused}`, "AR");
     let cancelled = false;
 
     async function checkARSupport() {
@@ -69,21 +75,22 @@ export default function ARView() {
   }, [isFocused]);
 
   // Prevent AR renderer from running when the tab is not active
+  // FIXME: Changing tabs rapidly causes java.lang.NullPointerException and/or freezes the app!
+  // Theory: Since ARCore startup is async it's trying to contact ViroARSceneNavigator after the latter has unmounted!
   if (!isFocused) {
     return null;
   }
 
-  const handleStop = () => {
-    router.push({
-      pathname: "pages/FloorplanCreation",
-      params: {
-        points: JSON.stringify(pointsRef.current),
-      },
-    });
-  };
+  const handleStop = () => router.push({ pathname: "pages/FloorplanCreation" });
 
-  const handlePointsUpdate = (newPoints: Point3D[]) => {
-    pointsRef.current = newPoints;
+  const handleAdd = () => {
+    if (nextPoint) {
+      console.log("nextPoint exists. Adding to points");
+      setPoints((prev) => [...prev, nextPoint]);
+      setNextPoint(null);
+    } else {
+      console.log("nextPoint is null");
+    }
   };
 
   if (status === "checking") {
@@ -98,7 +105,7 @@ export default function ARView() {
   if (status === "unsupported") {
     return (
       <View style={styles.centered}>
-        <Text style={styles.title}>AR is not available yet</Text>
+        <Text style={styles.title}>AR support not found</Text>
         <Text style={styles.body}>
           Google Play Services for AR (ARCore) is required for this screen.
         </Text>
@@ -114,7 +121,7 @@ export default function ARView() {
             )
           }
         >
-          <Text style={styles.buttonText}>Open ARCore page</Text>
+          <Text style={styles.buttonText}>Open Google Play</Text>
         </Pressable>
       </View>
     );
@@ -127,9 +134,6 @@ export default function ARView() {
         initialScene={
           {
             scene: MeasureScene,
-            passProps: {
-              onPointAdded: handlePointsUpdate,
-            },
           } as any
         }
         hdrEnabled={false}
@@ -140,17 +144,52 @@ export default function ARView() {
         videoQuality="Low"
         style={{ flex: 1 }}
       />
-      <View style={styles.crosshairContainer} pointerEvents="none">
-        <View style={styles.crosshairHorizontal} />
-        <View style={styles.crosshairVertical} />
-      </View>
+      {nextPoint ? (
+        <View style={styles.crosshairContainer} pointerEvents="none">
+          <View style={styles.crosshairHorizontal} />
+          <View style={styles.crosshairVertical} />
+        </View>
+      ) : (
+        <View
+          style={[
+            StyleSheet.absoluteFill,
+            { alignItems: "center", justifyContent: "center" },
+          ]}
+          pointerEvents="none"
+        >
+          <ActivityIndicator size="large" color="white" />
+          <Text style={indexStyles.popupText}>Finding reference points...</Text>
+          <Text
+            style={[
+              indexStyles.popupCancelText,
+              { color: indexStyles.popupText.color },
+            ]}
+          >
+            Move the camera around to help map out the space
+          </Text>
+        </View>
+      )}
 
       <View style={styles.buttonRow}>
         <TouchableOpacity
           onPress={handleStop}
-          style={[styles.button, styles.buttonStop]}
+          style={[
+            styles.button,
+            points.length > 2 ? styles.buttonResume : styles.buttonStop,
+          ]}
         >
-          <Text style={styles.buttonText}>Stop Measuring</Text>
+          <Text style={styles.buttonText}>
+            {points.length > 2 ? "Finish" : `Finish (${points.length}/3)`}
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={handleAdd}
+          style={[
+            styles.button,
+            nextPoint ? styles.buttonResume : styles.buttonStop,
+          ]}
+        >
+          <Text style={styles.buttonText}>Add point</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -182,7 +221,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   buttonStop: {
-    backgroundColor: "#e63946",
+    backgroundColor: "#505050",
   },
   buttonResume: {
     backgroundColor: "#2a9d8f",

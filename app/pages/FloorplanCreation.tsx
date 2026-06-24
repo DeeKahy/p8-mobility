@@ -1,6 +1,6 @@
 import { File } from "expo-file-system";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import { useMemo, useRef, useState } from "react";
+import { useRouter } from "expo-router";
+import { useRef, useState } from "react";
 import {
   Text,
   TextInput,
@@ -14,74 +14,59 @@ import ViewShot, { captureRef } from "react-native-view-shot";
 import LoadingOverlay from "../../components/LoadingOverlay";
 import { RotationControls } from "../../components/RotationControls";
 import { SaveFormModal } from "../../components/SaveModal";
+import { useAR } from "../../context/ARContext";
 import { useFloorplan } from "../../context/FloorplanContext";
 import { useLogger } from "../../context/LoggerContext";
 import { useOverlays } from "../../context/Overlays";
-import { Point3D } from "../../models/3Dpoints";
+import { Point2D } from "../../models/3Dpoints";
 import { createFloorplanImage } from "../../utils/api";
 import {
-  calculateDistanceMeters,
-  calculateMidPoint,
-  isValidPoint,
+  boundingBox,
+  distance2D,
+  lerp2D,
+  rotate2D,
+  to2D,
+  toRadians,
 } from "../../utils/arMath";
 import { toImageDataUri } from "../../utils/imageDataHelpers";
+import { hashNameToColor } from "../../utils/stringColor";
 import useRotation from "../hooks/useRotation";
 
-// Type to ensure that component CreateSvg only takes type of string
 type CreateSvgProps = {
-  inputString: string;
+  inputPoints: Point2D[];
 };
 
 export default function SvgComponent() {
-  const { points: rawPointList } = useLocalSearchParams<{
-    points?: string | string[];
-  }>();
   const router = useRouter();
   const { showToast } = useOverlays();
   const { refreshStoredFloorplans } = useFloorplan();
   const { error, log } = useLogger();
-
-  const pointList: Point3D[] = useMemo(() => {
-    const value = Array.isArray(rawPointList) ? rawPointList[0] : rawPointList;
-
-    if (!value) return [];
-
-    try {
-      const parsed: unknown = JSON.parse(value);
-      if (!Array.isArray(parsed)) return [];
-
-      return parsed.filter(isValidPoint);
-    } catch {
-      return [];
-    }
-  }, [rawPointList]);
 
   const { rotation, startRotating, stopRotating } = useRotation();
   const viewShotRef = useRef(null);
   const [name, setName] = useState<string>("");
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [isSavingFloorplan, setIsSavingFloorplan] = useState(false);
+  const [pointList] = useState(useAR().points.map(to2D)); // Copy points from context on mount and make them 2D
 
   /*Issue with smaller polygons not being visible on screen and too large can overtake screen, so we want to take min and max and give it to viewbox.
   Viewbox has  viewBox="x y maxHeight maxWidth".
   */
-  const minX = Math.min(...pointList.map((p) => p[0]));
-  const minZ = Math.min(...pointList.map((p) => p[2]));
-  const maxX = Math.max(...pointList.map((p) => p[0]));
-  const maxZ = Math.max(...pointList.map((p) => p[2]));
+  const { minX, minY, maxX, maxY } = boundingBox(pointList);
+  const dX = maxX - minX;
+  const dY = maxY - minY;
+  const pointsCenter: Point2D = [dX / 2, dY / 2];
 
-  // Roomsize for the padding and other stuff so the room is rendered prop
-  const roomSize = Math.max(maxX - minX, maxZ - minZ);
-  const padding = roomSize * 0.1;
-  const fontSize = roomSize * 0.05;
-  const stroke = roomSize * 0.008;
-  const offset = fontSize * 0.1;
+  // SVGs break at very small scales, so we have to scale our points' coordinates up to fit the viewBox dimensions:
+  const VB_WIDTH = 200;
+  const VB_HEIGHT = 250;
+  const VB_PADDING = 40;
 
   //Take the captured points and turn them into string format of "x1,y1 x2,y2 ...xn,yn", because Polygon points={} needs points string in that format.
-  function turnPointsToString(): string {
+  function turnPointsToString(points: Point2D[]): string {
     let output = "";
-    for (const point of pointList) {
-      output += `${point[0]},${point[2]} `;
+    for (const point of points) {
+      output += `${point[0]},${point[1]} `;
     }
     return output;
   }
@@ -109,14 +94,14 @@ export default function SvgComponent() {
         imageBase64,
         imageFileExtension: "png",
       });
-      log(`Successfully saved ARCore floorplan ${nextFloorplanId} to API`);
+      log(`Successfully saved floor plan ${nextFloorplanId} to server`);
 
       await refreshStoredFloorplans();
-      log("Successfully refreshed stored floorplans after ARCore save");
+      log("Successfully refreshed stored floor plans after save");
     } catch (caughtError) {
       const errorMessage =
         caughtError instanceof Error ? caughtError.message : "Unknown error";
-      error(`Saving ARCore floorplan failed: ${errorMessage}`);
+      error(`Saving floor plan failed: ${errorMessage}`);
       throw caughtError;
     } finally {
       setIsSavingFloorplan(false);
@@ -127,15 +112,12 @@ export default function SvgComponent() {
     try {
       await saveToServer();
       setShowSaveModal(false);
-      showToast(
-        "Floorplan uploaded! You can find it under Floorplan page!",
-        "Success"
-      );
+      showToast("Floor plan uploaded!", "Success");
       router.push({
         pathname: "/",
       });
     } catch {
-      showToast("Floorplan upload failed. Please try again.", "Error");
+      showToast("Floor plan upload failed. Please try again.", "Error");
     }
   }
 
@@ -143,100 +125,109 @@ export default function SvgComponent() {
     try {
       await saveToServer();
       setShowSaveModal(false);
-      showToast("Floorplan uploaded!", "Success");
+      showToast("Floor plan uploaded!", "Success");
       router.push({
         pathname: "/ar",
       });
     } catch {
-      showToast("Floorplan upload failed. Please try again.", "Error");
+      showToast("Floor plan upload failed. Please try again.", "Error");
     }
   }
+
+  const onRedo = () => {
+    router.push("/ar");
+  };
 
   if (pointList.length <= 2) {
     return (
       <View style={styles.emptyContainer}>
-        <Text style={styles.emptyTitle}>No valid points found</Text>
+        <Text style={styles.emptyTitle}>Not enough points</Text>
 
         <Text style={styles.emptyText}>
-          Your floorplan needs at least 3 valid points to generate a polygon.
-          Please redo the scan.
+          At least 3 points are needed to generate a room. Please redo the scan.
         </Text>
 
-        <TouchableOpacity
-          onPress={() => router.push("/ar")}
-          style={styles.redoButton}
-        >
+        <TouchableOpacity onPress={onRedo} style={styles.redoButton}>
           <Text style={styles.buttonText}>Redo</Text>
         </TouchableOpacity>
       </View>
     );
   }
 
-  const CreateSvg = ({ inputString }: CreateSvgProps) => (
-    <Svg
-      height="100%"
-      width="100%"
-      preserveAspectRatio="xMidYMid meet"
-      viewBox={`${minX - padding} ${minZ - padding} ${maxX - minX + padding * 2} ${maxZ - minZ + padding * 4}`}
-    >
-      {/* The element is a container used to group other SVG elements. Transformations applied to the g element are performed on all of its child elements. 
+  const CreateSvg = ({ inputPoints }: CreateSvgProps) => {
+    // Rotate the points before drawing the SVG so we can determine if extra scaling is needed to keep everything in view
+    const rotatedPoints = rotate2D(
+      inputPoints,
+      pointsCenter,
+      toRadians(rotation)
+    );
+
+    const { minX, minY, maxX, maxY } = boundingBox(rotatedPoints);
+    const dX = maxX - minX;
+    const dY = maxY - minY;
+    // Compute scaling factors and select the minimum to preserve aspect ratio:
+    const scale = Math.min(VB_WIDTH / dX, VB_HEIGHT / dY);
+    // Compute offsets to center the content:
+    const centeringOffsetX = (VB_WIDTH - dX * scale) / 2 + VB_PADDING * 0.5;
+    const centeringOffsetY = (VB_HEIGHT - dY * scale) / 2 + VB_PADDING * 0.5;
+    // Define function to scale the points accordingly and apply the offsets:
+    const transform = (p: Point2D): Point2D => [
+      centeringOffsetX + (p[0] - minX) * scale,
+      centeringOffsetY + (p[1] - minY) * scale,
+    ];
+
+    const points = rotatedPoints.map(transform);
+
+    return (
+      <Svg
+        height="100%"
+        width="100%"
+        preserveAspectRatio="xMidYMid meet"
+        viewBox={`0 0 ${VB_WIDTH + VB_PADDING} ${VB_HEIGHT + VB_PADDING}`}
+      >
+        {/* The G element is a container used to group other SVG elements. Transformations applied to the G element are performed on all of its child elements. 
         So when we rotate, everything rotates with.
       */}
-      <G
-        transform={`rotate(${rotation}, ${(minX + maxX) / 2}, ${(minZ + maxZ) / 2})`}
-      >
-        <Polygon
-          points={inputString}
-          stroke="black"
-          strokeWidth={stroke}
-          fill="white"
-        />
-        {/* Sets distance between points on each edge between points and sets in the middle of the edge*/}
-        {pointList.map((point, index) => {
-          //To get next point, we dont start at 0, but at index 1 and then end at 0. This also ensures we don't go out of bounds.
-          const next = pointList[(index + 1) % pointList.length];
-          const dist = calculateDistanceMeters([point, next]);
-          const mid = calculateMidPoint(point, next, offset);
-          // To rotate the text according to the edge, we calculate the angle of the edge and then rotate the text accordingly.
-          const rawAngle =
-            Math.atan2(next[2] - point[2], next[0] - point[0]) *
-            (180 / Math.PI);
-          const textAngle =
-            rawAngle > 90 || rawAngle < -90 ? rawAngle + 180 : rawAngle;
-          return (
-            <SvgText
-              key={index} //Unique length to render, so if we have 4 points we get 4 different lengths
-              //Position of text
-              x={mid.x}
-              y={mid.z * 1.3}
-              fontSize={fontSize}
-              fill="black"
-              alignmentBaseline="middle"
-              // To rotate the text according to the edge.
-              transform={`rotate(${textAngle}, ${mid.x}, ${mid.z})`}
-            >
-              {`${dist.toFixed(1)} m`}
-            </SvgText>
-          );
-        })}
-      </G>
-      <View
-        style={{
-          top: 400,
-          position: "relative",
-          justifyContent: "center",
-          alignItems: "center",
-        }}
-      >
-        <Text style={{ fontSize: 20 }}>{name}</Text>
-      </View>
-    </Svg>
-  );
+        <G>
+          <Polygon
+            points={turnPointsToString(points)}
+            stroke="#505050" // Edges are grey instead of black so overlapping text is legible.
+            strokeWidth={1}
+            fill={hashNameToColor(name) + "50"} // Name color becomes semitransparent by adding "50"
+          />
+          {/* Sets distance between points on each edge between points and sets in the middle of the edge*/}
+          {points.map((point, index) => {
+            //To get next point, we dont start at 0, but at index 1 and then end at 0. This also ensures we don't go out of bounds.
+            const next = points[(index + 1) % points.length];
+            const dist = distance2D(point, next) / scale; // Scale the distance back down, don't forget!
+            const mid = lerp2D(point, next, 0.5);
+            return (
+              <G
+                key={index} //Unique length to render, so if we have 4 points we get 4 different lengths
+              >
+                <SvgText
+                  x={mid[0]}
+                  y={mid[1]}
+                  fill="black"
+                  fontSize={12}
+                  transform={`rotate(${0}, ${mid[0]}, ${mid[1]})`}
+                  textAnchor="middle"
+                  alignmentBaseline="middle"
+                >
+                  {`${dist.toFixed(2)}m`}
+                </SvgText>
+              </G>
+            );
+          })}
+        </G>
+      </Svg>
+    );
+  };
 
   return (
     <View style={styles.container}>
       {isSavingFloorplan ? (
-        <LoadingOverlay text="Uploading floorplan..." />
+        <LoadingOverlay text="Uploading floor plan..." />
       ) : null}
       {showSaveModal ? (
         <SaveFormModal
@@ -246,10 +237,10 @@ export default function SvgComponent() {
         />
       ) : null}
       <View style={styles.header}>
-        <Text style={styles.title}>Floorplan Preview</Text>
+        <Text style={styles.title}>Preview</Text>
 
         <TextInput
-          placeholder="Enter room name..."
+          placeholder="Enter name..."
           onChangeText={(newText) => setName(newText)}
           defaultValue={name}
           style={styles.input}
@@ -257,7 +248,7 @@ export default function SvgComponent() {
       </View>
       <View style={styles.svgContainer}>
         <ViewShot ref={viewShotRef} style={{ flex: 1 }}>
-          <CreateSvg inputString={turnPointsToString()} />
+          <CreateSvg inputPoints={pointList} />
         </ViewShot>
       </View>
 
@@ -277,11 +268,8 @@ export default function SvgComponent() {
           <Text style={styles.buttonText}>Save</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity
-          onPress={() => router.push("/ar")}
-          style={styles.resetButton}
-        >
-          <Text style={styles.buttonText}>Reset</Text>
+        <TouchableOpacity onPress={onRedo} style={styles.resetButton}>
+          <Text style={styles.buttonText}>Redo</Text>
         </TouchableOpacity>
       </View>
     </View>

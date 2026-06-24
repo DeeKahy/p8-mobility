@@ -1,204 +1,176 @@
 import {
+  ViroARHitTestResult,
   ViroARScene,
   ViroBox,
   ViroMaterials,
+  ViroNode,
+  ViroPolyline,
   ViroText,
+  ViroTrackingReason,
+  ViroTrackingState,
 } from "@reactvision/react-viro";
-import React, { useMemo, useRef, useState } from "react";
-import { Dimensions, PixelRatio, StyleSheet } from "react-native";
+import React, { useMemo, useRef } from "react";
+import { StyleSheet } from "react-native";
 
-import { useLogger } from "../context/LoggerContext";
+import { useAR } from "../context/ARContext";
+import { useOverlays } from "../context/Overlays";
 import { Point3D } from "../models/3Dpoints";
 import { ACCEPTED_HIT_TYPES } from "../models/ArCoreAcceptedTypes";
-import {
-  calculateDistanceMeters,
-  formatDistanceCm,
-  isValidPoint,
-} from "../utils/arMath";
+import { distance3D, isValidPoint, lerp3D } from "../utils/arMath";
 //type Point3D = [number, number, number];
 
-// Used to "hide" AR objects by moving them far below the scene instead of removing them.
-// This keeps components mounted, avoids null position issues, and prevents flickering.
-// https://viro-community.readme.io/docs/scenes
-const HIDDEN_POINT: Point3D = [0, -10, 0];
+const MAX_HIT_DISTANCE = 50;
+const MAX_FAILED_ATTEMPTS = 75;
+const BOX_SIZE = 0.025;
+const TEXT_SIZE = 0.2;
+const LINE_THICKNESS = BOX_SIZE / 4;
 
 // Define materials for the markers (red + green)
 ViroMaterials.createMaterials({
-  pointMarker: {
-    diffuseColor: "#ff0303",
-    lightingModel: "Constant",
-  },
-  secondPointMarker: {
-    diffuseColor: "#03ff03",
-    lightingModel: "Constant",
-  },
+  pointMarker: { diffuseColor: "#ff0303", lightingModel: "Constant" },
+  pointMarkerPreview: { diffuseColor: "#ff030340", lightingModel: "Constant" },
+  lastPointMarker: { diffuseColor: "#ffffff", lightingModel: "Constant" },
 });
 
 const styles = StyleSheet.create({
   distanceLabel: {
     fontFamily: "Roboto",
-    fontSize: 56,
+    fontSize: 40,
     color: "#ffffff",
     textAlign: "center",
     textAlignVertical: "center",
   },
 });
 
-type HitTransform = {
-  position: Point3D;
-};
-
-type HitResult = {
-  type: string;
-  transform?: HitTransform;
-};
-
 // Extracts the first valid hit position from AR hit test results
-function extractHitPosition(results: unknown): Point3D | null {
-  if (!Array.isArray(results)) {
-    return null;
+function extractHitPosition(
+  results: ViroARHitTestResult[],
+  cameraPosition?: Point3D
+): Point3D | null {
+  for (const result of results) {
+    const position = result.transform.position;
+    if (
+      cameraPosition &&
+      distance3D(position, cameraPosition) > MAX_HIT_DISTANCE
+    )
+      return null; // results are sorted by increasing distance so the next result will also be too far
+    if (!ACCEPTED_HIT_TYPES.has(result.type)) continue;
+    if (isValidPoint(position)) return position;
   }
-
-  for (const entry of results) {
-    if (!entry || typeof entry !== "object") {
-      continue;
-    }
-
-    const result = entry as HitResult;
-    if (!ACCEPTED_HIT_TYPES.has(result.type)) {
-      continue;
-    }
-
-    const position = result.transform?.position;
-    if (isValidPoint(position)) {
-      return position ?? null;
-    }
-  }
-
   return null;
 }
 
-//Measuring distance formula (Euclidean distance)
-// function calculateDistanceMeters(points: [Point3D, Point3D]) {
-//   const [p1, p2] = points;
-//   const dx = p2[0] - p1[0];
-//   const dy = p2[1] - p1[1];
-//   const dz = p2[2] - p1[2];
-//   return Math.sqrt(dx ** 2 + dy ** 2 + dz ** 2);
-// }
+export default function MeasureScene() {
+  const { showToast } = useOverlays();
+  const { points, nextPoint, setNextPoint } = useAR();
+  const arSceneRef = useRef<ViroARScene>(null);
+  const hitTestAttempts = useRef(0);
 
-// function formatDistanceCm(distanceMeters: number) {
-//   return `${(distanceMeters * 100).toFixed(2)} cm`;
-// }
-
-function logDistanceCm(firstPoint: Point3D, secondPoint: Point3D) {
-  const distanceMeters = calculateDistanceMeters([firstPoint, secondPoint]);
-  return distanceMeters;
-}
-
-export default function MeasureScene(props: any) {
-  const [points, setPoints] = useState<Point3D[]>([]);
-  const { onPointAdded } = props;
-  const [firstPoint, setFirstPoint] = useState<Point3D | null>(null);
-  const [secondPoint, setSecondPoint] = useState<Point3D | null>(null);
-  const arSceneRef = useRef<ViroARScene | null>(null);
-  const { custom } = useLogger();
   const distanceLabel = useMemo(() => {
     if (points.length < 2) return "";
 
     const last = points[points.length - 1];
     const prev = points[points.length - 2];
 
-    const distanceMeters = calculateDistanceMeters([prev, last]);
-    return formatDistanceCm(distanceMeters);
+    const distanceMeters = distance3D(prev, last);
+    return `${distanceMeters.toFixed(2)}m`;
   }, [points]);
 
-  const handleSceneClick = async (tapPosition: Point3D) => {
-    if (!arSceneRef.current) return;
-
-    try {
-      let hitPosition: Point3D | null = isValidPoint(tapPosition)
-        ? tapPosition
-        : null;
-
-      if (!hitPosition) {
-        const centerX = (Dimensions.get("window").width * PixelRatio.get()) / 2;
-        const centerY =
-          (Dimensions.get("window").height * PixelRatio.get()) / 2;
-
-        const result = await arSceneRef.current.performARHitTestWithPoint(
-          centerX,
-          centerY
-        );
-        const resultCount = Array.isArray(result) ? result.length : 0;
-        custom(`AR hit test returned ${resultCount} result(s)`, "Ar");
-        hitPosition = extractHitPosition(result);
-        if (!hitPosition) {
-          custom("No valid surface detected at tap.", "Ar");
-        }
-      }
-
-      if (!hitPosition) return;
-
-      setPoints((prev) => {
-        const updatedPoints = [...prev, hitPosition];
-        setTimeout(() => {
-          onPointAdded?.(updatedPoints);
-        }, 0);
-        return updatedPoints;
-      });
-      if (!hitPosition) {
-        custom("No surface detected at this point.", "Ar");
-        return;
-      }
-      custom("hitPosition:" + hitPosition, "Ar");
-      // First tap = first point
-      // Second tap = second point
-      // Third tap resets measurement
-      if (!firstPoint || secondPoint) {
-        setFirstPoint(hitPosition);
-        setSecondPoint(null);
-        return;
-      }
-
-      setSecondPoint(hitPosition);
-
-      const distanceInCm = logDistanceCm(firstPoint, hitPosition);
-      const formated_distanceInCm = formatDistanceCm(distanceInCm);
-      custom("Distance drawed:" + formated_distanceInCm, "Ar");
-    } catch (error) {
-      // This should properly also be a toast:
-      custom("Error performing hit test:" + error, "Ar");
-    }
-  };
-
   return (
-    <ViroARScene ref={arSceneRef} onClick={handleSceneClick}>
-      {points.map((p, index) => (
-        <ViroBox
-          key={index}
-          position={p}
-          materials={["pointMarker"]}
-          scale={[0.025, 0.025, 0.025]}
-        />
-      ))}
-
-      <ViroText
-        text={distanceLabel}
-        position={
-          points.length > 0
-            ? [
-                points[points.length - 1][0],
-                points[points.length - 1][1],
-                points[points.length - 1][2],
-              ]
-            : HIDDEN_POINT
+    <ViroARScene
+      ref={arSceneRef}
+      onCameraARHitTest={({ hitTestResults, cameraOrientation }) => {
+        if (hitTestResults.length) {
+          const hitPosition = extractHitPosition(
+            hitTestResults,
+            cameraOrientation.position
+          );
+          if (hitPosition) {
+            hitTestAttempts.current = 0;
+            setNextPoint(hitPosition);
+            return;
+          }
         }
-        scale={[0.2, 0.2, 0.2]}
-        style={styles.distanceLabel}
-        transformBehaviors={["billboard"]}
-        visible={points.length >= 2}
-      />
+        // At a certain number of failed attempts in a row, show a toast to help troubleshoot.
+        // Possibly affected by framerate but shouldn't freeze the app like setTimeout inexplicably does.
+        if (++hitTestAttempts.current === MAX_FAILED_ATTEMPTS) {
+          showToast(
+            "Make sure the space is well-lit and don't move too close or too far away.",
+            "Info",
+            "Poor tracking?"
+          );
+        }
+      }}
+      onTrackingUpdated={(
+        state: ViroTrackingState,
+        reason: ViroTrackingReason
+      ) => {
+        console.log(`Tracking state set to ${state} for reason: ${reason}`);
+      }}
+    >
+      {/* Keeping all content inside the same node ensures they stay aligned*/}
+      <ViroNode position={[0, 0, 0]}>
+        {points.map((p, index) => (
+          <ViroBox
+            key={index}
+            position={p}
+            materials={
+              index === points.length - 1
+                ? ["lastPointMarker"]
+                : ["pointMarker"]
+            }
+            scale={[BOX_SIZE, BOX_SIZE, BOX_SIZE]}
+          />
+        ))}
+        {points.length > 1 ? ( // Preview of the current room shape
+          <ViroPolyline
+            position={[0, 0, 0]}
+            points={points}
+            thickness={LINE_THICKNESS}
+            materials={["pointMarker"]}
+          />
+        ) : null}
+        {points.length && nextPoint ? ( // Preview of the line to the next point
+          <ViroPolyline
+            position={[0, 0, 0]}
+            points={[points[points.length - 1], nextPoint]}
+            thickness={LINE_THICKNESS}
+            materials={["pointMarkerPreview"]}
+          />
+        ) : null}
+        {points.length > 1 ? ( // Preview of what the closed shape looks like
+          <ViroPolyline
+            position={[0, 0, 0]}
+            points={
+              nextPoint
+                ? [nextPoint, points[0]]
+                : [points[points.length - 1], points[0]]
+            }
+            thickness={LINE_THICKNESS}
+            materials={["pointMarkerPreview"]}
+          />
+        ) : null}
+        {nextPoint ? ( // Preview of where the next point will be
+          <ViroBox
+            position={nextPoint}
+            materials={["pointMarkerPreview"]}
+            scale={[BOX_SIZE, BOX_SIZE, BOX_SIZE]}
+          />
+        ) : null}
+        {points.length > 1 ? (
+          <ViroText
+            text={distanceLabel}
+            position={lerp3D(
+              points[points.length - 2],
+              points[points.length - 1],
+              0.66
+            )}
+            scale={[TEXT_SIZE, TEXT_SIZE, TEXT_SIZE]}
+            style={styles.distanceLabel}
+            transformBehaviors={["billboard"]}
+          />
+        ) : null}
+      </ViroNode>
     </ViroARScene>
   );
 }

@@ -11,6 +11,7 @@ interface MarkerOptionsModalProps {
   closeAllModals: () => void;
   handleAddFromPictureToMarker: () => void;
   handleAddFromCameraRollToMarker: () => void;
+  handleMove: () => void;
 }
 
 export const MarkerOptionsModal = (props: MarkerOptionsModalProps) => {
@@ -21,6 +22,7 @@ export const MarkerOptionsModal = (props: MarkerOptionsModalProps) => {
     closeAllModals,
     handleAddFromPictureToMarker,
     handleAddFromCameraRollToMarker,
+    handleMove,
   } = props;
   if (!showModal) return null;
   return (
@@ -50,6 +52,9 @@ export const MarkerOptionsModal = (props: MarkerOptionsModalProps) => {
             onPress={handleAddFromCameraRollToMarker}
           >
             <Text style={styles.optionText}>Choose from Library</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.optionButton} onPress={handleMove}>
+            <Text style={styles.optionText}>Move</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.optionCancelButton}

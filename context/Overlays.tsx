@@ -12,16 +12,23 @@ import Animated from "react-native-reanimated";
 
 import { Toast } from "../components/Toast";
 
-type ToastMessage = {
-  id: number;
+export type ToastType = "Success" | "Error" | "Info";
+export type ToastMessage = {
   message: string;
-  type: "Success" | "Error" | "Info";
+  type: ToastType;
+  title: string;
 };
+
+type ToastItem = ToastMessage & { id: number };
 
 type OverlayItem = { id: number; node: React.ReactNode };
 
 type OverlayContextProps = {
-  showToast: (message: string, type: "Success" | "Error" | "Info") => void;
+  showToast: (
+    message: string,
+    type: "Success" | "Error" | "Info",
+    title?: string
+  ) => void;
   register: (node: React.ReactNode) => number;
   unregister: (id: number) => void;
   update: (id: number, node: React.ReactNode) => void;
@@ -34,14 +41,18 @@ interface OverlayProviderProps {
 }
 
 export const OverlayProvider: FC<OverlayProviderProps> = ({ children }) => {
-  const [toast, setToast] = useState<ToastMessage[]>([]);
+  const [toast, setToast] = useState<ToastItem[]>([]);
 
   const idRef = useRef(0);
 
   const showToast = useCallback(
-    (message: string, type: "Success" | "Error" | "Info") => {
+    (
+      message: string,
+      type: "Success" | "Error" | "Info",
+      title: string = type
+    ) => {
       const id = ++idRef.current;
-      setToast((prev) => [...prev, { id, message, type }]);
+      setToast((prev) => [...prev, { id, message, type, title }]);
     },
     []
   );
@@ -80,11 +91,12 @@ export const OverlayProvider: FC<OverlayProviderProps> = ({ children }) => {
       {overlays.map(({ id, node }) => (
         <React.Fragment key={id}>{node}</React.Fragment>
       ))}
-      {toast.map(({ id, message, type }) => (
+      {toast.map(({ id, message, type, title }) => (
         <Toast
           key={id}
           message={message}
           type={type}
+          title={title}
           onRemove={() => removeToast(id)}
         />
       ))}

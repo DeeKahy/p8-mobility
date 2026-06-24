@@ -1,5 +1,5 @@
 import { yupResolver } from "@hookform/resolvers/yup";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useForm, Controller, ControllerRenderProps } from "react-hook-form";
 //Expected photo data format to make it easier to pass over including only the most necessary. Also works in unison with yup validator.
 import {
@@ -9,16 +9,20 @@ import {
   TouchableOpacity,
   Text,
   ScrollView,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import DropDownPicker, { ItemType } from "react-native-dropdown-picker";
 import * as yup from "yup";
 
 import FloatingHelpButton from "./FloatingHelpButton";
 import FullscreenImage from "./FullscreenImage";
-import { Overlay } from "../context/Overlays";
+import { Overlay, useOverlays } from "../context/Overlays";
 import { styles } from "../css/photoForm";
 import { styles as listStyles } from "../css/photo_list";
 import { PhotoData } from "../models/PhotoFormModel";
+import { isImageBlurry } from "../utils/blurDetection";
 import { hashNameToColor } from "../utils/stringColor";
 //Photo form to take data from index.tsx and opening and closing modal
 type PhotoFormProps = {
@@ -62,6 +66,20 @@ export const PhotoFormModal = ({
   date,
   onSubmit,
 }: PhotoFormProps) => {
+  const { showToast } = useOverlays();
+
+  useEffect(() => {
+    // To run an async function in a useEffect, we need to define it inside
+    const toastBlur = async () => {
+      const blurry = await isImageBlurry(photoUri);
+      showToast(
+        blurry ? "Is the image clear?" : "Image looks sharp!",
+        blurry ? "Info" : "Success"
+      );
+    };
+    toastBlur();
+  }, []);
+
   //Is used for controlling variables (e.g. when we update a value the yup resolver will take note of that).
   //Also for including errors in yup validator based on schema provided above, and also handling submit button.
   const {
@@ -99,105 +117,162 @@ export const PhotoFormModal = ({
   });
 
   const [fullscreenImage, setFullscreenImage] = useState("");
+
+  // Hack to get rid of the gap caused by KeyboardAvoidingView when the keyboard is closed
+  // Taken from https://stackoverflow.com/a/79665003
+  const [flexToggle, setFlexToggle] = useState(false);
+  useEffect(() => {
+    const keyboardShowListener = Keyboard.addListener("keyboardDidShow", () => {
+      setFlexToggle(false);
+    });
+
+    const keyboardHideListener = Keyboard.addListener("keyboardDidHide", () => {
+      setFlexToggle(true);
+    });
+
+    return () => {
+      keyboardShowListener.remove();
+      keyboardHideListener.remove();
+    };
+  }, []);
+
   return (
     <Overlay
       style={styles.fullscreenOverlay}
       animationType="slide"
-      dependencies={[errors, fullscreenImage, items]}
+      dependencies={[errors, fullscreenImage, items, flexToggle]}
     >
-      <FloatingHelpButton />
-      <View style={{ flex: 1 }}>
-        <ScrollView
-          style={styles.container}
-          contentContainerStyle={{ padding: 20 }}
-        >
-          <View style={styles.formCard}>
-            <Text>Tap to enlarge:</Text>
-            <TouchableOpacity
-              style={styles.imageContainer}
-              onPress={() => {
-                setFullscreenImage(photoUri);
-              }}
-            >
-              <Image source={{ uri: photoUri }} style={styles.image} />
-            </TouchableOpacity>
-            {errors.photoUri ? (
-              <Text style={styles.error}>{errors.photoUri.message}</Text>
-            ) : null}
-
-            <Text>Image title:</Text>
-            {/* Tracking input using control for the form  */}
-            <Controller
-              control={control}
-              name="pictureName"
-              render={({ field: { onChange, value } }) => (
-                <TextInput
-                  style={styles.input}
-                  placeholder="Picture name..."
-                  value={value}
-                  onChangeText={onChange}
-                />
-              )}
-            />
-            {errors.pictureName ? (
-              <Text style={styles.error}>{errors.pictureName.message}</Text>
-            ) : null}
-
-            <Text>Group:</Text>
-            <Controller
-              control={control}
-              name="areaGroup"
-              render={({ field }) => (
-                <GroupPicker field={field} items={items} setItems={setItems} />
-              )}
-            />
-            {errors.areaGroup ? (
-              <Text style={styles.error}>{errors.areaGroup.message}</Text>
-            ) : null}
-
-            <Text>Description:</Text>
-            <Controller
-              control={control}
-              name="description"
-              render={({ field: { value, onChange } }) => (
-                <TextInput
-                  multiline
-                  numberOfLines={5}
-                  style={styles.textarea}
-                  value={value}
-                  onChangeText={onChange}
-                />
-              )}
-            />
-            <Text>Date:</Text>
-            <Controller
-              control={control}
-              name="dateTaken"
-              render={() => (
-                <TextInput
-                  style={styles.dateInput}
-                  value={date}
-                  placeholder="YYYY-MM-DD"
-                  editable={false}
-                />
-              )}
-            />
-            {errors.dateTaken ? (
-              <Text style={styles.error}>{errors.dateTaken.message}</Text>
-            ) : null}
-          </View>
-          <View style={styles.buttonContainer}>
-            <View style={styles.buttonRow}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
+        style={
+          flexToggle
+            ? [{ flexGrow: 1 }, styles.container]
+            : [{ flex: 1 }, styles.container]
+        }
+        enabled={!flexToggle}
+      >
+        <FloatingHelpButton />
+        <View style={{ flex: 1 }}>
+          <ScrollView
+            style={styles.container}
+            contentContainerStyle={{ padding: 20 }}
+          >
+            <View style={styles.formCard}>
+              <Text>Tap to enlarge:</Text>
               <TouchableOpacity
-                style={[
-                  listStyles.card,
-                  { width: "40%", backgroundColor: "#19ae75" },
-                ]}
-                disabled={isLoading || isSubmitting}
-                onPress={handleSubmit(
-                  (data) => {
-                    console.log("Submit");
-                    onSubmit(data);
+                style={styles.imageContainer}
+                onPress={() => {
+                  setFullscreenImage(photoUri);
+                }}
+              >
+                <Image source={{ uri: photoUri }} style={styles.image} />
+              </TouchableOpacity>
+              {errors.photoUri ? (
+                <Text style={styles.error}>{errors.photoUri.message}</Text>
+              ) : null}
+
+              <Text>Image title:</Text>
+              {/* Tracking input using control for the form  */}
+              <Controller
+                control={control}
+                name="pictureName"
+                render={({ field: { onChange, value } }) => (
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Picture name..."
+                    value={value}
+                    onChangeText={onChange}
+                  />
+                )}
+              />
+              {errors.pictureName ? (
+                <Text style={styles.error}>{errors.pictureName.message}</Text>
+              ) : null}
+
+              <Text>Group:</Text>
+              <Controller
+                control={control}
+                name="areaGroup"
+                render={({ field }) => (
+                  <GroupPicker
+                    field={field}
+                    items={items}
+                    setItems={setItems}
+                  />
+                )}
+              />
+              {errors.areaGroup ? (
+                <Text style={styles.error}>{errors.areaGroup.message}</Text>
+              ) : null}
+
+              <Text>Description:</Text>
+              <Controller
+                control={control}
+                name="description"
+                render={({ field: { value, onChange } }) => (
+                  <TextInput
+                    multiline
+                    numberOfLines={5}
+                    style={styles.textarea}
+                    value={value}
+                    onChangeText={onChange}
+                  />
+                )}
+              />
+              <Text>Date:</Text>
+              <Controller
+                control={control}
+                name="dateTaken"
+                render={() => (
+                  <TextInput
+                    style={styles.dateInput}
+                    value={date}
+                    placeholder="YYYY-MM-DD"
+                    editable={false}
+                  />
+                )}
+              />
+              {errors.dateTaken ? (
+                <Text style={styles.error}>{errors.dateTaken.message}</Text>
+              ) : null}
+            </View>
+            <View style={styles.buttonContainer}>
+              <View style={styles.buttonRow}>
+                <TouchableOpacity
+                  style={[
+                    listStyles.card,
+                    { width: "40%", backgroundColor: "#19ae75" },
+                  ]}
+                  disabled={isLoading || isSubmitting}
+                  onPress={handleSubmit(
+                    (data) => {
+                      console.log("Submit");
+                      onSubmit(data);
+                      reset({
+                        photoUri,
+                        dateTaken: date,
+                        pictureName: "",
+                        areaGroup: "",
+                        description: "",
+                      });
+                    },
+                    (errors) => {
+                      console.log("Submit blocked by validation.");
+                    }
+                  )}
+                >
+                  <Text style={styles.buttonText}>Done</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    listStyles.card,
+                    { width: "40%", backgroundColor: "#ff3355" },
+                  ]}
+                  disabled={isLoading || isSubmitting}
+                  onPress={() => {
+                    onSkip();
                     reset({
                       photoUri,
                       dateTaken: date,
@@ -205,41 +280,18 @@ export const PhotoFormModal = ({
                       areaGroup: "",
                       description: "",
                     });
-                  },
-                  (errors) => {
-                    console.log("Submit blocked by validation.");
-                  }
-                )}
-              >
-                <Text style={styles.buttonText}>Done</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[
-                  listStyles.card,
-                  { width: "40%", backgroundColor: "#ff3355" },
-                ]}
-                disabled={isLoading || isSubmitting}
-                onPress={() => {
-                  onSkip();
-                  reset({
-                    photoUri,
-                    dateTaken: date,
-                    pictureName: "",
-                    areaGroup: "",
-                    description: "",
-                  });
-                }}
-              >
-                <Text style={styles.buttonText}>Skip</Text>
-              </TouchableOpacity>
+                  }}
+                >
+                  <Text style={styles.buttonText}>Skip</Text>
+                </TouchableOpacity>
+              </View>
             </View>
-          </View>
-        </ScrollView>
-      </View>
-      {fullscreenImage ? (
-        <FullscreenImage uri={fullscreenImage} setUri={setFullscreenImage} />
-      ) : null}
+          </ScrollView>
+        </View>
+        {fullscreenImage ? (
+          <FullscreenImage uri={fullscreenImage} setUri={setFullscreenImage} />
+        ) : null}
+      </KeyboardAvoidingView>
     </Overlay>
   );
 };

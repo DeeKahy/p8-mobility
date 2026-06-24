@@ -25,6 +25,7 @@ export const RotationControls: FC<RotationControlsProps> = ({
       <TouchableOpacity
         onPressIn={() => startRotating(-1)}
         onPressOut={stopRotating}
+        hitSlop={40}
       >
         <Text style={{ fontSize: 28 }}>↺</Text>
       </TouchableOpacity>
@@ -37,12 +38,13 @@ export const RotationControls: FC<RotationControlsProps> = ({
           textAlign: "center",
         }}
       >
-        {`${((rotation % 360) + 360) % 360}°`}
+        {`${rotation}°`}
       </Text>
 
       <TouchableOpacity
         onPressIn={() => startRotating(1)}
         onPressOut={stopRotating}
+        hitSlop={40}
       >
         <Text style={{ fontSize: 28 }}>↻</Text>
       </TouchableOpacity>

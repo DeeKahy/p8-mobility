@@ -1,8 +1,11 @@
+import base64
+import io
 import json
 import os
 import shutil
 
-from flask import Flask, jsonify
+from flask import Flask, jsonify, send_file
+from PIL import Image, ImageDraw, ImageFont
 from utils import (
     add_created_metadata,
     api_error,
@@ -266,6 +269,135 @@ def update_marker_coordinates(username, floorplan_id, marker_id):
         return api_error("corrupted file", 500)
 
     return jsonify({"status": "updated", "marker": marker_data})
+
+
+_FONT_PATH = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
+_FONT_BOLD_PATH = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+
+
+def decode_data_uri(data_uri):
+    """Decode a base64 image string (data URI or raw) and return a PIL Image.
+
+    Tolerates real-world data: a missing 'data:...,' prefix and base64 that is
+    not padded to a multiple of 4.
+    """
+    encoded = data_uri.split(",", 1)[1] if "," in data_uri else data_uri
+    encoded = "".join(encoded.split())        # strip whitespace / newlines
+    encoded += "=" * (-len(encoded) % 4)      # restore missing padding
+    return Image.open(io.BytesIO(base64.b64decode(encoded))).convert("RGB")
+
+
+def add_image_label(image, picture_name, date):
+    """Return a new image with a label banner above the given image.
+
+    The banner shows 'Picture name: <name>   Date for upload: <date>' in a
+    white bar above the photo so every PDF page is self-describing.
+    """
+    font_size = max(20, image.width // 40)
+    padding = font_size
+
+    try:
+        font = ImageFont.truetype(_FONT_BOLD_PATH, font_size)
+    except OSError:
+        font = ImageFont.load_default()
+
+    label = f"Picture name: {picture_name}     Date for upload: {date}"
+
+    # Measure text height to size the banner correctly
+    dummy = Image.new("RGB", (1, 1))
+    draw = ImageDraw.Draw(dummy)
+    bbox = draw.textbbox((0, 0), label, font=font)
+    text_h = bbox[3] - bbox[1]
+    banner_h = text_h + padding * 2
+
+    combined = Image.new("RGB", (image.width, image.height + banner_h), (255, 255, 255))
+    combined.paste(image, (0, banner_h))
+
+    draw = ImageDraw.Draw(combined)
+    draw.text((padding, padding), label, fill=(30, 30, 30), font=font)
+
+    return combined
+
+
+@app.route("/api/users/<username>/images/pdf", methods=["GET"])
+def images_to_pdf(username):
+    """Collect all images for a user and return them as a single PDF.
+
+    Walks every floorplan directory for the user. Picks up the floorplan image
+    from imageUri in floorplan.json, then picks up every photo from the photos
+    array in each marker JSON. Each image becomes one page in the PDF, which is
+    returned directly as an attachment.
+    """
+    print(f"[route] images_to_pdf hit: username={username}")
+    try:
+        username = safe_name(username)
+    except ValueError:
+        return api_error("invalid name", 400)
+
+    user_dir = user_path(username)
+    if not os.path.isdir(user_dir):
+        return api_error("no data found for user", 404)
+
+    images = []
+
+    def add_labeled_image(data_uri, name, date):
+        """Decode one image and add a labeled page; skip if it is not valid.
+
+        Some stored photoUri values are junk (e.g. truncated placeholders from
+        failed uploads), so a single bad image must not fail the whole PDF.
+        """
+        try:
+            img = decode_data_uri(data_uri)
+        except Exception as error:
+            print(f"[images_to_pdf] skipping undecodable image {name!r}: {error}")
+            return
+        images.append(add_image_label(img, name, date))
+
+    try:
+        for floorplan_id in sorted(os.listdir(user_dir)):
+            fp_file = floorplan_file_path(username, floorplan_id)
+            if not os.path.isfile(fp_file):
+                continue
+
+            floorplan_data = read_json_file(fp_file)
+
+            if floorplan_data.get("imageUri"):
+                name = floorplan_data.get("imageName", floorplan_id)
+                date = floorplan_data.get("createdAt", "unknown")[:10]
+                add_labeled_image(floorplan_data["imageUri"], name, date)
+
+            marker_dir = markers_path(username, floorplan_id)
+            if not os.path.isdir(marker_dir):
+                continue
+
+            for marker_file in sorted(os.listdir(marker_dir)):
+                if not marker_file.endswith(".json"):
+                    continue
+
+                marker_data = read_json_file(os.path.join(marker_dir, marker_file))
+
+                for photo in marker_data.get("photos", []):
+                    if photo.get("photoUri"):
+                        name = photo.get("pictureName", "unknown")
+                        date = photo.get("dateTaken", "unknown")
+                        add_labeled_image(photo["photoUri"], name, date)
+
+    except (OSError, json.JSONDecodeError) as error:
+        return api_error(f"failed to read data: {error}", 500)
+
+    if not images:
+        return api_error("no images found", 404)
+
+    pdf_bytes = io.BytesIO()
+    images[0].save(pdf_bytes, format="PDF", save_all=True, append_images=images[1:])
+    pdf_bytes.seek(0)
+
+    return send_file(
+        pdf_bytes,
+        mimetype="application/pdf",
+        as_attachment=True,
+        download_name=f"{username}_images.pdf",
+    )
 
 
 @app.route("/api/resetUser/<username>", methods=["DELETE"])

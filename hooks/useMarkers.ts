@@ -2,12 +2,9 @@ import { useState } from "react";
 
 import { PhotoData } from "../models/PhotoFormModel";
 
-export interface Marker {
-  id: string;
-  x: number;
-  y: number;
-  photos: PhotoData[];
-}
+export type MarkerContent = { id: string; photos: PhotoData[] };
+
+export type Marker = MarkerContent & { x: number; y: number };
 
 // Throw this error when you want the affected marker to be deleted by editMarker instead of edited.
 class MarkerDeletionException extends Error {
